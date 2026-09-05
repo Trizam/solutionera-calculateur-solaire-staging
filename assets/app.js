@@ -177,14 +177,17 @@
     el.classList.remove("is-loading", "is-error", "is-ready");
     if (gridStatus === "loading") {
       el.hidden = false;
+      el.setAttribute("aria-busy", "true");
       el.classList.add("is-loading");
       el.textContent = "Chargement de la grille d’irradiation…";
     } else if (gridStatus === "error") {
       el.hidden = false;
+      el.setAttribute("aria-busy", "false");
       el.classList.add("is-error");
       el.textContent = "Grille indisponible — estimation de secours (réf. Sud / 30°).";
     } else {
       el.hidden = true;
+      el.setAttribute("aria-busy", "false");
       el.classList.add("is-ready");
       el.textContent = "";
     }
@@ -266,6 +269,33 @@
 
   let infoOpener = null;
 
+  function modalFocusables() {
+    const m = $("infoModal");
+    if (!m || m.hidden) return [];
+    const sel = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    return Array.prototype.slice.call(m.querySelectorAll(sel)).filter(function (el) {
+      return el.offsetParent !== null || el === document.activeElement;
+    });
+  }
+
+  function trapModalTab(e) {
+    const m = $("infoModal");
+    if (!m || m.hidden || e.key !== "Tab") return;
+    const list = modalFocusables();
+    if (list.length === 0) return;
+    const first = list[0];
+    const last = list[list.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first || !m.contains(document.activeElement)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (document.activeElement === last || !m.contains(document.activeElement)) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function openInfo() {
     const m = $("infoModal");
     if (!m) return;
@@ -305,7 +335,9 @@
     $("unitM2").addEventListener("click", () => setUnit("m2"));
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
     $("btnPdf").addEventListener("click", printPdf);
-    $("bugLink").addEventListener("click", reportBug);
+    document.querySelectorAll(".bug-report").forEach((a) => {
+      a.addEventListener("click", reportBug);
+    });
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnInfoClose")) $("btnInfoClose").addEventListener("click", closeInfo);
     if ($("btnInfoOk")) $("btnInfoOk").addEventListener("click", closeInfo);
@@ -316,6 +348,7 @@
     }
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeInfo();
+      trapModalTab(e);
     });
 
     $("priceW").value = 3;

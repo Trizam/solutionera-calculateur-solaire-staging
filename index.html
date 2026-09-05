@@ -16,7 +16,7 @@
 <body>
   <div class="wrap">
     <div class="brand">
-      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="40" height="40" />
+      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="44" height="44" decoding="async" />
       <div>
         <div class="brand-name">Solution Era</div>
         <div class="brand-sub">Calculateur solaire · version 0.2</div>
@@ -48,16 +48,16 @@
         <div class="label-row">
           <label for="tilt">Inclinaison</label>
           <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
-            <svg viewBox="0 0 64 48" width="56" height="42">
-              <!-- ground -->
-              <line x1="4" y1="40" x2="60" y2="40" stroke="currentColor" stroke-width="1.5" opacity="0.35" />
+            <svg viewBox="0 0 64 48" width="56" height="42" role="img">
+              <!-- ground — stronger contrast vs soft green card -->
+              <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
               <!-- roof/panel line (updated by JS) -->
               <g id="tiltPanel">
-                <line id="tiltLine" x1="12" y1="40" x2="52" y2="40" stroke="#2d6a4f" stroke-width="3" stroke-linecap="round" />
-                <circle id="tiltHinge" cx="12" cy="40" r="2.5" fill="#2d6a4f" />
+                <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
+                <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
               </g>
-              <!-- angle arc label -->
-              <text id="tiltDegLabel" x="40" y="18" font-size="11" font-weight="700" fill="#2d6a4f" font-family="Lato,sans-serif">30°</text>
+              <!-- angle label -->
+              <text id="tiltDegLabel" x="38" y="16" font-size="12" font-weight="700" fill="#1b4332" font-family="Lato,sans-serif">30°</text>
             </svg>
           </div>
         </div>
@@ -125,14 +125,14 @@
           </div>
           <div class="slider-track">
             <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
-            <div class="slider-meta"><span>0&nbsp;% — je ne déneige pas</span><span>100&nbsp;% — je déneige toujours</span></div>
+            <div class="slider-meta"><span>0&nbsp;%</span><span>100&nbsp;%</span></div>
           </div>
         </div>
         <p class="hint">→ 100&nbsp;% = récupère tout le risque neige · 0&nbsp;% = je ne déneige pas · défaut 20&nbsp;%</p>
       </div>
 
       <div class="result-pill">
-        <p class="grid-status is-loading" id="gridStatus" aria-live="polite">Chargement de la grille d’irradiation…</p>
+        <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
         <div class="big" id="outKwh">≈ — kWh / an</div>
         <div class="label">avec votre installation solaire</div>
@@ -232,10 +232,10 @@
     </aside>
 
     <footer class="bug">
-      <a href="#" id="bugLink" title="Signaler un bug">!</a>
-      &nbsp;Un chiffre te semble off&nbsp;? <a href="#" id="bugLink2" onclick="document.getElementById('bugLink').click();return false;">Signale un bug ou une erreur de calcul</a>
+      <a href="#" id="bugLink" class="bug-report" title="Signaler un bug">!</a>
+      &nbsp;Un chiffre te semble off&nbsp;? <a href="#" id="bugLink2" class="bug-report">Signale un bug ou une erreur de calcul</a>
       — on apprend ensemble.<br />
-      <span style="font-size:0.72rem">© Solution Era · Calculateur solaire · version 0.2 staging</span>
+      <span class="bug-ver">© Solution Era · Calculateur solaire · version 0.2 staging</span>
     </footer>
   </div>
 
