@@ -56,6 +56,10 @@ body.modal-open { overflow: hidden; touch-action: none; }
   width: 100%;
   margin: 0 auto;
   padding: 1rem 1rem 3rem;
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
 }
 .brand {
   display: flex;
@@ -192,6 +196,7 @@ section.block h2 .num {
   font-size: 0.85rem;
   color: var(--muted);
   cursor: pointer;
+  touch-action: manipulation;
 }
 .unit-toggle button.active {
   background: var(--green-soft);
@@ -205,6 +210,8 @@ section.block h2 .num {
   gap: 0.75rem;
   margin-top: 0.35rem;
   touch-action: none; /* Safari: keep page from stealing range drag */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .slider-val-left {
   /* auto width + min so « 3,00 $/W » / « −14 % annuel » never collide */
@@ -267,6 +274,8 @@ section.block h2 .num {
   margin: 0;
   background: transparent;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   accent-color: var(--accent);
   cursor: pointer;
 }
@@ -296,6 +305,9 @@ section.block h2 .num {
   border: 3px solid #fff;
   box-shadow: 0 1px 6px rgba(27, 67, 50, 0.35);
   cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .slider-track input[type="range"]::-moz-range-track {
   height: 8px;
@@ -311,6 +323,9 @@ section.block h2 .num {
   border: 3px solid #fff;
   box-shadow: 0 1px 6px rgba(27, 67, 50, 0.35);
   cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .checks { display: flex; flex-direction: column; gap: 0.55rem; }
@@ -424,6 +439,7 @@ section.block h2 .num {
   font-size: 0.95rem;
   cursor: pointer;
   box-shadow: var(--shadow);
+  touch-action: manipulation;
 }
 .btn:hover { background: var(--green-dark); }
 .disclaimers {
@@ -455,6 +471,7 @@ section.block h2 .num {
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 .info-btn:hover { background: #c8ebd0; }
 .info-icon { font-size: 0.95rem; line-height: 1; }
@@ -471,7 +488,7 @@ footer.bug {
   text-align: center;
   font-size: 0.82rem;
   color: var(--muted);
-  padding-bottom: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 footer.bug a {
   color: var(--green);
@@ -509,6 +526,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   max-width: 520px;
   width: 100%;
   max-height: min(88vh, 640px);
+  max-height: min(88dvh, 640px);
   overflow: auto;
   padding: 1.15rem 1.2rem 1.25rem;
   box-shadow: 0 12px 40px rgba(27, 67, 50, 0.25);
@@ -535,6 +553,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
 }
 .modal-body {
   font-size: 0.88rem;
@@ -544,6 +563,10 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 .modal-body ul { margin: 0 0 0.65rem; padding-left: 1.15rem; }
 .modal-body li { margin-bottom: 0.25rem; }
 .modal-card .btn { margin-top: 0.5rem; }
+
+@page {
+  margin: 12mm;
+}
 
 @media print {
   body { background: #fff; color: #000; }
@@ -621,7 +644,13 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 
 /* ~390px phones: hero/brand spacing + slider values stay clear of track/meta */
 @media (max-width: 390px) {
-  .wrap { padding: 0.85rem 0.85rem 2.5rem; }
+  .wrap {
+    padding: 0.85rem 0.85rem 2.5rem;
+    padding-top: max(0.85rem, env(safe-area-inset-top, 0px));
+    padding-right: max(0.85rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.85rem, env(safe-area-inset-left, 0px));
+  }
   .brand { margin-bottom: 0.55rem; gap: 0.55rem; }
   .brand-logo { width: 44px; height: 44px; }
   .brand-name { font-size: 0.9rem; }

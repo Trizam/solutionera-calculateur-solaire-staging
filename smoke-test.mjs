@@ -204,10 +204,22 @@ const hasSkipFocus = app.includes("focusSkipTarget") && app.includes("main.focus
 const hasGridRetry = app.includes("fetchGridOnce");
 const hasAriaPressed = app.includes("aria-pressed");
 const safariRowTouch = css.includes("touch-action: none") && /\.slider-row[\s\S]{0,120}touch-action:\s*none/.test(css);
+const safariUserSelect = css.includes("-webkit-user-select: none") && /\.slider-row[\s\S]{0,200}-webkit-user-select:\s*none/.test(css);
+const safeArea = css.includes("safe-area-inset") && css.includes("env(safe-area-inset-top");
+const btnManipulation = css.includes("touch-action: manipulation") && /\.btn\s*\{[\s\S]{0,400}?touch-action:\s*manipulation/.test(css);
+const pageMargin = css.includes("@page") && /@page\s*\{[^}]*margin\s*:/.test(css);
+const modalDvh = css.includes("88dvh") || css.includes("100dvh");
+const pdfPrintOnly = /function\s+printPdf\s*\([^)]*\)\s*\{\s*window\.print\s*\(\s*\)\s*;\s*\}/.test(app) || (app.includes("window.print()") && app.includes("function printPdf") && !/printPdf[\s\S]{0,80}jspdf|html2canvas|pdf-lib/i.test(app));
 console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
 console.log(`  grid fetch retry once: ${hasGridRetry ? "PASS" : "FAIL"}`);
 console.log(`  unit aria-pressed: ${hasAriaPressed ? "PASS" : "FAIL"}`);
 console.log(`  slider-row Safari touch-action: ${safariRowTouch ? "PASS" : "FAIL"}`);
+console.log(`  slider-row -webkit-user-select: ${safariUserSelect ? "PASS" : "FAIL"}`);
+console.log(`  safe-area-inset padding: ${safeArea ? "PASS" : "FAIL"}`);
+console.log(`  btn touch-action manipulation: ${btnManipulation ? "PASS" : "FAIL"}`);
+console.log(`  @page print margin: ${pageMargin ? "PASS" : "FAIL"}`);
+console.log(`  modal max-height dvh: ${modalDvh ? "PASS" : "FAIL"}`);
+console.log(`  btnPdf window.print only: ${pdfPrintOnly ? "PASS" : "FAIL"}`);
 
 const pass =
   ok &&
@@ -260,7 +272,13 @@ const pass =
   hasSkipFocus &&
   hasGridRetry &&
   hasAriaPressed &&
-  safariRowTouch;
+  safariRowTouch &&
+  safariUserSelect &&
+  safeArea &&
+  btnManipulation &&
+  pageMargin &&
+  modalDvh &&
+  pdfPrintOnly;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
