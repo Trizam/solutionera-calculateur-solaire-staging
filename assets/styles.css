@@ -648,3 +648,8 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     max-width: 48%;
   }
 }
+
+/* Skip target: allow programmatic focus without ugly ring flash, keep :focus-visible */
+#main:focus { outline: none; }
+#main:focus-visible { outline: 2px solid var(--green, #1b4332); outline-offset: 4px; }
+#sec-prod:focus { outline: none; }
