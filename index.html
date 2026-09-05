@@ -227,7 +227,7 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis. Version&nbsp;0.2.</li>
-        <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (pas de 15°) · fichier <code>quebec-full-grid.json</code>.</li>
+        <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage et 2 paliers Tarif D = plus tard.</li>
@@ -251,7 +251,7 @@
         <button type="button" class="modal-close" id="btnInfoClose" aria-label="Fermer">×</button>
       </div>
       <div class="modal-body" id="infoDesc">
-        <p><strong>Grille d’irradiation</strong> — estimation annuelle basée sur NREL PVWatts, grille fixe ancrée sur Québec (ville). 7 inclinaisons × 24 orientations (pas de 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
+        <p><strong>Grille d’irradiation</strong> — estimation annuelle basée sur NREL PVWatts, grille fixe ancrée sur Québec (ville). 7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
         <p><strong>Déneigement (W)</strong> — part de production « à risque neige », modèle pédagogique simplifié selon l’inclinaison (pas l’orientation)&nbsp;:</p>
         <ul>
           <li>≤ 45° → W = 18&nbsp;%</li>
