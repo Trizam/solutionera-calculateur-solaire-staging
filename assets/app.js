@@ -184,7 +184,14 @@
       el.hidden = false;
       el.setAttribute("aria-busy", "false");
       el.classList.add("is-error");
-      el.textContent = "Grille indisponible — estimation de secours (réf. Sud / 30°).";
+      el.innerHTML = 'Grille indisponible — estimation de secours (réf. Sud / 30°). <button type="button" class="grid-retry" id="btnGridRetry">Réessayer</button>';
+      const btn = $("btnGridRetry");
+      if (btn && !btn._wired) {
+        btn._wired = true;
+        btn.addEventListener("click", function () {
+          loadGrid().then(function () { render(); });
+        });
+      }
     } else {
       el.hidden = true;
       el.setAttribute("aria-busy", "false");
@@ -330,14 +337,17 @@
   }
 
   /**
-   * iOS Safari often eats range drag (page scroll wins). Pointer capture +
-   * clientX→value mapping keeps thumbs draggable; mouse stays native.
-   * Touch-event fallback covers older WebKit without PointerEvent.
+   * iOS Safari often eats range drag (page scroll / pointercancel wins).
+   * Dual path: ALWAYS wire touchstart/move with preventDefault (stops iOS
+   * gesture recognition before pointercancel), PLUS PointerEvent capture for
+   * pen / browsers where touch is absent. Mouse stays native.
+   * viaTouch gates pointer handlers so we do not double-fire on iOS.
    */
   function wireRangePointerDrag(input) {
     if (!input || input.type !== "range") return;
     let activeId = null;
     let touching = false;
+    let viaTouch = false;
 
     function valueFromClientX(clientX) {
       const rect = input.getBoundingClientRect();
@@ -369,8 +379,35 @@
       if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
+    // Touch first: iOS needs preventDefault on touch* to avoid pointercancel
+    input.addEventListener("touchstart", function (e) {
+      if (!e.touches || !e.touches[0]) return;
+      touching = true;
+      viaTouch = true;
+      activeId = null;
+      applyClientX(e.touches[0].clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+    input.addEventListener("touchmove", function (e) {
+      if (!touching || !e.touches || !e.touches[0]) return;
+      applyClientX(e.touches[0].clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+    function endTouch(e) {
+      if (!touching) return;
+      const t = (e.changedTouches && e.changedTouches[0]) || null;
+      if (t) applyClientX(t.clientX, true);
+      touching = false;
+      // Keep viaTouch until next pointerdown without touch
+      setTimeout(function () { if (!touching) viaTouch = false; }, 0);
+    }
+    input.addEventListener("touchend", endTouch);
+    input.addEventListener("touchcancel", endTouch);
+
     if (typeof window.PointerEvent === "function") {
       input.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse") return;
+        if (viaTouch || touching) return; // touch path owns this gesture
         if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
         activeId = e.pointerId;
         try { input.setPointerCapture(e.pointerId); } catch (_) {}
@@ -379,12 +416,14 @@
       }, { passive: false });
 
       input.addEventListener("pointermove", function (e) {
+        if (viaTouch || touching) return;
         if (activeId === null || e.pointerId !== activeId) return;
         applyClientX(e.clientX, false);
         e.preventDefault();
       }, { passive: false });
 
       function endDrag(e) {
+        if (viaTouch || touching) { activeId = null; return; }
         if (activeId === null || e.pointerId !== activeId) return;
         applyClientX(e.clientX, true);
         activeId = null;
@@ -392,26 +431,6 @@
       }
       input.addEventListener("pointerup", endDrag);
       input.addEventListener("pointercancel", endDrag);
-    } else {
-      input.addEventListener("touchstart", function (e) {
-        if (!e.touches || !e.touches[0]) return;
-        touching = true;
-        applyClientX(e.touches[0].clientX, false);
-        e.preventDefault();
-      }, { passive: false });
-      input.addEventListener("touchmove", function (e) {
-        if (!touching || !e.touches || !e.touches[0]) return;
-        applyClientX(e.touches[0].clientX, false);
-        e.preventDefault();
-      }, { passive: false });
-      function endTouch(e) {
-        if (!touching) return;
-        const t = (e.changedTouches && e.changedTouches[0]) || null;
-        if (t) applyClientX(t.clientX, true);
-        touching = false;
-      }
-      input.addEventListener("touchend", endTouch);
-      input.addEventListener("touchcancel", endTouch);
     }
   }
 

@@ -646,6 +646,25 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 }
 .grid-status.is-loading { color: var(--accent); }
 .grid-status.is-error { color: var(--warn); }
+.grid-retry {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.grid-retry:focus-visible {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 2px;
+}
 .grid-status[hidden] {
   /* Keep layout slot (visibility) instead of collapsing display */
   visibility: hidden;

@@ -232,6 +232,8 @@ console.log(`  viewport-fit=cover: ${viewportFit ? "PASS" : "FAIL"}`);
 
 const tiltWLabel = html.includes('id="tiltWLabel"') && app.includes("tiltWLabel");
 const touchFallback = app.includes("touchstart") && app.includes("PointerEvent");
+const dualTouchPointer = app.includes("viaTouch") && app.includes("touchstart") && app.includes("setPointerCapture");
+const gridRetryBtn = app.includes("btnGridRetry") && css.includes(".grid-retry");
 const gridReload = app.includes('"reload"') || app.includes("'reload'");
 const beforePrint = app.includes("beforeprint");
 const wrapAria = app.includes('aria-hidden') && app.includes('.wrap');
@@ -240,6 +242,8 @@ const themeColor = html.includes('name="theme-color"');
 const rate16 = /\.rate-box input\s*\{[\s\S]{0,220}?font-size:\s*16px/.test(css);
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
+console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
+console.log(`  grid fail-soft retry button: ${gridRetryBtn ? "PASS" : "FAIL"}`);
 console.log(`  grid retry cache reload: ${gridReload ? "PASS" : "FAIL"}`);
 console.log(`  beforeprint closes modal: ${beforePrint ? "PASS" : "FAIL"}`);
 console.log(`  modal wrap aria-hidden: ${wrapAria ? "PASS" : "FAIL"}`);
@@ -311,6 +315,8 @@ const pass =
   viewportFit &&
   tiltWLabel &&
   touchFallback &&
+  dualTouchPointer &&
+  gridRetryBtn &&
   gridReload &&
   beforePrint &&
   wrapAria &&
