@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-/** Analyste smoke — Calculateur Solaire V0.1 (+ déneigement) */
+/** Analyste smoke — Calculateur Solaire V0.1 · grille Québec */
 import { readFileSync, readdirSync, statSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
-const RATE = 0.11142; // Tarif D 2e tranche
-const W = 0.1768;
 
 const kW = 6.5;
 const priceW = 3;
@@ -23,10 +21,15 @@ console.log(`  HT=${HT}  TTC=${TTC}  subv=${subv}  réel=${reel.toFixed(2)}`);
 console.log(`  match≈target: ${ok ? "PASS" : "FAIL"} (Δ=${(reel - target).toFixed(3)})`);
 
 function walk(dir, acc = []) {
-  for ( const name of readdirSync(dir)) {
+  for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, acc);
-    else if (/\.(html|js|css|json|md)$/i.test(name) && name !== "smoke-test.mjs") acc.push(p);
+    if (statSync(p).isDirectory()) {
+      if (name === ".git" || name === "fonts") continue;
+      walk(p, acc);
+    } else if (/\.(html|js|css|json|md)$/i.test(name) && name !== "smoke-test.mjs") {
+      if (/montreal/i.test(name)) continue;
+      acc.push(p);
+    }
   }
   return acc;
 }
@@ -46,50 +49,101 @@ for (const p of walk(__dirname)) {
 }
 console.log(`  no ${forbiddenA} / ${forbiddenB} / UI-only deneige: ${bad ? "FAIL" : "PASS"}`);
 
-const table = JSON.parse(readFileSync(join(__dirname, "assets/montreal-kwh-per-kw.json"), "utf8"));
-const s30 = table.kwh_per_kw["30"]["180"];
-console.log(`  table S/30 kWh/kW: ${s30} (expect 1314.1)`);
+const grid = JSON.parse(readFileSync(join(__dirname, "assets/quebec-full-grid.json"), "utf8"));
+const s30 = grid.cells["30"]["180"];
+const n30 = grid.cells["30"]["0"];
+const sAnnual = s30.ac_annual;
+const sW = s30.W_winter;
+const nW = n30.W_winter;
+console.log(`  grid S/30 ac_annual: ${sAnnual} (expect ≈1254.8064)`);
+console.log(`  grid S/30 W_winter: ${sW} (expect ≈0.173323)`);
+console.log(`  grid N/30 W_winter: ${nW} (expect ≠ S/30)`);
 
-const monthly = JSON.parse(readFileSync(join(__dirname, "assets/montreal-monthly.json"), "utf8"));
-const Wfile = monthly.W;
-console.log(`  W from montreal-monthly.json: ${Wfile} (expect 0.1768)`);
+const annualOk = Math.abs(sAnnual - 1254.8064) < 0.01;
+const wOk = Math.abs(sW - 0.173323) < 1e-5;
+const wDiffOk = Math.abs(nW - sW) > 0.01;
+console.log(`  S/30 annual≈1254.8: ${annualOk ? "PASS" : "FAIL"}`);
+console.log(`  S/30 W≈0.1733: ${wOk ? "PASS" : "FAIL"}`);
+console.log(`  non-south W differs (N vs S @30°): ${wDiffOk ? "PASS" : "FAIL"}`);
+
+const cellCount = Object.keys(grid.cells).reduce(
+  (n, t) => n + Object.keys(grid.cells[t]).length,
+  0
+);
+const cellsOk = cellCount === 168;
+console.log(`  cells count ${cellCount} (expect 168): ${cellsOk ? "PASS" : "FAIL"}`);
 
 const app = readFileSync(join(__dirname, "assets/app.js"), "utf8");
-const hasW = app.includes("W_WINTER = 0.1768");
-const hasFormula = app.includes("(1 - (1 - d) * W_WINTER)") || app.includes("(1 - (1 - deneige) * W_WINTER)") || app.includes("applyDeneigement");
-console.log(`  app.js W_WINTER=0.1768: ${hasW ? "PASS" : "FAIL"}`);
-console.log(`  app.js applyDeneigement wired: ${hasFormula ? "PASS" : "FAIL"}`);
+const hasFetch = app.includes("quebec-full-grid.json");
+const hasFallback = app.includes("1254.8064") && app.includes("0.173323");
+const hasFormula = app.includes("applyDeneigement");
+const hasPerCellW = app.includes("W_winter") && app.includes("lookupCell");
+const has24az = app.includes('"195"') && app.includes('"15"') && app.includes("AZ_LABELS");
+console.log(`  app.js loads quebec-full-grid.json: ${hasFetch ? "PASS" : "FAIL"}`);
+console.log(`  app.js S/30 fallback: ${hasFallback ? "PASS" : "FAIL"}`);
+console.log(`  app.js applyDeneigement + per-cell W: ${hasFormula && hasPerCellW ? "PASS" : "FAIL"}`);
+console.log(`  app.js AZ_LABELS 15° steps: ${has24az ? "PASS" : "FAIL"}`);
 
-// Smoke A: deneigement=1 → kWh_eff = kWh_annuel (full)
-const kWhAn = s30 * kW; // 1314.1 * 6.5
+const W = sW;
+const kWhAn = sAnnual * kW;
 const kWhA = kWhAn * (1 - (1 - 1) * W);
 const passA = Math.abs(kWhA - kWhAn) < 1e-9;
 console.log(`  smoke A deneige=1: kWh_eff=${kWhA.toFixed(2)} == annuel ${kWhAn.toFixed(2)} → ${passA ? "PASS" : "FAIL"}`);
 
-// Smoke B: deneigement=0 → remove winter share completely
 const kWhB = kWhAn * (1 - (1 - 0) * W);
 const expectB = kWhAn * (1 - W);
 const passB = Math.abs(kWhB - expectB) < 1e-6 && kWhB < kWhAn;
-console.log(`  smoke B deneige=0%: kWh_eff=${kWhB.toFixed(2)} expect ${expectB.toFixed(2)} (loss ${(W*100).toFixed(2)}%) → ${passB ? "PASS" : "FAIL"}`);
+console.log(`  smoke B deneige=0%: kWh_eff=${kWhB.toFixed(2)} expect ${expectB.toFixed(2)} (loss ${(W * 100).toFixed(2)}%) → ${passB ? "PASS" : "FAIL"}`);
 
-const Wok = Math.abs(Wfile - 0.1768) < 1e-9;
 const html = readFileSync(join(__dirname, "index.html"), "utf8");
 const labelOk = html.includes("Efficacité du déneigement") && !/perte\s+neige/i.test(html);
 const liveBeside = html.includes("deneigeLive") && (html.includes("% annuel") || html.includes("%&nbsp;annuel") || html.includes("&nbsp;% annuel"));
-const liveFmt = html.includes("−14,1") && html.includes("annuel");
-const disclaimerOk = html.includes("part de") && html.includes("production") && html.includes("0,1768") && html.includes("modèle V0.1 grossier");
-const citeOk = html.includes("1314,1") && html.includes("2026-09-05");
-const lossAt20 = (1 - 0.2) * W * 100; // expect ≈14.144 → 14,1
-const lossOk = Math.abs(lossAt20 - 14.144) < 1e-6;
+const liveFmt = html.includes("−13,9") && html.includes("annuel");
+const qcBrand = /Québec/i.test(html) && html.includes("Québec fixe");
+const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal fixe/i.test(html);
+const orient24 = (html.match(/option value="/g) || []).length >= 24 + 7;
+const has195 = html.includes('value="195"') && html.includes('value="15"');
+const disclaimerOk =
+  html.includes("dépend de l’orientation") ||
+  html.includes("dépend de l'orientation") ||
+  html.includes("selon orientation");
+const citeOk = html.includes("17,3") && html.includes("2026-09-05") && /grille Québec/i.test(html);
+const lossAt20 = (1 - 0.2) * W * 100;
+const lossOk = Math.abs(lossAt20 - 13.86584) < 1e-3;
 const appLive = app.includes('"% annuel"') || app.includes('"&nbsp;% annuel"') || app.includes(" % annuel");
-console.log(`  UI label « Efficacité du déneigement » (not perte neige): ${labelOk ? "PASS" : "FAIL"}`);
+console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : "FAIL"}`);
 console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
 console.log(`  app.js live format « −X,X % annuel »: ${appLive ? "PASS" : "FAIL"}`);
-console.log(`  disclaimer near control (W=0,1768 prod NREL déc+jan+fév): ${disclaimerOk ? "PASS" : "FAIL"}`);
-console.log(`  cite NREL MTL grid 1314,1 + 2026-09-05: ${citeOk ? "PASS" : "FAIL"}`);
-console.log(`  loss at d=20%: ≈−${lossAt20.toFixed(1)}% (expect −14.1) → ${lossOk ? "PASS" : "FAIL"}`);
+console.log(`  brand Québec fixe (no Montréal fixe / 1314,1 / 0,1768): ${qcBrand && noMtlHard ? "PASS" : "FAIL"}`);
+console.log(`  orient select 24 az (incl. 15° & 195°): ${orient24 && has195 ? "PASS" : "FAIL"}`);
+console.log(`  W note depends on orientation + ~17,3% Sud 30°: ${disclaimerOk && citeOk ? "PASS" : "FAIL"}`);
+console.log(`  loss at d=20% S/30: ≈−${lossAt20.toFixed(1)}% (expect −13.9) → ${lossOk ? "PASS" : "FAIL"}`);
 
-const pass = ok && !bad && s30 === 1314.1 && Wok && hasW && hasFormula && passA && passB && labelOk && liveBeside && liveFmt && appLive && disclaimerOk && citeOk && lossOk;
+const pass =
+  ok &&
+  !bad &&
+  annualOk &&
+  wOk &&
+  wDiffOk &&
+  cellsOk &&
+  hasFetch &&
+  hasFallback &&
+  hasFormula &&
+  hasPerCellW &&
+  has24az &&
+  passA &&
+  passB &&
+  labelOk &&
+  liveBeside &&
+  liveFmt &&
+  appLive &&
+  qcBrand &&
+  noMtlHard &&
+  orient24 &&
+  has195 &&
+  disclaimerOk &&
+  citeOk &&
+  lossOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

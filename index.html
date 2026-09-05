@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Calculateur solaire V0.1 — Solution Era. Estimation pédagogique Montréal — pas une soumission." />
+  <meta name="description" content="Calculateur solaire V0.1 — Solution Era. Estimation pédagogique Québec — pas une soumission." />
   <title>Calculateur Solaire V0.1 · Solution Era</title>
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,14 +17,14 @@
       <div class="brand-mark" aria-hidden="true">S</div>
       <div>
         <div class="brand-name">Solution Era</div>
-        <div class="brand-sub">Calculateur solaire · V0.1 · Montréal</div>
+        <div class="brand-sub">Calculateur solaire · V0.1 · Québec</div>
       </div>
     </div>
 
     <header class="hero">
       <h1>Calculateur solaire</h1>
       <p>Comprendre ton projet en quelques minutes · <strong>Estimation — pas une soumission</strong></p>
-      <span class="badge">Pédagogique · FR · Montréal fixe</span>
+      <span class="badge">Pédagogique · FR · Québec fixe</span>
     </header>
 
     <!-- 1 · Production -->
@@ -60,16 +60,32 @@
       <div class="field">
         <label for="orient">Orientation</label>
         <select id="orient">
-          <option value="180" selected>Sud</option>
-          <option value="135">Sud-Est</option>
-          <option value="225">Sud-Ouest</option>
-          <option value="90">Est</option>
-          <option value="270">Ouest</option>
-          <option value="45">Nord-Est</option>
-          <option value="315">Nord-Ouest</option>
           <option value="0">Nord</option>
+          <option value="15">Nord +15° (15°)</option>
+          <option value="30">Nord +30° (30°)</option>
+          <option value="45">Nord-Est</option>
+          <option value="60">Est −30° (60°)</option>
+          <option value="75">Est −15° (75°)</option>
+          <option value="90">Est</option>
+          <option value="105">Est +15° (105°)</option>
+          <option value="120">Est +30° (120°)</option>
+          <option value="135">Sud-Est</option>
+          <option value="150">Sud −30° (150°)</option>
+          <option value="165">Sud −15° (165°)</option>
+          <option value="180" selected>Sud</option>
+          <option value="195">Sud +15° (195°)</option>
+          <option value="210">Sud +30° (210°)</option>
+          <option value="225">Sud-Ouest</option>
+          <option value="240">Ouest −30° (240°)</option>
+          <option value="255">Ouest −15° (255°)</option>
+          <option value="270">Ouest</option>
+          <option value="285">Ouest +15° (285°)</option>
+          <option value="300">Ouest +30° (300°)</option>
+          <option value="315">Nord-Ouest</option>
+          <option value="330">Nord −30° (330°)</option>
+          <option value="345">Nord −15° (345°)</option>
         </select>
-        <p class="hint">→ Le sud donne en général le maximum</p>
+        <p class="hint">→ Le sud donne en général le maximum · résolution 15°</p>
       </div>
 
       <div class="field">
@@ -89,17 +105,17 @@
           <div class="slider-meta"><span>0&nbsp;% — je ne déneige pas</span><span>100&nbsp;% — je déneige toujours</span></div>
           <div class="slider-val slider-val-split" aria-live="polite">
             <span id="deneigeVal">20 %</span>
-            <span id="deneigeLive" class="loss-annuel">−14,1&nbsp;% annuel</span>
+            <span id="deneigeLive" class="loss-annuel">−13,9&nbsp;% annuel</span>
           </div>
         </div>
         <p class="hint">→ 100&nbsp;% = récupère tout le risque neige · 0&nbsp;% = je ne déneige pas · défaut 20&nbsp;%</p>
-        <p class="note-ui">W = part de <strong>production</strong> NREL déc+jan+fév / annuel (0,1768 ≈ 17,7&nbsp;%) — modèle V0.1 grossier, pas physique de couverture neige. Source&nbsp;: NREL PVWatts Montréal (même grille que 1314,1&nbsp;kWh/kW Sud&nbsp;30°) · 2026-09-05. Perte annuelle = (1−d)×W.</p>
+        <p class="note-ui">W = part de <strong>production</strong> NREL déc+jan+fév / annuel — <strong>dépend de l’orientation</strong> (grille Québec). Ex.&nbsp;Sud 30° ≈ 0,1733 (~17,3&nbsp;%). Modèle V0.1 grossier, pas physique de couverture neige. Source&nbsp;: NREL PVWatts Québec (ville) · 168 cellules · 2026-09-05. Perte annuelle = (1−d)×W.</p>
       </div>
 
       <div class="result-pill">
         <div class="label">Vous pourrez alors produire</div>
         <div class="big" id="outKwh">≈ — kWh / an</div>
-        <div class="label">avec votre installation solaire · estimation Montréal</div>
+        <div class="label">avec votre installation solaire · estimation Québec</div>
         <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kW</strong></p>
       </div>
     </section>
@@ -181,10 +197,10 @@
       <strong>À retenir</strong>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle basée sur NREL/PVWatts (ancrage Montréal) avec cellules complétées PVGIS (mises à l’échelle).</li>
+        <li>Production annuelle basée sur NREL/PVWatts — grille complète Québec (ville), 7 inclinaisons × 24 azimuts (pas de 15°).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — coche «&nbsp;si admissible&nbsp;» seulement si tu qualifies.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal.</li>
-        <li>Efficacité du déneigement&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W) avec W=0,1768 (≈17,7&nbsp;% prod. déc+jan+fév NREL MTL, même grille que 1314,1) · 2026-09-05 · modèle V0.1 grossier · ombrage et 2 paliers Tarif D = plus tard.</li>
+        <li>Efficacité du déneigement&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W) avec W selon orientation (ex. ~17,3&nbsp;% Sud 30°) · grille Québec · 2026-09-05 · modèle V0.1 grossier · ombrage et 2 paliers Tarif D = plus tard.</li>
       </ul>
     </aside>
 

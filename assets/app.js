@@ -1,33 +1,51 @@
-/* Calculateur Solaire V0.1 — Solution Era — offline */
+/* Calculateur Solaire V0.1 — Solution Era — Québec full grid (offline-capable) */
 (function () {
   "use strict";
 
-  // Montréal kWh_ac / kWdc / an (NREL/PVWatts + PVGIS-scaled cells)
-  const KWH_PER_KW = {"0":{"0":1076.93,"45":1076.93,"90":1076.93,"135":1076.93,"180":1076.93,"225":1076.93,"270":1076.93,"315":1076.93},"15":{"0":883.41,"45":956.85,"90":1070,"135":1188.08,"180":1231.52,"225":1203.32,"270":1064.51,"315":963.1},"30":{"0":689.42,"45":807.59,"90":1037.09,"135":1220.12,"180":1314.1,"225":1245.96,"270":1031.77,"315":813.42},"45":{"0":535.98,"45":674.34,"90":952.5,"135":1197.76,"180":1317.06,"225":1231.83,"270":983.5,"315":682.21},"60":{"0":381.05,"45":551.55,"90":854.5,"135":1121.48,"180":1250.8,"225":1161.69,"270":892.87,"315":564.29},"75":{"0":270.64,"45":434.43,"90":728.52,"135":992.03,"180":1116.24,"225":1035.29,"270":773.46,"315":451.26},"90":{"0":197.02,"45":326.99,"90":584.09,"135":816.58,"180":917.83,"225":861.95,"270":635.11,"315":346.57}};
+  // Tiny S/30 fallback if fetch fails (file:// or offline without cache)
+  const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323 };
+  const DEFAULT_DENEIGEMENT = 0.20;
 
-  // Winter share W = (Jan+Feb+Dec)/annual — NREL PVWatts v8 DEMO sample MTL tilt30/S
-  const W_WINTER = 0.1768;
-  const DEFAULT_DENEIGEMENT = 0.20; // défaut UI (0% = je ne déneige pas; 100% = je déneige toujours)
-
-  const PANEL_KW_PER_M2 = 0.20; // estimation densité modules
+  const PANEL_KW_PER_M2 = 0.20;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975%
   const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
   const SQFT_PER_M2 = 10.76391041671;
 
+  /** Clear FR labels for 0..345 step 15° */
   const AZ_LABELS = {
-    "180": "Sud",
-    "135": "Sud-Est",
-    "225": "Sud-Ouest",
-    "90": "Est",
-    "270": "Ouest",
+    "0": "Nord",
+    "15": "Nord +15° (15°)",
+    "30": "Nord +30° (30°)",
     "45": "Nord-Est",
+    "60": "Est −30° (60°)",
+    "75": "Est −15° (75°)",
+    "90": "Est",
+    "105": "Est +15° (105°)",
+    "120": "Est +30° (120°)",
+    "135": "Sud-Est",
+    "150": "Sud −30° (150°)",
+    "165": "Sud −15° (165°)",
+    "180": "Sud",
+    "195": "Sud +15° (195°)",
+    "210": "Sud +30° (210°)",
+    "225": "Sud-Ouest",
+    "240": "Ouest −30° (240°)",
+    "255": "Ouest −15° (255°)",
+    "270": "Ouest",
+    "285": "Ouest +15° (285°)",
+    "300": "Ouest +30° (300°)",
     "315": "Nord-Ouest",
-    "0": "Nord"
+    "330": "Nord −30° (330°)",
+    "345": "Nord −15° (345°)"
   };
+
+  /** Runtime grid: cells[tilt][az] = { ac_annual, W_winter, ... } */
+  let gridCells = null;
+  let gridReady = false;
 
   const $ = (id) => document.getElementById(id);
 
-  let areaUnit = "m2"; // or sqft
+  let areaUnit = "m2";
 
   function fmtMoney(n) {
     if (!isFinite(n)) return "—";
@@ -61,9 +79,25 @@
     return Math.min(1, Math.max(0, v / 100));
   }
 
+  function lookupCell(tilt, az) {
+    const t = String(tilt);
+    const a = String(az);
+    if (gridCells && gridCells[t] && gridCells[t][a]) {
+      const c = gridCells[t][a];
+      return {
+        ac_annual: c.ac_annual,
+        W_winter: c.W_winter
+      };
+    }
+    // Fallback: only S/30 is guaranteed
+    if (t === "30" && a === "180") return Object.assign({}, FALLBACK_S30);
+    return { ac_annual: 0, W_winter: FALLBACK_S30.W_winter };
+  }
+
   /** kWh_effectif = kWh_annuel * (1 - (1 - deneigement) * W) */
-  function applyDeneigement(kWhAnnuel, d) {
-    return kWhAnnuel * (1 - (1 - d) * W_WINTER);
+  function applyDeneigement(kWhAnnuel, d, W) {
+    const w = isFinite(W) ? W : FALLBACK_S30.W_winter;
+    return kWhAnnuel * (1 - (1 - d) * w);
   }
 
   function calc() {
@@ -78,17 +112,17 @@
     const rate = parseFloat($("rate").value);
     const rateOk = isFinite(rate) && rate > 0 ? rate : DEFAULT_RATE;
 
-    // kW = m² × util × 0.20
-    const kW = m2 * util * PANEL_KW_PER_M2;
-    const table = (KWH_PER_KW[tilt] && KWH_PER_KW[tilt][az]) || 0;
-    const kWhAnnuel = table * kW;
-    const kWh = applyDeneigement(kWhAnnuel, deneige);
+    const cell = lookupCell(tilt, az);
+    const table = cell.ac_annual;
+    const W = cell.W_winter;
 
-    // HT = kW × 1000 × $/W
+    const kW = m2 * util * PANEL_KW_PER_M2;
+    const kWhAnnuel = table * kW;
+    const kWh = applyDeneigement(kWhAnnuel, deneige, W);
+
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
     const taxes = TTC - HT;
-    // LogisVert: min(1000×kW, 0.4×HT) — si admissible
     const subv = subvOn ? Math.min(1000 * kW, 0.4 * HT) : 0;
     const base = taxesOn ? TTC : HT;
     const reel = Math.max(0, base - subv);
@@ -97,8 +131,9 @@
 
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, table, kWhAnnuel, kWh, W: W_WINTER,
-      HT, TTC, taxes, subv, reel, eco, years
+      kW, table, kWhAnnuel, kWh, W,
+      HT, TTC, taxes, subv, reel, eco, years,
+      gridReady
     };
   }
 
@@ -110,8 +145,7 @@
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
     }
     if ($("deneigeLive")) {
-      // lossPct = (1 - d) * W * 100  (W=0.1768) → e.g. d=0.20 → −14,1 % annuel
-      const lossPct = (1 - r.deneige) * W_WINTER * 100;
+      const lossPct = (1 - r.deneige) * r.W * 100;
       $("deneigeLive").innerHTML = "−" + fmtNum(lossPct, 1) + "&nbsp;% annuel";
     }
 
@@ -160,23 +194,7 @@
     window.location.href = "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
   }
 
-  // Expose for smoke / console
-  window.SolarCalcV01 = {
-    calc,
-    applyDeneigement,
-    constants: { PANEL_KW_PER_M2, TAX_MULT, DEFAULT_RATE, KWH_PER_KW, W_WINTER, DEFAULT_DENEIGEMENT },
-    smokeAnalyste() {
-      // 6.5 kW @ 3 $/W, taxes ON, LogisVert ON → réel ≈ 15920.76
-      const kW = 6.5, priceW = 3;
-      const HT = kW * 1000 * priceW;
-      const TTC = HT * TAX_MULT;
-      const subv = Math.min(1000 * kW, 0.4 * HT);
-      const reel = TTC - subv;
-      return { kW, priceW, HT, TTC, subv, reel };
-    }
-  };
-
-  document.addEventListener("DOMContentLoaded", () => {
+  function wireUi() {
     ["area", "tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
@@ -187,7 +205,6 @@
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
     $("btnPdf").addEventListener("click", printPdf);
     $("bugLink").addEventListener("click", reportBug);
-    // defaults: Sud 180, tilt 30, util 80, deneige 20%, price 3.00
     $("priceW").value = 3;
     $("util").value = 80;
     if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
@@ -196,8 +213,58 @@
     $("rate").value = String(DEFAULT_RATE);
     $("taxes").checked = true;
     $("subv").checked = false;
-    // seed area: 40 m² × 0.8 × 0.20 = 6.4 kW
     $("area").value = 40;
+  }
+
+  function setGridFromPayload(data) {
+    if (data && data.cells) {
+      gridCells = data.cells;
+      gridReady = true;
+    }
+  }
+
+  async function loadGrid() {
+    try {
+      const res = await fetch("assets/quebec-full-grid.json", { cache: "force-cache" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      setGridFromPayload(data);
+    } catch (err) {
+      // Keep S/30 fallback; other orientations need the JSON
+      console.warn("Grille Québec non chargée — repli S/30", err);
+      gridReady = false;
+    }
+  }
+
+  window.SolarCalcV01 = {
+    calc,
+    applyDeneigement,
+    lookupCell,
+    AZ_LABELS,
+    constants: {
+      PANEL_KW_PER_M2,
+      TAX_MULT,
+      DEFAULT_RATE,
+      DEFAULT_DENEIGEMENT,
+      FALLBACK_S30
+    },
+    get gridReady() { return gridReady; },
+    get cells() { return gridCells; },
+    smokeAnalyste() {
+      const kW = 6.5, priceW = 3;
+      const HT = kW * 1000 * priceW;
+      const TTC = HT * TAX_MULT;
+      const subv = Math.min(1000 * kW, 0.4 * HT);
+      const reel = TTC - subv;
+      return { kW, priceW, HT, TTC, subv, reel };
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    wireUi();
+    // First paint with fallback S/30, then refresh when grille loads
+    render();
+    await loadGrid();
     render();
   });
 })();
