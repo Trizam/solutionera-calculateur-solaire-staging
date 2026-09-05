@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Calculateur solaire V0.1 — Solution Era. Estimation pédagogique Québec — pas une soumission." />
-  <title>Calculateur Solaire V0.1 · Solution Era</title>
+  <meta name="description" content="Calculateur solaire version 0.2 — Solution Era. Estimation pédagogique de ton projet solaire en quelques minutes." />
+  <title>Calculateur solaire · version 0.2 · Solution Era</title>
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,17 +14,16 @@
 <body>
   <div class="wrap">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">S</div>
+      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="40" height="40" />
       <div>
         <div class="brand-name">Solution Era</div>
-        <div class="brand-sub">Calculateur solaire · V0.1 · Québec</div>
+        <div class="brand-sub">Calculateur solaire · version 0.2</div>
       </div>
     </div>
 
     <header class="hero">
       <h1>Calculateur solaire</h1>
-      <p>Comprendre ton projet en quelques minutes · <strong>Estimation — pas une soumission</strong></p>
-      <span class="badge">Pédagogique · FR · Québec fixe</span>
+      <p>Estimation de son projet en quelques minutes</p>
     </header>
 
     <!-- 1 · Production -->
@@ -34,17 +33,32 @@
       <div class="field">
         <label for="area">Toiture — superficie</label>
         <div class="row">
-          <input id="area" type="number" min="0" step="0.1" inputmode="decimal" value="40" />
+          <input id="area" type="number" min="0" step="1" inputmode="numeric" value="40" />
           <div class="unit-toggle" role="group" aria-label="Unité de surface">
             <button type="button" id="unitM2" class="active">m²</button>
             <button type="button" id="unitSqft">pi²</button>
           </div>
         </div>
-        <p class="hint">→ Plus de surface = plus de panneaux</p>
+        <p class="hint">→ Plus de surface = plus de panneaux · entiers seulement</p>
       </div>
 
       <div class="field">
-        <label for="tilt">Inclinaison</label>
+        <div class="label-row">
+          <label for="tilt">Inclinaison</label>
+          <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
+            <svg viewBox="0 0 64 48" width="56" height="42">
+              <!-- ground -->
+              <line x1="4" y1="40" x2="60" y2="40" stroke="currentColor" stroke-width="1.5" opacity="0.35" />
+              <!-- roof/panel line (updated by JS) -->
+              <g id="tiltPanel">
+                <line id="tiltLine" x1="12" y1="40" x2="52" y2="40" stroke="#2d6a4f" stroke-width="3" stroke-linecap="round" />
+                <circle id="tiltHinge" cx="12" cy="40" r="2.5" fill="#2d6a4f" />
+              </g>
+              <!-- angle arc label -->
+              <text id="tiltDegLabel" x="40" y="18" font-size="11" font-weight="700" fill="#2d6a4f" font-family="Lato,sans-serif">30°</text>
+            </svg>
+          </div>
+        </div>
         <select id="tilt">
           <option value="0">0° (plat)</option>
           <option value="15">15°</option>
@@ -60,62 +74,65 @@
       <div class="field">
         <label for="orient">Orientation</label>
         <select id="orient">
-          <option value="0">Nord</option>
-          <option value="15">Nord +15° (15°)</option>
-          <option value="30">Nord +30° (30°)</option>
-          <option value="45">Nord-Est</option>
-          <option value="60">Est −30° (60°)</option>
-          <option value="75">Est −15° (75°)</option>
-          <option value="90">Est</option>
-          <option value="105">Est +15° (105°)</option>
-          <option value="120">Est +30° (120°)</option>
-          <option value="135">Sud-Est</option>
-          <option value="150">Sud −30° (150°)</option>
-          <option value="165">Sud −15° (165°)</option>
-          <option value="180" selected>Sud</option>
-          <option value="195">Sud +15° (195°)</option>
-          <option value="210">Sud +30° (210°)</option>
-          <option value="225">Sud-Ouest</option>
-          <option value="240">Ouest −30° (240°)</option>
-          <option value="255">Ouest −15° (255°)</option>
-          <option value="270">Ouest</option>
-          <option value="285">Ouest +15° (285°)</option>
-          <option value="300">Ouest +30° (300°)</option>
-          <option value="315">Nord-Ouest</option>
-          <option value="330">Nord −30° (330°)</option>
-          <option value="345">Nord −15° (345°)</option>
+          <option value="0">0° (Nord)</option>
+          <option value="15">15°</option>
+          <option value="30">30°</option>
+          <option value="45">45° (Nord-Est)</option>
+          <option value="60">60°</option>
+          <option value="75">75°</option>
+          <option value="90">90° (Est)</option>
+          <option value="105">105°</option>
+          <option value="120">120°</option>
+          <option value="135">135° (Sud-Est)</option>
+          <option value="150">150°</option>
+          <option value="165">165°</option>
+          <option value="180" selected>180° (Sud)</option>
+          <option value="195">195°</option>
+          <option value="210">210°</option>
+          <option value="225">225° (Sud-Ouest)</option>
+          <option value="240">240°</option>
+          <option value="255">255°</option>
+          <option value="270">270° (Ouest)</option>
+          <option value="285">285°</option>
+          <option value="300">300°</option>
+          <option value="315">315° (Nord-Ouest)</option>
+          <option value="330">330°</option>
+          <option value="345">345°</option>
         </select>
         <p class="hint">→ Le sud donne en général le maximum · résolution 15°</p>
       </div>
 
       <div class="field">
         <label for="util">Densité d’installation (utilisation du toit)</label>
-        <div class="slider-wrap">
-          <input id="util" type="range" min="60" max="100" step="1" value="80" />
-          <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
-          <div class="slider-val" id="utilVal">80 %</div>
+        <div class="slider-row">
+          <div class="slider-val-left" id="utilVal">80 %</div>
+          <div class="slider-track">
+            <input id="util" type="range" min="60" max="100" step="1" value="80" />
+            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
         </div>
         <p class="hint">→ On couvre rarement 100&nbsp;% du toit · suggestion 80&nbsp;% · facteur modules 0,20&nbsp;kW/m² (estimation)</p>
       </div>
 
       <div class="field" id="field-deneige">
         <label for="deneige">Efficacité du déneigement</label>
-        <div class="slider-wrap">
-          <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
-          <div class="slider-meta"><span>0&nbsp;% — je ne déneige pas</span><span>100&nbsp;% — je déneige toujours</span></div>
-          <div class="slider-val slider-val-split" aria-live="polite">
+        <div class="slider-row">
+          <div class="slider-val-left slider-val-left-stack" aria-live="polite">
             <span id="deneigeVal">20 %</span>
-            <span id="deneigeLive" class="loss-annuel">−13,9&nbsp;% annuel</span>
+            <span id="deneigeLive" class="loss-annuel">−14,4&nbsp;% annuel</span>
+          </div>
+          <div class="slider-track">
+            <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
+            <div class="slider-meta"><span>0&nbsp;% — je ne déneige pas</span><span>100&nbsp;% — je déneige toujours</span></div>
           </div>
         </div>
         <p class="hint">→ 100&nbsp;% = récupère tout le risque neige · 0&nbsp;% = je ne déneige pas · défaut 20&nbsp;%</p>
-        <p class="note-ui">W = part de <strong>production</strong> NREL déc+jan+fév / annuel — <strong>dépend de l’orientation</strong> (grille Québec). Ex.&nbsp;Sud 30° ≈ 0,1733 (~17,3&nbsp;%). Modèle V0.1 grossier, pas physique de couverture neige. Source&nbsp;: NREL PVWatts Québec (ville) · 168 cellules · 2026-09-05. Perte annuelle = (1−d)×W.</p>
       </div>
 
       <div class="result-pill">
         <div class="label">Vous pourrez alors produire</div>
         <div class="big" id="outKwh">≈ — kWh / an</div>
-        <div class="label">avec votre installation solaire · estimation Québec</div>
+        <div class="label">avec votre installation solaire</div>
         <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kW</strong></p>
       </div>
     </section>
@@ -123,14 +140,15 @@
     <!-- 2 · Coût -->
     <section class="block" id="sec-cost" aria-labelledby="h-cost">
       <h2 id="h-cost"><span class="num">2</span> Combien ça coûte&nbsp;?</h2>
-      <p class="hint">Pas d’autonomie / batteries ici</p>
 
       <div class="field">
         <label for="priceW">Prix au watt installé (CAD)</label>
-        <div class="slider-wrap">
-          <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
-          <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
-          <div class="slider-val" id="priceVal">3,00 $/W</div>
+        <div class="slider-row">
+          <div class="slider-val-left" id="priceVal">3,00 $/W</div>
+          <div class="slider-track">
+            <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
+            <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
+          </div>
         </div>
         <p class="hint">Bas → toit accessible, pose simple · Haut → plus de défis (accès, structure, complexité)</p>
         <p class="calc-line" id="outLight">—</p>
@@ -141,11 +159,11 @@
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="taxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (×&nbsp;1,14975)</span></span>
+            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
           </label>
           <label class="check">
-            <input type="checkbox" id="subv" />
-            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ D’abord le coût sans; coche pour l’appliquer · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+            <input type="checkbox" id="subv" checked />
+            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ D’abord le coût sans; décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
           </label>
         </div>
       </div>
@@ -163,7 +181,7 @@
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
-        <label for="rate">Tarif marginal HQ (base V0.1)</label>
+        <label for="rate">Tarif marginal HQ (base version 0.2)</label>
         <div class="rate-box">
           <input id="rate" type="number" min="0" step="0.00001" value="0.11142" />
           <span>$/kWh</span>
@@ -194,13 +212,19 @@
     </section>
 
     <aside class="disclaimers">
-      <strong>À retenir</strong>
+      <div class="disc-head">
+        <strong>À retenir</strong>
+        <button type="button" class="info-btn" id="btnInfo" aria-haspopup="dialog" aria-controls="infoModal" title="En apprendre plus">
+          <span class="info-icon" aria-hidden="true">ⓘ</span>
+          <span>En apprendre plus</span>
+        </button>
+      </div>
       <ul>
-        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle basée sur NREL/PVWatts — grille complète Québec (ville), 7 inclinaisons × 24 azimuts (pas de 15°).</li>
-        <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — coche «&nbsp;si admissible&nbsp;» seulement si tu qualifies.</li>
-        <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal.</li>
-        <li>Efficacité du déneigement&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W) avec W selon orientation (ex. ~17,3&nbsp;% Sud 30°) · grille Québec · 2026-09-05 · modèle V0.1 grossier · ombrage et 2 paliers Tarif D = plus tard.</li>
+        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis. Version&nbsp;0.2.</li>
+        <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (pas de 15°) · fichier <code>quebec-full-grid.json</code>.</li>
+        <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
+        <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
+        <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage et 2 paliers Tarif D = plus tard.</li>
       </ul>
     </aside>
 
@@ -208,9 +232,32 @@
       <a href="#" id="bugLink" title="Signaler un bug">!</a>
       &nbsp;Un chiffre te semble off&nbsp;? <a href="#" id="bugLink2" onclick="document.getElementById('bugLink').click();return false;">Signale un bug ou une erreur de calcul</a>
       — on apprend ensemble.<br />
-      <span style="font-size:0.72rem">© Solution Era · Calculateur V0.1 staging</span>
+      <span style="font-size:0.72rem">© Solution Era · Calculateur solaire · version 0.2 staging</span>
     </footer>
   </div>
+
+  <!-- Pedagogical info modal -->
+  <div class="modal-backdrop" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="infoTitle">En apprendre plus</h3>
+        <button type="button" class="modal-close" id="btnInfoClose" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Grille d’irradiation</strong> — estimation annuelle basée sur NREL PVWatts, grille fixe ancrée sur Québec (ville). 7 inclinaisons × 24 orientations (pas de 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
+        <p><strong>Déneigement (W)</strong> — part de production « à risque neige », modèle pédagogique simplifié selon l’inclinaison (pas l’orientation)&nbsp;:</p>
+        <ul>
+          <li>≤ 45° → W = 18&nbsp;%</li>
+          <li>90° (vertical) → W = 0&nbsp;%</li>
+          <li>entre 45° et 90° → gradient linéaire, arrondi à l’entier (ex. 60° → 12&nbsp;%, 75° → 6&nbsp;%)</li>
+        </ul>
+        <p>L’idée vient de la part déc+jan+fév / annuel (NREL), simplifiée pour la version 0.2. Efficacité du déneigement <em>d</em>&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
+        <p>Ce n’est <strong>pas</strong> une soumission ni un devis — outil pédagogique seulement.</p>
+      </div>
+      <button type="button" class="btn" id="btnInfoOk">Compris</button>
+    </div>
+  </div>
+
   <script src="assets/app.js"></script>
 </body>
 </html>

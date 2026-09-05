@@ -1,45 +1,46 @@
-/* Calculateur Solaire V0.1 — Solution Era — Québec full grid (offline-capable) */
+/* Calculateur Solaire version 0.2 — Solution Era — Québec full grid + W-by-tilt */
 (function () {
   "use strict";
 
   // Tiny S/30 fallback if fetch fails (file:// or offline without cache)
+  // ac_annual from grid; W_winter here is unused for loss (tilt model) but kept for smoke/compat
   const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323 };
   const DEFAULT_DENEIGEMENT = 0.20;
 
   const PANEL_KW_PER_M2 = 0.20;
-  const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975%
+  const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
   const SQFT_PER_M2 = 10.76391041671;
 
-  /** Clear FR labels for 0..345 step 15° */
+  /** Clear FR labels — degree first, named cardinals only */
   const AZ_LABELS = {
-    "0": "Nord",
-    "15": "Nord +15° (15°)",
-    "30": "Nord +30° (30°)",
-    "45": "Nord-Est",
-    "60": "Est −30° (60°)",
-    "75": "Est −15° (75°)",
-    "90": "Est",
-    "105": "Est +15° (105°)",
-    "120": "Est +30° (120°)",
-    "135": "Sud-Est",
-    "150": "Sud −30° (150°)",
-    "165": "Sud −15° (165°)",
-    "180": "Sud",
-    "195": "Sud +15° (195°)",
-    "210": "Sud +30° (210°)",
-    "225": "Sud-Ouest",
-    "240": "Ouest −30° (240°)",
-    "255": "Ouest −15° (255°)",
-    "270": "Ouest",
-    "285": "Ouest +15° (285°)",
-    "300": "Ouest +30° (300°)",
-    "315": "Nord-Ouest",
-    "330": "Nord −30° (330°)",
-    "345": "Nord −15° (345°)"
+    "0": "0° (Nord)",
+    "15": "15°",
+    "30": "30°",
+    "45": "45° (Nord-Est)",
+    "60": "60°",
+    "75": "75°",
+    "90": "90° (Est)",
+    "105": "105°",
+    "120": "120°",
+    "135": "135° (Sud-Est)",
+    "150": "150°",
+    "165": "165°",
+    "180": "180° (Sud)",
+    "195": "195°",
+    "210": "210°",
+    "225": "225° (Sud-Ouest)",
+    "240": "240°",
+    "255": "255°",
+    "270": "270° (Ouest)",
+    "285": "285°",
+    "300": "300°",
+    "315": "315° (Nord-Ouest)",
+    "330": "330°",
+    "345": "345°"
   };
 
-  /** Runtime grid: cells[tilt][az] = { ac_annual, W_winter, ... } */
+  /** Runtime grid: cells[tilt][az] = { ac_annual, ... } — annual kWh only from grid */
   let gridCells = null;
   let gridReady = false;
 
@@ -59,6 +60,18 @@
     if (!isFinite(n) || n <= 0) return "—";
     if (n > 100) return "> 100 ans";
     return "~ " + fmtNum(n, 1) + " ans";
+  }
+
+  /**
+   * Winter-loss fraction W from tilt (whole percent → fraction).
+   * ≤45° → 18%; 90° → 0%; else round(18 * (90 - tilt) / 45) / 100
+   */
+  function winterWFromTilt(tilt) {
+    const t = Number(tilt);
+    if (!isFinite(t)) return 0.18;
+    if (t <= 45) return 0.18;
+    if (t >= 90) return 0;
+    return Math.round(18 * (90 - t) / 45) / 100;
   }
 
   function areaM2() {
@@ -84,19 +97,15 @@
     const a = String(az);
     if (gridCells && gridCells[t] && gridCells[t][a]) {
       const c = gridCells[t][a];
-      return {
-        ac_annual: c.ac_annual,
-        W_winter: c.W_winter
-      };
+      return { ac_annual: c.ac_annual, W_winter: c.W_winter };
     }
-    // Fallback: only S/30 is guaranteed
     if (t === "30" && a === "180") return Object.assign({}, FALLBACK_S30);
     return { ac_annual: 0, W_winter: FALLBACK_S30.W_winter };
   }
 
   /** kWh_effectif = kWh_annuel * (1 - (1 - deneigement) * W) */
   function applyDeneigement(kWhAnnuel, d, W) {
-    const w = isFinite(W) ? W : FALLBACK_S30.W_winter;
+    const w = isFinite(W) ? W : 0.18;
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
@@ -114,7 +123,8 @@
 
     const cell = lookupCell(tilt, az);
     const table = cell.ac_annual;
-    const W = cell.W_winter;
+    // v0.2: W from tilt model (not per-cell orientation W)
+    const W = winterWFromTilt(tilt);
 
     const kW = m2 * util * PANEL_KW_PER_M2;
     const kWhAnnuel = table * kW;
@@ -137,10 +147,28 @@
     };
   }
 
+  function updateTiltViz(tiltDeg) {
+    const line = $("tiltLine");
+    const label = $("tiltDegLabel");
+    if (!line) return;
+    const t = Number(tiltDeg);
+    const rad = (t * Math.PI) / 180;
+    const len = 40;
+    const x1 = 12, y1 = 40;
+    // Panel rises from hinge: 0° = flat to the right, 90° = straight up
+    const x2 = x1 + len * Math.cos(rad);
+    const y2 = y1 - len * Math.sin(rad);
+    line.setAttribute("x1", String(x1));
+    line.setAttribute("y1", String(y1));
+    line.setAttribute("x2", String(x2));
+    line.setAttribute("y2", String(y2));
+    if (label) label.textContent = Math.round(t) + "°";
+  }
+
   function render() {
     const r = calc();
-    $("utilVal").textContent = Math.round(r.util * 100) + " %";
-    $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
+    if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
+    if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
     if ($("deneigeVal")) {
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
     }
@@ -148,6 +176,7 @@
       const lossPct = (1 - r.deneige) * r.W * 100;
       $("deneigeLive").innerHTML = "−" + fmtNum(lossPct, 1) + "&nbsp;% annuel";
     }
+    updateTiltViz(r.tilt);
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
     $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
@@ -167,6 +196,14 @@
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
   }
 
+  function roundAreaInput() {
+    const el = $("area");
+    if (!el) return;
+    const v = parseFloat(el.value);
+    if (!isFinite(v)) return;
+    el.value = String(Math.max(0, Math.round(v)));
+  }
+
   function setUnit(u) {
     const prevM2 = areaM2();
     areaUnit = u;
@@ -174,8 +211,8 @@
     $("unitSqft").classList.toggle("active", u === "sqft");
     if (prevM2 > 0) {
       $("area").value = u === "sqft"
-        ? Math.round(prevM2 * SQFT_PER_M2 * 10) / 10
-        : Math.round(prevM2 * 100) / 100;
+        ? String(Math.round(prevM2 * SQFT_PER_M2))
+        : String(Math.round(prevM2));
     }
     render();
   }
@@ -186,7 +223,7 @@
 
   function reportBug(e) {
     e.preventDefault();
-    const subject = encodeURIComponent("Calculateur solaire V0.1 — signalement");
+    const subject = encodeURIComponent("Calculateur solaire version 0.2 — signalement");
     const body = encodeURIComponent(
       "Décris le bug ou l'erreur de calcul:\n\n" +
       "Entrées:\n" + JSON.stringify(calc(), null, 2)
@@ -194,17 +231,49 @@
     window.location.href = "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
   }
 
+  function openInfo() {
+    const m = $("infoModal");
+    if (!m) return;
+    m.hidden = false;
+    const closer = $("btnInfoClose");
+    if (closer) closer.focus();
+  }
+  function closeInfo() {
+    const m = $("infoModal");
+    if (!m) return;
+    m.hidden = true;
+    if ($("btnInfo")) $("btnInfo").focus();
+  }
+
   function wireUi() {
-    ["area", "tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
+    const area = $("area");
+    if (area) {
+      area.addEventListener("input", () => { roundAreaInput(); render(); });
+      area.addEventListener("change", () => { roundAreaInput(); render(); });
+      area.addEventListener("blur", () => { roundAreaInput(); render(); });
+    }
     $("unitM2").addEventListener("click", () => setUnit("m2"));
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
     $("btnPdf").addEventListener("click", printPdf);
     $("bugLink").addEventListener("click", reportBug);
+    if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
+    if ($("btnInfoClose")) $("btnInfoClose").addEventListener("click", closeInfo);
+    if ($("btnInfoOk")) $("btnInfoOk").addEventListener("click", closeInfo);
+    if ($("infoModal")) {
+      $("infoModal").addEventListener("click", (e) => {
+        if (e.target === $("infoModal")) closeInfo();
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeInfo();
+    });
+
     $("priceW").value = 3;
     $("util").value = 80;
     if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
@@ -212,7 +281,7 @@
     $("orient").value = "180";
     $("rate").value = String(DEFAULT_RATE);
     $("taxes").checked = true;
-    $("subv").checked = false;
+    $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
   }
 
@@ -230,16 +299,16 @@
       const data = await res.json();
       setGridFromPayload(data);
     } catch (err) {
-      // Keep S/30 fallback; other orientations need the JSON
       console.warn("Grille Québec non chargée — repli S/30", err);
       gridReady = false;
     }
   }
 
-  window.SolarCalcV01 = {
+  window.SolarCalcV02 = {
     calc,
     applyDeneigement,
     lookupCell,
+    winterWFromTilt,
     AZ_LABELS,
     constants: {
       PANEL_KW_PER_M2,
@@ -259,10 +328,11 @@
       return { kW, priceW, HT, TTC, subv, reel };
     }
   };
+  // Back-compat alias
+  window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
     wireUi();
-    // First paint with fallback S/30, then refresh when grille loads
     render();
     await loadGrid();
     render();
