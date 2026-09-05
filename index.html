@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Calculateur solaire V0.1 — Solution Era. Estimation pédagogique Montréal — pas une soumission." />
+  <title>Calculateur Solaire V0.1 · Solution Era</title>
+  <!-- Lato: CDN when online; system fallback offline -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">S</div>
+      <div>
+        <div class="brand-name">Solution Era</div>
+        <div class="brand-sub">Calculateur solaire · V0.1 · Montréal</div>
+      </div>
+    </div>
+
+    <header class="hero">
+      <h1>Calculateur solaire</h1>
+      <p>Comprendre ton projet en quelques minutes · <strong>Estimation — pas une soumission</strong></p>
+      <span class="badge">Pédagogique · FR · Montréal fixe</span>
+    </header>
+
+    <!-- 1 · Production -->
+    <section class="block" id="sec-prod" aria-labelledby="h-prod">
+      <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire&nbsp;?</h2>
+
+      <div class="field">
+        <label for="area">Toiture — superficie</label>
+        <div class="row">
+          <input id="area" type="number" min="0" step="0.1" inputmode="decimal" value="40.625" />
+          <div class="unit-toggle" role="group" aria-label="Unité de surface">
+            <button type="button" id="unitM2" class="active">m²</button>
+            <button type="button" id="unitSqft">pi²</button>
+          </div>
+        </div>
+        <p class="hint">→ Plus de surface = plus de panneaux</p>
+      </div>
+
+      <div class="field">
+        <label for="tilt">Inclinaison</label>
+        <select id="tilt">
+          <option value="0">0° (plat)</option>
+          <option value="15">15°</option>
+          <option value="30" selected>30°</option>
+          <option value="45">45°</option>
+          <option value="60">60°</option>
+          <option value="75">75°</option>
+          <option value="90">90° (vertical)</option>
+        </select>
+        <p class="hint">→ L’angle change le rendement</p>
+      </div>
+
+      <div class="field">
+        <label for="orient">Orientation</label>
+        <select id="orient">
+          <option value="180" selected>Sud</option>
+          <option value="135">Sud-Est</option>
+          <option value="225">Sud-Ouest</option>
+          <option value="90">Est</option>
+          <option value="270">Ouest</option>
+          <option value="45">Nord-Est</option>
+          <option value="315">Nord-Ouest</option>
+          <option value="0">Nord</option>
+        </select>
+        <p class="hint">→ Le sud donne en général le maximum</p>
+      </div>
+
+      <div class="field">
+        <label for="util">Densité d’installation (utilisation du toit)</label>
+        <div class="slider-wrap">
+          <input id="util" type="range" min="60" max="100" step="1" value="80" />
+          <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          <div class="slider-val" id="utilVal">80 %</div>
+        </div>
+        <p class="hint">→ On couvre rarement 100&nbsp;% du toit · suggestion 80&nbsp;% · facteur modules 0,20&nbsp;kW/m² (estimation)</p>
+      </div>
+
+      <div class="field">
+        <label>Déneigement <span style="font-weight:400;color:var(--muted)">(design; production plus tard)</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="deneige" value="yes" /> Je m’engage à déneiger</label>
+          <label><input type="radio" name="deneige" value="no" checked /> Je ne déneige presque pas</label>
+        </div>
+        <p class="hint">→ L’hiver peut presque annuler la prod. si on ne déneige pas</p>
+        <p class="note-ui">UI seulement en V0.1 — n’affecte pas encore le calcul.</p>
+      </div>
+
+      <div class="result-pill">
+        <div class="label">Vous pourrez alors produire</div>
+        <div class="big" id="outKwh">≈ — kWh / an</div>
+        <div class="label">avec votre installation solaire · estimation Montréal</div>
+        <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kW</strong></p>
+      </div>
+    </section>
+
+    <!-- 2 · Coût -->
+    <section class="block" id="sec-cost" aria-labelledby="h-cost">
+      <h2 id="h-cost"><span class="num">2</span> Combien ça coûte&nbsp;?</h2>
+      <p class="hint">Pas d’autonomie / batteries ici</p>
+
+      <div class="field">
+        <label for="priceW">Prix au watt installé (CAD)</label>
+        <div class="slider-wrap">
+          <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
+          <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
+          <div class="slider-val" id="priceVal">3,00 $/W</div>
+        </div>
+        <p class="hint">Bas → toit accessible, pose simple · Haut → plus de défis (accès, structure, complexité)</p>
+        <p class="calc-line" id="outLight">—</p>
+      </div>
+
+      <div class="field">
+        <label>Options sur le prix</label>
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="taxes" checked />
+            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (×&nbsp;1,14975)</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="subv" />
+            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ D’abord le coût sans; coche pour l’appliquer · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="breakdown" aria-live="polite">
+        <div class="line"><span>Sous-total (HT)</span><span id="lineHT">—</span></div>
+        <div class="line"><span>Taxes</span><span id="lineTaxes">—</span></div>
+        <div class="line neg"><span>Subvention</span><span id="lineSubv">—</span></div>
+        <div class="line total"><span>Total estimé (coût réel)</span><span id="lineTotal">—</span></div>
+      </div>
+    </section>
+
+    <!-- 3 · Valeur + résultat -->
+    <section class="block" id="sec-value" aria-labelledby="h-value">
+      <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
+
+      <div class="field">
+        <label for="rate">Tarif marginal HQ (base V0.1)</label>
+        <div class="rate-box">
+          <input id="rate" type="number" min="0" step="0.00001" value="0.11142" />
+          <span>$/kWh</span>
+        </div>
+        <p class="hint">→ Tarif D, 2<sup>e</sup> tranche (1<sup>er</sup> avr. 2026) · 2 paliers = plus tard</p>
+        <p class="calc-line">Production × tarif = <strong id="outEcoYear">≈ — $/an</strong></p>
+      </div>
+
+      <div class="cards">
+        <div class="card-kpi">
+          <div class="kpi" id="kpiReel">—</div>
+          <div class="kpi-label">Coût réel<br />taxé − subv.</div>
+        </div>
+        <div class="card-kpi">
+          <div class="kpi" id="kpiEco">—</div>
+          <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
+        </div>
+        <div class="card-kpi">
+          <div class="kpi" id="kpiYears">—</div>
+          <div class="kpi-label">Retour<br />années pour rentrer</div>
+        </div>
+      </div>
+      <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
+
+      <button type="button" class="btn" id="btnPdf">Télécharger le PDF résumé</button>
+      <p class="hint" style="text-align:center">Ouvre le dialogue d’impression — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
+    </section>
+
+    <aside class="disclaimers">
+      <strong>À retenir</strong>
+      <ul>
+        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
+        <li>Production annuelle basée sur NREL/PVWatts (ancrage Montréal) avec cellules complétées PVGIS (mises à l’échelle).</li>
+        <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — coche «&nbsp;si admissible&nbsp;» seulement si tu qualifies.</li>
+        <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal.</li>
+        <li>Déneigement, ombrage et 2 paliers Tarif D = versions ultérieures.</li>
+      </ul>
+    </aside>
+
+    <footer class="bug">
+      <a href="#" id="bugLink" title="Signaler un bug">!</a>
+      &nbsp;Un chiffre te semble off&nbsp;? <a href="#" id="bugLink2" onclick="document.getElementById('bugLink').click();return false;">Signale un bug ou une erreur de calcul</a>
+      — on apprend ensemble.<br />
+      <span style="font-size:0.72rem">© Solution Era · Calculateur V0.1 staging</span>
+    </footer>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>
