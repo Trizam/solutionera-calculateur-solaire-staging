@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Smoke — Calculateur Solaire version 0.2 · grille QC + W-by-tilt */
-import { readFileSync, readdirSync, statSync } from "fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -51,7 +51,6 @@ console.log(`  no ${forbiddenA} / ${forbiddenB} / UI-only deneige: ${bad ? "FAIL
 
 const grid = JSON.parse(readFileSync(join(__dirname, "assets/quebec-full-grid.json"), "utf8"));
 const s30 = grid.cells["30"]["180"];
-const n30 = grid.cells["30"]["0"];
 const sAnnual = s30.ac_annual;
 console.log(`  grid S/30 ac_annual: ${sAnnual} (expect ≈1254.8064)`);
 
@@ -74,18 +73,23 @@ function winterWFromTilt(tilt) {
   return Math.round(18 * (90 - t) / 45) / 100;
 }
 
-const w30 = winterWFromTilt(30);
-const w45 = winterWFromTilt(45);
-const w60 = winterWFromTilt(60);
-const w75 = winterWFromTilt(75);
-const w90 = winterWFromTilt(90);
-const wTiltOk =
-  Math.abs(w30 - 0.18) < 1e-9 &&
-  Math.abs(w45 - 0.18) < 1e-9 &&
-  Math.abs(w60 - 0.12) < 1e-9 &&
-  Math.abs(w75 - 0.06) < 1e-9 &&
-  Math.abs(w90 - 0) < 1e-9;
-console.log(`  W-by-tilt S/30→0.18, 45→0.18, 60→0.12, 75→0.06, 90→0: ${wTiltOk ? "PASS" : "FAIL"} (${w30},${w45},${w60},${w75},${w90})`);
+// Extended table: 0, 45, 60, 75, 90 (+ 30 sanity)
+const wTable = {
+  0: winterWFromTilt(0),
+  30: winterWFromTilt(30),
+  45: winterWFromTilt(45),
+  60: winterWFromTilt(60),
+  75: winterWFromTilt(75),
+  90: winterWFromTilt(90)
+};
+const wExpect = { 0: 0.18, 30: 0.18, 45: 0.18, 60: 0.12, 75: 0.06, 90: 0 };
+const wTiltOk = Object.keys(wExpect).every(
+  (k) => Math.abs(wTable[k] - wExpect[k]) < 1e-9
+);
+console.log(
+  `  W-by-tilt table 0→0.18, 45→0.18, 60→0.12, 75→0.06, 90→0: ${wTiltOk ? "PASS" : "FAIL"} ` +
+  `(${[0, 45, 60, 75, 90].map((t) => wTable[t]).join(",")})`
+);
 
 const app = readFileSync(join(__dirname, "assets/app.js"), "utf8");
 const hasFetch = app.includes("quebec-full-grid.json");
@@ -94,12 +98,23 @@ const hasFormula = app.includes("applyDeneigement");
 const hasTiltW = app.includes("winterWFromTilt") && app.includes("18 * (90");
 const has24az = app.includes('"195"') && app.includes('"15"') && app.includes("AZ_LABELS");
 const usesTiltWInCalc = /const W = winterWFromTilt/.test(app) || /W = winterWFromTilt\(tilt\)/.test(app);
+const hasGridLoading = app.includes("gridStatus") && app.includes("loading") && app.includes("error");
+const hasFallbackAny = app.includes('source: "fallback"') || app.includes("source: 'fallback'");
+const hasPasteArea = app.includes('addEventListener("paste"') || app.includes("addEventListener('paste'");
+const hasBlurArea = app.includes('addEventListener("blur"') || app.includes("addEventListener('blur'");
+const hasRoundArea = app.includes("roundAreaInput") && app.includes("Math.round");
+const hasModalScroll = app.includes("modal-open") && app.includes("Escape");
+const hasIntegerLive = app.includes("Math.round((1 - r.deneige) * r.W * 100)");
 console.log(`  app.js loads quebec-full-grid.json: ${hasFetch ? "PASS" : "FAIL"}`);
 console.log(`  app.js S/30 annual fallback: ${hasFallback ? "PASS" : "FAIL"}`);
 console.log(`  app.js applyDeneigement + winterWFromTilt: ${hasFormula && hasTiltW && usesTiltWInCalc ? "PASS" : "FAIL"}`);
 console.log(`  app.js AZ_LABELS 15° steps: ${has24az ? "PASS" : "FAIL"}`);
+console.log(`  app.js grid loading/error + any-cell fallback: ${hasGridLoading && hasFallbackAny ? "PASS" : "FAIL"}`);
+console.log(`  app.js area integer paste+blur+round: ${hasPasteArea && hasBlurArea && hasRoundArea ? "PASS" : "FAIL"}`);
+console.log(`  app.js modal Escape + scroll lock: ${hasModalScroll ? "PASS" : "FAIL"}`);
+console.log(`  app.js live W% integers (Math.round): ${hasIntegerLive ? "PASS" : "FAIL"}`);
 
-const W = w30; // S/30 → 0.18
+const W = wTable[30];
 const kWhAn = sAnnual * kW;
 const kWhA = kWhAn * (1 - (1 - 1) * W);
 const passA = Math.abs(kWhA - kWhAn) < 1e-9;
@@ -115,13 +130,13 @@ const css = readFileSync(join(__dirname, "assets/styles.css"), "utf8");
 
 const labelOk = html.includes("Efficacité du déneigement") && !/perte\s+neige/i.test(html);
 const liveBeside = html.includes("deneigeLive") && (html.includes("% annuel") || html.includes("%&nbsp;annuel") || html.includes("&nbsp;% annuel"));
-const liveFmt = (html.includes("−14,4") || html.includes("−14.4")) && html.includes("annuel");
+const liveFmt = (html.includes("−14&nbsp;%") || html.includes("−14 %")) && html.includes("annuel") && !html.includes("−14,4");
 const verOk = /version 0\.2/i.test(html) && !/V0\.2/.test(html) && !html.includes("V0.1");
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
 const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal/i.test(html);
 const heroSlice = html.slice(html.indexOf('class="hero"'), html.indexOf("</header>") + 10);
 const resultSlice = html.includes("result-pill")
-  ? html.slice(html.indexOf("result-pill"), html.indexOf("result-pill") + 500)
+  ? html.slice(html.indexOf("result-pill"), html.indexOf("result-pill") + 600)
   : "";
 const noQcHero =
   !/estimation Québec/i.test(html) &&
@@ -133,21 +148,36 @@ const orientLabel =
   html.includes("180° (Sud)") &&
   html.includes("0° (Nord)") &&
   html.includes("90° (Est)") &&
-  html.includes("270° (Ouest)");
+  html.includes("270° (Ouest)") &&
+  html.includes("45° (Nord-Est)") &&
+  html.includes("135° (Sud-Est)") &&
+  html.includes("225° (Sud-Ouest)") &&
+  html.includes("315° (Nord-Ouest)");
 const orient24 = (html.match(/option value="/g) || []).length >= 24 + 7;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
 const logoOk = html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg");
 const taxes15 = html.includes("15&nbsp;%") || html.includes("15 %");
 const logisDefault = /id="subv"[^>]*checked/.test(html) || /id="subv" checked/.test(html);
+const logisCopy =
+  html.includes("Appliquée par défaut") &&
+  !html.includes("D’abord le coût sans") &&
+  !html.includes("D'abord le coût sans") &&
+  !html.includes("coche pour l’appliquer") &&
+  !html.includes("coche pour l'appliquer");
 const noBattery = !/batteries|autonomie/i.test(html);
 const infoBtn = html.includes("En apprendre plus") && html.includes("infoModal");
 const tiltViz = html.includes("tiltViz") || html.includes("tiltLine");
+const gridStatusUi = html.includes('id="gridStatus"');
 const sliderLeft = css.includes("slider-val-left") && css.includes("slider-row");
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
-const lossAt20 = (1 - 0.2) * W * 100; // 0.8 * 18 = 14.4
-const lossOk = Math.abs(lossAt20 - 14.4) < 1e-6;
-const appLive = app.includes('"% annuel"') || app.includes('"&nbsp;% annuel"') || app.includes(" % annuel");
+const modalCss = css.includes("modal-open") && css.includes("overflow: hidden");
+const noMtlAssets =
+  !existsSync(join(__dirname, "assets/montreal-kwh-per-kw.json")) &&
+  !existsSync(join(__dirname, "assets/montreal-monthly.json"));
+const lossAt20 = Math.round((1 - 0.2) * W * 100);
+const lossOk = lossAt20 === 14;
+const appLive = app.includes("&nbsp;% annuel") || app.includes("% annuel");
 const subvDefaultJs = /subv"\)\.checked\s*=\s*true/.test(app) || /\$\("subv"\)\.checked = true/.test(app);
 const discTiltW =
   (html.includes("selon l’inclinaison") || html.includes("selon l'inclinaison") || html.includes("selon l’<strong>inclinaison")) &&
@@ -155,16 +185,19 @@ const discTiltW =
 
 console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : "FAIL"}`);
 console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
-console.log(`  app.js live format « −X,X % annuel »: ${appLive ? "PASS" : "FAIL"}`);
+console.log(`  app.js live format « −X % annuel » integer: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
 console.log(`  version 0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
 console.log(`  badge removed + no Québec in hero/results: ${noBadge && noQcHero ? "PASS" : "FAIL"}`);
-console.log(`  orient labels degree-first (180° Sud…): ${orientLabel && orient24 && has195 ? "PASS" : "FAIL"}`);
+console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orient24 && has195 ? "PASS" : "FAIL"}`);
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
-console.log(`  logo image + taxes 15% display + LogisVert default on: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
-console.log(`  no battery line + info modal + tilt viz: ${noBattery && infoBtn && tiltViz ? "PASS" : "FAIL"}`);
+console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
+console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
+console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
+console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
+console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
-console.log(`  loss at d=20% tilt30: ≈−${lossAt20.toFixed(1)}% (expect −14.4) → ${lossOk ? "PASS" : "FAIL"}`);
+console.log(`  loss at d=20% tilt30: −${lossAt20}% (expect −14 integer) → ${lossOk ? "PASS" : "FAIL"}`);
 
 const pass =
   ok &&
@@ -178,6 +211,13 @@ const pass =
   hasTiltW &&
   usesTiltWInCalc &&
   has24az &&
+  hasGridLoading &&
+  hasFallbackAny &&
+  hasPasteArea &&
+  hasBlurArea &&
+  hasRoundArea &&
+  hasModalScroll &&
+  hasIntegerLive &&
   passA &&
   passB &&
   labelOk &&
@@ -195,12 +235,16 @@ const pass =
   logoOk &&
   taxes15 &&
   logisDefault &&
+  logisCopy &&
   subvDefaultJs &&
   noBattery &&
   infoBtn &&
   tiltViz &&
+  gridStatusUi &&
   sliderLeft &&
   safariFix &&
+  modalCss &&
+  noMtlAssets &&
   discTiltW &&
   lossOk;
 

@@ -3,7 +3,7 @@
   "use strict";
 
   // Tiny S/30 fallback if fetch fails (file:// or offline without cache)
-  // ac_annual from grid; W_winter here is unused for loss (tilt model) but kept for smoke/compat
+  // Used for ANY missing cell so calc never stays blank forever
   const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323 };
   const DEFAULT_DENEIGEMENT = 0.20;
 
@@ -12,7 +12,7 @@
   const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
   const SQFT_PER_M2 = 10.76391041671;
 
-  /** Clear FR labels — degree first, named cardinals only */
+  /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
   const AZ_LABELS = {
     "0": "0° (Nord)",
     "15": "15°",
@@ -43,6 +43,7 @@
   /** Runtime grid: cells[tilt][az] = { ac_annual, ... } — annual kWh only from grid */
   let gridCells = null;
   let gridReady = false;
+  let gridStatus = "loading"; // loading | ready | error
 
   const $ = (id) => document.getElementById(id);
 
@@ -65,6 +66,7 @@
   /**
    * Winter-loss fraction W from tilt (whole percent → fraction).
    * ≤45° → 18%; 90° → 0%; else round(18 * (90 - tilt) / 45) / 100
+   * Table: 0→18, 45→18, 60→12, 75→6, 90→0
    */
   function winterWFromTilt(tilt) {
     const t = Number(tilt);
@@ -97,10 +99,14 @@
     const a = String(az);
     if (gridCells && gridCells[t] && gridCells[t][a]) {
       const c = gridCells[t][a];
-      return { ac_annual: c.ac_annual, W_winter: c.W_winter };
+      return { ac_annual: c.ac_annual, W_winter: c.W_winter, source: "grid" };
     }
-    if (t === "30" && a === "180") return Object.assign({}, FALLBACK_S30);
-    return { ac_annual: 0, W_winter: FALLBACK_S30.W_winter };
+    // Never blank forever: S/30 annual as secours for any missing cell
+    return {
+      ac_annual: FALLBACK_S30.ac_annual,
+      W_winter: FALLBACK_S30.W_winter,
+      source: "fallback"
+    };
   }
 
   /** kWh_effectif = kWh_annuel * (1 - (1 - deneigement) * W) */
@@ -143,7 +149,7 @@
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, table, kWhAnnuel, kWh, W,
       HT, TTC, taxes, subv, reel, eco, years,
-      gridReady
+      gridReady, gridStatus, cellSource: cell.source
     };
   }
 
@@ -165,6 +171,25 @@
     if (label) label.textContent = Math.round(t) + "°";
   }
 
+  function updateGridStatusUi() {
+    const el = $("gridStatus");
+    if (!el) return;
+    el.classList.remove("is-loading", "is-error", "is-ready");
+    if (gridStatus === "loading") {
+      el.hidden = false;
+      el.classList.add("is-loading");
+      el.textContent = "Chargement de la grille d’irradiation…";
+    } else if (gridStatus === "error") {
+      el.hidden = false;
+      el.classList.add("is-error");
+      el.textContent = "Grille indisponible — estimation de secours (réf. Sud / 30°).";
+    } else {
+      el.hidden = true;
+      el.classList.add("is-ready");
+      el.textContent = "";
+    }
+  }
+
   function render() {
     const r = calc();
     if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
@@ -173,10 +198,12 @@
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
     }
     if ($("deneigeLive")) {
-      const lossPct = (1 - r.deneige) * r.W * 100;
-      $("deneigeLive").innerHTML = "−" + fmtNum(lossPct, 1) + "&nbsp;% annuel";
+      // Integer % (W-by-tilt model is whole percents; live loss rounded)
+      const lossPct = Math.round((1 - r.deneige) * r.W * 100);
+      $("deneigeLive").innerHTML = "−" + lossPct + "&nbsp;% annuel";
     }
     updateTiltViz(r.tilt);
+    updateGridStatusUi();
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
     $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
@@ -196,11 +223,17 @@
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
   }
 
+  /** Integer-only area: paste/blur/change/input */
   function roundAreaInput() {
     const el = $("area");
     if (!el) return;
-    const v = parseFloat(el.value);
-    if (!isFinite(v)) return;
+    const raw = String(el.value).trim();
+    if (raw === "" || raw === "-" || raw === ".") return;
+    const v = parseFloat(raw.replace(",", "."));
+    if (!isFinite(v)) {
+      el.value = "0";
+      return;
+    }
     el.value = String(Math.max(0, Math.round(v)));
   }
 
@@ -231,18 +264,25 @@
     window.location.href = "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
   }
 
+  let infoOpener = null;
+
   function openInfo() {
     const m = $("infoModal");
     if (!m) return;
+    infoOpener = document.activeElement;
     m.hidden = false;
+    document.body.classList.add("modal-open");
     const closer = $("btnInfoClose");
     if (closer) closer.focus();
   }
   function closeInfo() {
     const m = $("infoModal");
-    if (!m) return;
+    if (!m || m.hidden) return;
     m.hidden = true;
-    if ($("btnInfo")) $("btnInfo").focus();
+    document.body.classList.remove("modal-open");
+    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $("btnInfo");
+    if (back && typeof back.focus === "function") back.focus();
+    infoOpener = null;
   }
 
   function wireUi() {
@@ -257,6 +297,10 @@
       area.addEventListener("input", () => { roundAreaInput(); render(); });
       area.addEventListener("change", () => { roundAreaInput(); render(); });
       area.addEventListener("blur", () => { roundAreaInput(); render(); });
+      area.addEventListener("paste", () => {
+        // After clipboard lands in the field, coerce to integer
+        requestAnimationFrame(() => { roundAreaInput(); render(); });
+      });
     }
     $("unitM2").addEventListener("click", () => setUnit("m2"));
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
@@ -289,19 +333,26 @@
     if (data && data.cells) {
       gridCells = data.cells;
       gridReady = true;
+      gridStatus = "ready";
+      return true;
     }
+    return false;
   }
 
   async function loadGrid() {
+    gridStatus = "loading";
+    updateGridStatusUi();
     try {
       const res = await fetch("assets/quebec-full-grid.json", { cache: "force-cache" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      setGridFromPayload(data);
+      if (!setGridFromPayload(data)) throw new Error("payload sans cells");
     } catch (err) {
       console.warn("Grille Québec non chargée — repli S/30", err);
       gridReady = false;
+      gridStatus = "error";
     }
+    updateGridStatusUi();
   }
 
   window.SolarCalcV02 = {
@@ -310,6 +361,7 @@
     lookupCell,
     winterWFromTilt,
     AZ_LABELS,
+    roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
       TAX_MULT,
@@ -318,6 +370,7 @@
       FALLBACK_S30
     },
     get gridReady() { return gridReady; },
+    get gridStatus() { return gridStatus; },
     get cells() { return gridCells; },
     smokeAnalyste() {
       const kW = 6.5, priceW = 3;

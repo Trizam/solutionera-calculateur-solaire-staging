@@ -16,7 +16,8 @@
   --font: "Lato", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+html, body { max-width: 100%; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -24,9 +25,12 @@ body {
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+body.modal-open { overflow: hidden; touch-action: none; }
 .wrap {
   max-width: 640px;
+  width: 100%;
   margin: 0 auto;
   padding: 1rem 1rem 3rem;
 }
@@ -134,9 +138,10 @@ section.block h2 .num {
   border: 1px solid var(--border);
   border-radius: 10px;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 16px; /* iOS: avoid auto-zoom on focus */
   background: #fff;
   color: var(--text);
+  max-width: 100%;
 }
 .unit-toggle {
   display: flex;
@@ -245,10 +250,10 @@ section.block h2 .num {
 .slider-track input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  /* Safari intent: min ~44px touch target */
-  width: 28px;
-  height: 28px;
-  margin-top: -11px; /* (28-8)/-2 */
+  /* Safari intent: large thumb + 44px track hit area */
+  width: 32px;
+  height: 32px;
+  margin-top: -12px; /* (32-8)/-2 */
   border-radius: 50%;
   background: var(--green);
   border: 3px solid #fff;
@@ -262,8 +267,8 @@ section.block h2 .num {
   border: 1px solid var(--border);
 }
 .slider-track input[type="range"]::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--green);
   border: 3px solid #fff;
@@ -503,8 +508,36 @@ footer.bug a:hover { text-decoration: underline; }
 .modal-card .btn { margin-top: 0.5rem; }
 
 @media print {
-  body { background: #fff; }
-  .btn, footer.bug, .unit-toggle, #field-deneige, .cards-disclaimer, .info-btn, .tilt-viz, .modal-backdrop { display: none !important; }
-  .wrap { max-width: 100%; }
-  section.block { break-inside: avoid; box-shadow: none; }
+  body { background: #fff; color: #000; }
+  body.modal-open { overflow: visible; touch-action: auto; }
+  .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .tilt-viz,
+  .modal-backdrop, .grid-status, .slider-meta { display: none !important; }
+  .wrap { max-width: 100%; padding: 0; }
+  section.block, header.hero, .disclaimers {
+    break-inside: avoid;
+    box-shadow: none;
+    border-color: #ccc;
+  }
+  .result-pill, .card-kpi { background: #f3f3f3 !important; }
+  a { color: inherit; text-decoration: none; }
+}
+
+/* Grid fetch status (loading / error fallback) */
+.grid-status {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.grid-status.is-loading { color: var(--accent); }
+.grid-status.is-error { color: var(--warn); }
+.grid-status[hidden] { display: none !important; }
+
+/* Narrow phones: keep slider value column from forcing overflow */
+@media (max-width: 380px) {
+  .slider-val-left { flex-basis: 3.8rem; font-size: 1rem; }
+  .slider-val-left-stack { flex-basis: 4.6rem; }
+  .slider-val-left-stack .loss-annuel { font-size: 0.65rem; }
+  .slider-meta { font-size: 0.65rem; }
 }

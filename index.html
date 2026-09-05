@@ -119,7 +119,7 @@
         <div class="slider-row">
           <div class="slider-val-left slider-val-left-stack" aria-live="polite">
             <span id="deneigeVal">20 %</span>
-            <span id="deneigeLive" class="loss-annuel">−14,4&nbsp;% annuel</span>
+            <span id="deneigeLive" class="loss-annuel">−14&nbsp;% annuel</span>
           </div>
           <div class="slider-track">
             <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
@@ -130,6 +130,7 @@
       </div>
 
       <div class="result-pill">
+        <p class="grid-status is-loading" id="gridStatus" aria-live="polite">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
         <div class="big" id="outKwh">≈ — kWh / an</div>
         <div class="label">avec votre installation solaire</div>
@@ -163,7 +164,7 @@
           </label>
           <label class="check">
             <input type="checkbox" id="subv" checked />
-            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ D’abord le coût sans; décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
           </label>
         </div>
       </div>
