@@ -7,7 +7,7 @@
 
   // Winter share W = (Jan+Feb+Dec)/annual — NREL PVWatts v8 DEMO sample MTL tilt30/S
   const W_WINTER = 0.1768;
-  const DEFAULT_DENEIGEMENT = 0.20; // « je ne déneige presque pas »
+  const DEFAULT_DENEIGEMENT = 0.20; // défaut UI (0% = je ne déneige pas; 100% = je déneige toujours)
 
   const PANEL_KW_PER_M2 = 0.20; // estimation densité modules
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975%
@@ -108,6 +108,13 @@
     $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
     if ($("deneigeVal")) {
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
+    }
+    if ($("deneigeLive")) {
+      const lossPct = (1 - r.deneige) * W_WINTER * 100;
+      $("deneigeLive").innerHTML =
+        "W&nbsp;=&nbsp;17,7&nbsp;% (0,1768) · impact annuel ≈&nbsp;−" +
+        fmtNum(lossPct, 1) +
+        "&nbsp;% sur la production";
     }
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";

@@ -83,13 +83,15 @@
       </div>
 
       <div class="field" id="field-deneige">
-        <label for="deneige">Déneigement hivernal</label>
+        <label for="deneige">Efficacité du déneigement</label>
         <div class="slider-wrap">
           <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
-          <div class="slider-meta"><span>0&nbsp;% (aucune)</span><span>100&nbsp;% (plein)</span></div>
+          <div class="slider-meta"><span>0&nbsp;% — je ne déneige pas</span><span>100&nbsp;% — je déneige toujours</span></div>
           <div class="slider-val" id="deneigeVal">20 %</div>
         </div>
-        <p class="hint">→ Part de la prod. Dec–jan–fév. conservée malgré la neige · défaut 20&nbsp;% («&nbsp;je ne déneige presque pas&nbsp;») · 100&nbsp;% = pleine prod. annuelle</p>
+        <p class="calc-line" id="deneigeLive" aria-live="polite">W&nbsp;=&nbsp;17,7&nbsp;% (0,1768) · impact annuel ≈&nbsp;−14,1&nbsp;% sur la production</p>
+        <p class="hint">→ 100&nbsp;% = récupère tout le risque neige · 0&nbsp;% = je ne déneige pas · défaut 20&nbsp;%</p>
+        <p class="note-ui">W = part de <strong>production</strong> NREL déc+jan+fév / annuel — modèle V0.1 grossier, pas physique de couverture neige. Source&nbsp;: NREL PVWatts Montréal (même grille que 1314,1&nbsp;kWh/kW Sud&nbsp;30°) · 2026-09-05.</p>
       </div>
 
       <div class="result-pill">
@@ -180,7 +182,7 @@
         <li>Production annuelle basée sur NREL/PVWatts (ancrage Montréal) avec cellules complétées PVGIS (mises à l’échelle).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — coche «&nbsp;si admissible&nbsp;» seulement si tu qualifies.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal.</li>
-        <li>Déneigement&nbsp;: réduit la prod. selon la part hiver (W≈17,7&nbsp;% Déc+jan+fév., NREL PVWatts MTL) · ombrage et 2 paliers Tarif D = plus tard.</li>
+        <li>Efficacité du déneigement&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W) avec W=0,1768 (≈17,7&nbsp;% prod. déc+jan+fév NREL MTL, même grille que 1314,1) · 2026-09-05 · modèle V0.1 grossier · ombrage et 2 paliers Tarif D = plus tard.</li>
       </ul>
     </aside>
 
