@@ -5,6 +5,10 @@
   // Montréal kWh_ac / kWdc / an (NREL/PVWatts + PVGIS-scaled cells)
   const KWH_PER_KW = {"0":{"0":1076.93,"45":1076.93,"90":1076.93,"135":1076.93,"180":1076.93,"225":1076.93,"270":1076.93,"315":1076.93},"15":{"0":883.41,"45":956.85,"90":1070,"135":1188.08,"180":1231.52,"225":1203.32,"270":1064.51,"315":963.1},"30":{"0":689.42,"45":807.59,"90":1037.09,"135":1220.12,"180":1314.1,"225":1245.96,"270":1031.77,"315":813.42},"45":{"0":535.98,"45":674.34,"90":952.5,"135":1197.76,"180":1317.06,"225":1231.83,"270":983.5,"315":682.21},"60":{"0":381.05,"45":551.55,"90":854.5,"135":1121.48,"180":1250.8,"225":1161.69,"270":892.87,"315":564.29},"75":{"0":270.64,"45":434.43,"90":728.52,"135":992.03,"180":1116.24,"225":1035.29,"270":773.46,"315":451.26},"90":{"0":197.02,"45":326.99,"90":584.09,"135":816.58,"180":917.83,"225":861.95,"270":635.11,"315":346.57}};
 
+  // Winter share W = (Jan+Feb+Dec)/annual — NREL PVWatts v8 DEMO sample MTL tilt30/S
+  const W_WINTER = 0.1768;
+  const DEFAULT_DENEIGEMENT = 0.20; // « je ne déneige presque pas »
+
   const PANEL_KW_PER_M2 = 0.20; // estimation densité modules
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975%
   const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
@@ -49,9 +53,23 @@
     return parseFloat($("util").value) / 100;
   }
 
+  function deneigeFrac() {
+    const el = $("deneige");
+    if (!el) return DEFAULT_DENEIGEMENT;
+    const v = parseFloat(el.value);
+    if (!isFinite(v)) return DEFAULT_DENEIGEMENT;
+    return Math.min(1, Math.max(0, v / 100));
+  }
+
+  /** kWh_effectif = kWh_annuel * (1 - (1 - deneigement) * W) */
+  function applyDeneigement(kWhAnnuel, d) {
+    return kWhAnnuel * (1 - (1 - d) * W_WINTER);
+  }
+
   function calc() {
     const m2 = areaM2();
     const util = utilFrac();
+    const deneige = deneigeFrac();
     const tilt = String($("tilt").value);
     const az = String($("orient").value);
     const priceW = parseFloat($("priceW").value);
@@ -63,7 +81,8 @@
     // kW = m² × util × 0.20
     const kW = m2 * util * PANEL_KW_PER_M2;
     const table = (KWH_PER_KW[tilt] && KWH_PER_KW[tilt][az]) || 0;
-    const kWh = table * kW;
+    const kWhAnnuel = table * kW;
+    const kWh = applyDeneigement(kWhAnnuel, deneige);
 
     // HT = kW × 1000 × $/W
     const HT = kW * 1000 * priceW;
@@ -76,13 +95,20 @@
     const eco = kWh * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
-    return { m2, util, tilt, az, priceW, taxesOn, subvOn, rateOk, kW, table, kWh, HT, TTC, taxes, subv, reel, eco, years };
+    return {
+      m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
+      kW, table, kWhAnnuel, kWh, W: W_WINTER,
+      HT, TTC, taxes, subv, reel, eco, years
+    };
   }
 
   function render() {
     const r = calc();
     $("utilVal").textContent = Math.round(r.util * 100) + " %";
     $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
+    if ($("deneigeVal")) {
+      $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
+    }
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
     $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
@@ -132,7 +158,8 @@
   // Expose for smoke / console
   window.SolarCalcV01 = {
     calc,
-    constants: { PANEL_KW_PER_M2, TAX_MULT, DEFAULT_RATE, KWH_PER_KW },
+    applyDeneigement,
+    constants: { PANEL_KW_PER_M2, TAX_MULT, DEFAULT_RATE, KWH_PER_KW, W_WINTER, DEFAULT_DENEIGEMENT },
     smokeAnalyste() {
       // 6.5 kW @ 3 $/W, taxes ON, LogisVert ON → réel ≈ 15920.76
       const kW = 6.5, priceW = 3;
@@ -145,23 +172,26 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    ["area", "tilt", "orient", "util", "priceW", "taxes", "subv", "rate"].forEach((id) => {
-      $(id).addEventListener("input", render);
-      $(id).addEventListener("change", render);
+    ["area", "tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("input", render);
+      el.addEventListener("change", render);
     });
     $("unitM2").addEventListener("click", () => setUnit("m2"));
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
     $("btnPdf").addEventListener("click", printPdf);
     $("bugLink").addEventListener("click", reportBug);
-    // defaults: Sud 180, tilt 30, util 80, price mid 3.50? mock says 2.50–4.50 — use 3.00 for demo clarity near smoke
+    // defaults: Sud 180, tilt 30, util 80, deneige 20%, price 3.00
     $("priceW").value = 3;
     $("util").value = 80;
+    if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
     $("tilt").value = "30";
     $("orient").value = "180";
     $("rate").value = String(DEFAULT_RATE);
     $("taxes").checked = true;
     $("subv").checked = false;
-    // seed area: 40 m² × 0.8 × 0.20 = 6.4 kW (rounder default; smoke Analyste still uses exact 6.5 kW)
+    // seed area: 40 m² × 0.8 × 0.20 = 6.4 kW
     $("area").value = 40;
     render();
   });

@@ -82,19 +82,15 @@
         <p class="hint">→ On couvre rarement 100&nbsp;% du toit · suggestion 80&nbsp;% · facteur modules 0,20&nbsp;kW/m² (estimation)</p>
       </div>
 
-      <details class="deneige-collapse">
-        <summary>
-          <span class="deneige-title">Déneigement <span class="muted-soft">(optionnel · design)</span></span>
-          <span class="badge-ui-only" role="status">UI seulement V0.1 — n’affecte PAS le calcul</span>
-        </summary>
-        <div class="deneige-body">
-          <div class="radio-group">
-            <label><input type="radio" name="deneige" value="yes" /> Je m’engage à déneiger</label>
-            <label><input type="radio" name="deneige" value="no" checked /> Je ne déneige presque pas</label>
-          </div>
-          <p class="hint">→ L’hiver peut presque annuler la prod. si on ne déneige pas · activé plus tard</p>
+      <div class="field" id="field-deneige">
+        <label for="deneige">Déneigement hivernal</label>
+        <div class="slider-wrap">
+          <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
+          <div class="slider-meta"><span>0&nbsp;% (aucune)</span><span>100&nbsp;% (plein)</span></div>
+          <div class="slider-val" id="deneigeVal">20 %</div>
         </div>
-      </details>
+        <p class="hint">→ Part de la prod. Dec–jan–fév. conservée malgré la neige · défaut 20&nbsp;% («&nbsp;je ne déneige presque pas&nbsp;») · 100&nbsp;% = pleine prod. annuelle</p>
+      </div>
 
       <div class="result-pill">
         <div class="label">Vous pourrez alors produire</div>
@@ -184,7 +180,7 @@
         <li>Production annuelle basée sur NREL/PVWatts (ancrage Montréal) avec cellules complétées PVGIS (mises à l’échelle).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — coche «&nbsp;si admissible&nbsp;» seulement si tu qualifies.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal.</li>
-        <li>Déneigement, ombrage et 2 paliers Tarif D = versions ultérieures.</li>
+        <li>Déneigement&nbsp;: réduit la prod. selon la part hiver (W≈17,7&nbsp;% Déc+jan+fév., NREL PVWatts MTL) · ombrage et 2 paliers Tarif D = plus tard.</li>
       </ul>
     </aside>
 
