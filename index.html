@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#sec-prod">Aller au calculateur</a>
   <div class="wrap">
     <div class="brand">
       <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="44" height="44" decoding="async" />
@@ -36,6 +37,7 @@
         <label for="area">Toiture — superficie</label>
         <div class="row">
           <input id="area" type="number" min="0" step="1" inputmode="numeric" value="40" />
+          <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
           <div class="unit-toggle" role="group" aria-label="Unité de surface">
             <button type="button" id="unitM2" class="active">m²</button>
             <button type="button" id="unitSqft">pi²</button>
@@ -157,8 +159,8 @@
         <p class="calc-line" id="outLight">—</p>
       </div>
 
-      <div class="field">
-        <label>Options sur le prix</label>
+      <div class="field" role="group" aria-labelledby="optsLabel">
+        <div class="field-label" id="optsLabel">Options sur le prix</div>
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="taxes" checked />
@@ -240,13 +242,13 @@
   </div>
 
   <!-- Pedagogical info modal -->
-  <div class="modal-backdrop" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+  <div class="modal-backdrop" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="infoTitle">En apprendre plus</h3>
         <button type="button" class="modal-close" id="btnInfoClose" aria-label="Fermer">×</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" id="infoDesc">
         <p><strong>Grille d’irradiation</strong> — estimation annuelle basée sur NREL PVWatts, grille fixe ancrée sur Québec (ville). 7 inclinaisons × 24 orientations (pas de 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
         <p><strong>Déneigement (W)</strong> — part de production « à risque neige », modèle pédagogique simplifié selon l’inclinaison (pas l’orientation)&nbsp;:</p>
         <ul>

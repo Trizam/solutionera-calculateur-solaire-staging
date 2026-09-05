@@ -245,6 +245,8 @@
     areaUnit = u;
     $("unitM2").classList.toggle("active", u === "m2");
     $("unitSqft").classList.toggle("active", u === "sqft");
+    const pu = $("printUnit");
+    if (pu) pu.textContent = u === "sqft" ? "pi²" : "m²";
     if (prevM2 > 0) {
       $("area").value = u === "sqft"
         ? String(Math.round(prevM2 * SQFT_PER_M2))

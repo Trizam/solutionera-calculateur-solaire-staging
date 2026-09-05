@@ -28,6 +28,29 @@ body {
   overflow-x: hidden;
 }
 body.modal-open { overflow: hidden; touch-action: none; }
+
+/* Skip link (keyboard / a11y) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0.75rem;
+  z-index: 1000;
+  padding: 0.55rem 0.85rem;
+  background: var(--green-dark);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 0.75rem;
+  outline: 2px solid var(--green-mid);
+  outline-offset: 2px;
+}
+
+/* Screen-only / print-only helpers */
+.print-unit { display: none; }
 .wrap {
   max-width: 640px;
   width: 100%;
@@ -104,7 +127,8 @@ section.block h2 .num {
   margin: 0.2rem 0 0.75rem;
 }
 .field { margin-bottom: 1rem; }
-.field label {
+.field label,
+.field-label {
   display: block;
   font-weight: 700;
   font-size: 0.88rem;
@@ -124,8 +148,12 @@ section.block h2 .num {
   flex-shrink: 0;
   line-height: 0;
   opacity: 1;
+  /* Reserve SVG box to avoid CLS while fonts/SVG paint */
+  width: 56px;
+  height: 42px;
+  overflow: hidden;
 }
-.tilt-viz svg { display: block; }
+.tilt-viz svg { display: block; width: 56px; height: 42px; }
 .tilt-viz #tiltLine,
 .tilt-viz #tiltHinge { color: var(--green-dark); }
 .row {
@@ -519,16 +547,56 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 @media print {
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
+  .skip-link,
   .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .tilt-viz,
-  .modal-backdrop, .grid-status, .slider-meta { display: none !important; }
+  .modal-backdrop, .hint { display: none !important; }
+  /* Hide slider chrome; keep the numeric value on the left */
+  .slider-track,
+  .slider-meta,
+  .slider-track input[type="range"] { display: none !important; }
+  .grid-status {
+    display: none !important;
+    visibility: hidden !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+  .print-unit {
+    display: inline !important;
+    margin-left: 0.4rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #000;
+    align-self: center;
+  }
+  .slider-row { display: block; margin-top: 0.15rem; }
+  .slider-val-left,
+  .slider-val-left-stack {
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+    min-height: 0;
+    min-width: 0;
+  }
   .wrap { max-width: 100%; padding: 0; }
-  section.block, header.hero, .disclaimers {
+  .brand { margin-bottom: 0.5rem; }
+  .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  section.block, header.hero, .disclaimers,
+  .result-pill, .breakdown, .cards, .card-kpi {
     break-inside: avoid;
+    page-break-inside: avoid;
     box-shadow: none;
     border-color: #ccc;
   }
-  .result-pill, .card-kpi { background: #f3f3f3 !important; }
+  .result-pill, .card-kpi { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .cards { grid-template-columns: repeat(3, 1fr); }
   a { color: inherit; text-decoration: none; }
+  /* Compact inputs for PDF */
+  .field input[type="number"],
+  .field select,
+  .row input[type="number"] {
+    border-color: #bbb;
+    background: #fff;
+  }
 }
 
 /* Grid fetch status (loading / error fallback) */
@@ -538,10 +606,17 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   font-weight: 700;
   color: var(--muted);
   text-align: center;
+  /* Reserve one status line so loading→ready does not shift the pill */
+  min-height: 1.25em;
+  line-height: 1.25;
 }
 .grid-status.is-loading { color: var(--accent); }
 .grid-status.is-error { color: var(--warn); }
-.grid-status[hidden] { display: none !important; }
+.grid-status[hidden] {
+  /* Keep layout slot (visibility) instead of collapsing display */
+  visibility: hidden;
+  display: block !important;
+}
 
 /* ~390px phones: hero/brand spacing + slider values stay clear of track/meta */
 @media (max-width: 390px) {
