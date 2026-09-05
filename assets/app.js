@@ -110,11 +110,9 @@
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
     }
     if ($("deneigeLive")) {
+      // lossPct = (1 - d) * W * 100  (W=0.1768) → e.g. d=0.20 → −14,1 % annuel
       const lossPct = (1 - r.deneige) * W_WINTER * 100;
-      $("deneigeLive").innerHTML =
-        "W&nbsp;=&nbsp;17,7&nbsp;% (0,1768) · impact annuel ≈&nbsp;−" +
-        fmtNum(lossPct, 1) +
-        "&nbsp;% sur la production";
+      $("deneigeLive").innerHTML = "−" + fmtNum(lossPct, 1) + "&nbsp;% annuel";
     }
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";

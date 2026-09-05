@@ -75,18 +75,21 @@ console.log(`  smoke B deneige=0%: kWh_eff=${kWhB.toFixed(2)} expect ${expectB.t
 const Wok = Math.abs(Wfile - 0.1768) < 1e-9;
 const html = readFileSync(join(__dirname, "index.html"), "utf8");
 const labelOk = html.includes("Efficacité du déneigement") && !/perte\s+neige/i.test(html);
-const liveW = html.includes("deneigeLive") && html.includes("0,1768");
-const disclaimerOk = html.includes("part de") && html.includes("production") && html.includes("modèle V0.1 grossier");
+const liveBeside = html.includes("deneigeLive") && (html.includes("% annuel") || html.includes("%&nbsp;annuel") || html.includes("&nbsp;% annuel"));
+const liveFmt = html.includes("−14,1") && html.includes("annuel");
+const disclaimerOk = html.includes("part de") && html.includes("production") && html.includes("0,1768") && html.includes("modèle V0.1 grossier");
 const citeOk = html.includes("1314,1") && html.includes("2026-09-05");
 const lossAt20 = (1 - 0.2) * W * 100; // expect ≈14.144 → 14,1
 const lossOk = Math.abs(lossAt20 - 14.144) < 1e-6;
+const appLive = app.includes('"% annuel"') || app.includes('"&nbsp;% annuel"') || app.includes(" % annuel");
 console.log(`  UI label « Efficacité du déneigement » (not perte neige): ${labelOk ? "PASS" : "FAIL"}`);
-console.log(`  live W readout (deneigeLive / 0,1768): ${liveW ? "PASS" : "FAIL"}`);
-console.log(`  disclaimer near control (W=prod NREL déc+jan+fév): ${disclaimerOk ? "PASS" : "FAIL"}`);
+console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
+console.log(`  app.js live format « −X,X % annuel »: ${appLive ? "PASS" : "FAIL"}`);
+console.log(`  disclaimer near control (W=0,1768 prod NREL déc+jan+fév): ${disclaimerOk ? "PASS" : "FAIL"}`);
 console.log(`  cite NREL MTL grid 1314,1 + 2026-09-05: ${citeOk ? "PASS" : "FAIL"}`);
 console.log(`  loss at d=20%: ≈−${lossAt20.toFixed(1)}% (expect −14.1) → ${lossOk ? "PASS" : "FAIL"}`);
 
-const pass = ok && !bad && s30 === 1314.1 && Wok && hasW && hasFormula && passA && passB && labelOk && liveW && disclaimerOk && citeOk && lossOk;
+const pass = ok && !bad && s30 === 1314.1 && Wok && hasW && hasFormula && passA && passB && labelOk && liveBeside && liveFmt && appLive && disclaimerOk && citeOk && lossOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
