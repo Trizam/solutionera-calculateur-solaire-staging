@@ -221,6 +221,16 @@ console.log(`  @page print margin: ${pageMargin ? "PASS" : "FAIL"}`);
 console.log(`  modal max-height dvh: ${modalDvh ? "PASS" : "FAIL"}`);
 console.log(`  btnPdf window.print only: ${pdfPrintOnly ? "PASS" : "FAIL"}`);
 
+const hasPointerDrag = app.includes("wireRangePointerDrag") && app.includes("setPointerCapture");
+const thumb44 = /::-webkit-slider-thumb[\s\S]{0,220}?width:\s*44px/.test(css);
+const overscrollRow = /\.slider-row[\s\S]{0,200}?overscroll-behavior:\s*contain/.test(css);
+const viewportFit = html.includes("viewport-fit=cover");
+console.log(`  range pointer-drag (touch/pen): ${hasPointerDrag ? "PASS" : "FAIL"}`);
+console.log(`  thumb 44px webkit: ${thumb44 ? "PASS" : "FAIL"}`);
+console.log(`  slider-row overscroll contain: ${overscrollRow ? "PASS" : "FAIL"}`);
+console.log(`  viewport-fit=cover: ${viewportFit ? "PASS" : "FAIL"}`);
+
+
 const pass =
   ok &&
   !bad &&
@@ -278,7 +288,11 @@ const pass =
   btnManipulation &&
   pageMargin &&
   modalDvh &&
-  pdfPrintOnly;
+  pdfPrintOnly &&
+  hasPointerDrag &&
+  thumb44 &&
+  overscrollRow &&
+  viewportFit;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

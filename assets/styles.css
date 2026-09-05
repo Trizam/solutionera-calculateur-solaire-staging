@@ -210,8 +210,10 @@ section.block h2 .num {
   gap: 0.75rem;
   margin-top: 0.35rem;
   touch-action: none; /* Safari: keep page from stealing range drag */
+  overscroll-behavior: contain;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .slider-val-left {
   /* auto width + min so « 3,00 $/W » / « −14 % annuel » never collide */
@@ -276,6 +278,7 @@ section.block h2 .num {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
   accent-color: var(--accent);
   cursor: pointer;
 }
@@ -296,10 +299,10 @@ section.block h2 .num {
 .slider-track input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  /* Safari intent: large thumb + 44px track hit area */
-  width: 32px;
-  height: 32px;
-  margin-top: -12px; /* (32-8)/-2 */
+  /* iOS HIG: ≥44px thumb; track already 44px tall */
+  width: 44px;
+  height: 44px;
+  margin-top: -18px; /* (44-8)/-2 */
   border-radius: 50%;
   background: var(--green);
   border: 3px solid #fff;
@@ -308,6 +311,9 @@ section.block h2 .num {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.slider-track input[type="range"]:active::-webkit-slider-thumb {
+  cursor: grabbing;
 }
 .slider-track input[type="range"]::-moz-range-track {
   height: 8px;
@@ -316,8 +322,8 @@ section.block h2 .num {
   border: 1px solid var(--border);
 }
 .slider-track input[type="range"]::-moz-range-thumb {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--green);
   border: 3px solid #fff;
@@ -326,6 +332,9 @@ section.block h2 .num {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.slider-track input[type="range"]:active::-moz-range-thumb {
+  cursor: grabbing;
 }
 
 .checks { display: flex; flex-direction: column; gap: 0.55rem; }

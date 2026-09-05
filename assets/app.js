@@ -319,12 +319,79 @@
     infoOpener = null;
   }
 
+  /**
+   * iOS Safari often eats range drag (page scroll wins). Pointer capture +
+   * clientX→value mapping keeps thumbs draggable; mouse/pen stay native-friendly
+   * by only forcing the path for touch.
+   */
+  function wireRangePointerDrag(input) {
+    if (!input || input.type !== "range") return;
+    let activeId = null;
+
+    function valueFromClientX(clientX) {
+      const rect = input.getBoundingClientRect();
+      if (!rect.width) return Number(input.value);
+      const min = Number(input.min);
+      const max = Number(input.max);
+      const stepRaw = input.step === "any" ? 0 : Number(input.step);
+      const step = isFinite(stepRaw) && stepRaw > 0 ? stepRaw : 1;
+      const lo = isFinite(min) ? min : 0;
+      const hi = isFinite(max) ? max : 100;
+      let ratio = (clientX - rect.left) / rect.width;
+      if (getComputedStyle(input).direction === "rtl") ratio = 1 - ratio;
+      ratio = Math.min(1, Math.max(0, ratio));
+      let raw = lo + ratio * (hi - lo);
+      const steps = Math.round((raw - lo) / step);
+      raw = lo + steps * step;
+      // Avoid float dust (e.g. 0.05 steps)
+      const decimals = (String(step).split(".")[1] || "").length;
+      if (decimals) raw = Number(raw.toFixed(decimals));
+      return Math.min(hi, Math.max(lo, raw));
+    }
+
+    function applyClientX(clientX, fireChange) {
+      const next = valueFromClientX(clientX);
+      if (String(input.value) !== String(next)) {
+        input.value = String(next);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    input.addEventListener("pointerdown", function (e) {
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      activeId = e.pointerId;
+      try { input.setPointerCapture(e.pointerId); } catch (_) {}
+      applyClientX(e.clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+
+    input.addEventListener("pointermove", function (e) {
+      if (activeId === null || e.pointerId !== activeId) return;
+      applyClientX(e.clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+
+    function endDrag(e) {
+      if (activeId === null || e.pointerId !== activeId) return;
+      applyClientX(e.clientX, true);
+      activeId = null;
+      try { input.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+    input.addEventListener("pointerup", endDrag);
+    input.addEventListener("pointercancel", endDrag);
+  }
+
   function wireUi() {
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", render);
       el.addEventListener("change", render);
+    });
+    ["util", "deneige", "priceW"].forEach((id) => {
+      const el = $(id);
+      if (el) wireRangePointerDrag(el);
     });
     const area = $("area");
     if (area) {
