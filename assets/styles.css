@@ -344,7 +344,57 @@ footer.bug a:hover { text-decoration: underline; }
 }
 @media print {
   body { background: #fff; }
-  .btn, footer.bug, .unit-toggle, .note-ui { display: none !important; }
+  .btn, footer.bug, .unit-toggle, .note-ui, .deneige-collapse, .cards-disclaimer, .badge-ui-only { display: none !important; }
   .wrap { max-width: 100%; }
   section.block { break-inside: avoid; box-shadow: none; }
+}
+
+/* Déneigement — collapsed / de-emphasized (UI only V0.1) */
+.deneige-collapse {
+  margin-bottom: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: #fafcfb;
+  padding: 0.55rem 0.75rem 0.65rem;
+  opacity: 0.92;
+}
+.deneige-collapse summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+.deneige-collapse summary::-webkit-details-marker { display: none; }
+.deneige-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.deneige-title .muted-soft { font-weight: 400; color: var(--muted); }
+.badge-ui-only {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: #fff3e6;
+  color: var(--warn);
+  border: 1px solid #e9c8a0;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  line-height: 1.35;
+}
+.deneige-body { margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px dashed var(--border); }
+.deneige-collapse .radio-group label {
+  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  background: #fff;
+}
+.cards-disclaimer {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
 }

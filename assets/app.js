@@ -161,8 +161,8 @@
     $("rate").value = String(DEFAULT_RATE);
     $("taxes").checked = true;
     $("subv").checked = false;
-    // seed area so  m²×0.8×0.20 ≈ interesting: e.g. 40.625 m² → 6.5 kW at 80%
-    $("area").value = 40.625;
+    // seed area: 40 m² × 0.8 × 0.20 = 6.4 kW (rounder default; smoke Analyste still uses exact 6.5 kW)
+    $("area").value = 40;
     render();
   });
 })();

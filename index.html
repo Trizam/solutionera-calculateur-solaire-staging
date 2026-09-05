@@ -34,7 +34,7 @@
       <div class="field">
         <label for="area">Toiture — superficie</label>
         <div class="row">
-          <input id="area" type="number" min="0" step="0.1" inputmode="decimal" value="40.625" />
+          <input id="area" type="number" min="0" step="0.1" inputmode="decimal" value="40" />
           <div class="unit-toggle" role="group" aria-label="Unité de surface">
             <button type="button" id="unitM2" class="active">m²</button>
             <button type="button" id="unitSqft">pi²</button>
@@ -82,15 +82,19 @@
         <p class="hint">→ On couvre rarement 100&nbsp;% du toit · suggestion 80&nbsp;% · facteur modules 0,20&nbsp;kW/m² (estimation)</p>
       </div>
 
-      <div class="field">
-        <label>Déneigement <span style="font-weight:400;color:var(--muted)">(design; production plus tard)</span></label>
-        <div class="radio-group">
-          <label><input type="radio" name="deneige" value="yes" /> Je m’engage à déneiger</label>
-          <label><input type="radio" name="deneige" value="no" checked /> Je ne déneige presque pas</label>
+      <details class="deneige-collapse">
+        <summary>
+          <span class="deneige-title">Déneigement <span class="muted-soft">(optionnel · design)</span></span>
+          <span class="badge-ui-only" role="status">UI seulement V0.1 — n’affecte PAS le calcul</span>
+        </summary>
+        <div class="deneige-body">
+          <div class="radio-group">
+            <label><input type="radio" name="deneige" value="yes" /> Je m’engage à déneiger</label>
+            <label><input type="radio" name="deneige" value="no" checked /> Je ne déneige presque pas</label>
+          </div>
+          <p class="hint">→ L’hiver peut presque annuler la prod. si on ne déneige pas · activé plus tard</p>
         </div>
-        <p class="hint">→ L’hiver peut presque annuler la prod. si on ne déneige pas</p>
-        <p class="note-ui">UI seulement en V0.1 — n’affecte pas encore le calcul.</p>
-      </div>
+      </details>
 
       <div class="result-pill">
         <div class="label">Vous pourrez alors produire</div>
@@ -167,9 +171,10 @@
         </div>
       </div>
       <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
+      <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
 
-      <button type="button" class="btn" id="btnPdf">Télécharger le PDF résumé</button>
-      <p class="hint" style="text-align:center">Ouvre le dialogue d’impression — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
+      <button type="button" class="btn" id="btnPdf">Imprimer / enregistrer en PDF</button>
+      <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
 
     <aside class="disclaimers">
