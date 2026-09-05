@@ -245,6 +245,8 @@
     areaUnit = u;
     $("unitM2").classList.toggle("active", u === "m2");
     $("unitSqft").classList.toggle("active", u === "sqft");
+    $("unitM2").setAttribute("aria-pressed", u === "m2" ? "true" : "false");
+    $("unitSqft").setAttribute("aria-pressed", u === "sqft" ? "true" : "false");
     const pu = $("printUnit");
     if (pu) pu.textContent = u === "sqft" ? "pi²" : "m²";
     if (prevM2 > 0) {
@@ -362,6 +364,8 @@
     $("taxes").checked = true;
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
+    if ($("unitM2")) $("unitM2").setAttribute("aria-pressed", "true");
+    if ($("unitSqft")) $("unitSqft").setAttribute("aria-pressed", "false");
   }
 
   function setGridFromPayload(data) {
@@ -374,18 +378,28 @@
     return false;
   }
 
+  async function fetchGridOnce() {
+    const res = await fetch("assets/quebec-full-grid.json", { cache: "force-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!setGridFromPayload(data)) throw new Error("payload sans cells");
+  }
+
   async function loadGrid() {
     gridStatus = "loading";
     updateGridStatusUi();
     try {
-      const res = await fetch("assets/quebec-full-grid.json", { cache: "force-cache" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      if (!setGridFromPayload(data)) throw new Error("payload sans cells");
-    } catch (err) {
-      console.warn("Grille Québec non chargée — repli S/30", err);
-      gridReady = false;
-      gridStatus = "error";
+      await fetchGridOnce();
+    } catch (err1) {
+      // One quiet retry (CDN / cold Pages), then fail-soft
+      try {
+        await new Promise((r) => setTimeout(r, 400));
+        await fetchGridOnce();
+      } catch (err2) {
+        console.warn("Grille Québec non chargée — repli S/30", err2);
+        gridReady = false;
+        gridStatus = "error";
+      }
     }
     updateGridStatusUi();
   }
@@ -426,13 +440,22 @@
     render();
   });
 
-  // Skip-link: after #main jump, browsers leave focus on <body> — move it to main
+  // Skip-link: browsers often leave focus on <body> after hash jump — force #main
+  function focusSkipTarget() {
+    const main = document.getElementById("main");
+    if (!main) return;
+    const go = () => {
+      try { main.focus({ preventScroll: false }); } catch (_) { main.focus(); }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(go));
+  }
   document.addEventListener("click", (e) => {
     const link = e.target.closest && e.target.closest("a.skip-link");
     if (!link) return;
-    const main = document.getElementById("main");
-    if (!main) return;
-    requestAnimationFrame(() => { main.focus(); });
+    focusSkipTarget();
+  });
+  window.addEventListener("hashchange", () => {
+    if (location.hash === "#main") focusSkipTarget();
   });
 
 })();

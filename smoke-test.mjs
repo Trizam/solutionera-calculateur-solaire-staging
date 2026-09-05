@@ -199,6 +199,16 @@ console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`)
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
 console.log(`  loss at d=20% tilt30: −${lossAt20}% (expect −14 integer) → ${lossOk ? "PASS" : "FAIL"}`);
 
+
+const hasSkipFocus = app.includes("focusSkipTarget") && app.includes("main.focus");
+const hasGridRetry = app.includes("fetchGridOnce");
+const hasAriaPressed = app.includes("aria-pressed");
+const safariRowTouch = css.includes("touch-action: none") && /\.slider-row[\s\S]{0,120}touch-action:\s*none/.test(css);
+console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
+console.log(`  grid fetch retry once: ${hasGridRetry ? "PASS" : "FAIL"}`);
+console.log(`  unit aria-pressed: ${hasAriaPressed ? "PASS" : "FAIL"}`);
+console.log(`  slider-row Safari touch-action: ${safariRowTouch ? "PASS" : "FAIL"}`);
+
 const pass =
   ok &&
   !bad &&
@@ -246,7 +256,11 @@ const pass =
   modalCss &&
   noMtlAssets &&
   discTiltW &&
-  lossOk;
+  lossOk &&
+  hasSkipFocus &&
+  hasGridRetry &&
+  hasAriaPressed &&
+  safariRowTouch;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

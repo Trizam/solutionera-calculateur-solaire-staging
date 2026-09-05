@@ -204,6 +204,7 @@ section.block h2 .num {
   align-items: stretch;
   gap: 0.75rem;
   margin-top: 0.35rem;
+  touch-action: none; /* Safari: keep page from stealing range drag */
 }
 .slider-val-left {
   /* auto width + min so « 3,00 $/W » / « −14 % annuel » never collide */
@@ -653,3 +654,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 #main:focus { outline: none; }
 #main:focus-visible { outline: 2px solid var(--green, #1b4332); outline-offset: 4px; }
 #sec-prod:focus { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
