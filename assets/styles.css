@@ -214,6 +214,7 @@ section.block h2 .num {
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 .slider-val-left {
   /* auto width + min so « 3,00 $/W » / « −14 % annuel » never collide */
@@ -429,7 +430,7 @@ section.block h2 .num {
   border: 1px solid var(--border);
   border-radius: 10px;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 16px; /* iOS: avoid auto-zoom on focus */
 }
 .btn {
   display: inline-flex;

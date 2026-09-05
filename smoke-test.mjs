@@ -230,6 +230,22 @@ console.log(`  thumb 44px webkit: ${thumb44 ? "PASS" : "FAIL"}`);
 console.log(`  slider-row overscroll contain: ${overscrollRow ? "PASS" : "FAIL"}`);
 console.log(`  viewport-fit=cover: ${viewportFit ? "PASS" : "FAIL"}`);
 
+const tiltWLabel = html.includes('id="tiltWLabel"') && app.includes("tiltWLabel");
+const touchFallback = app.includes("touchstart") && app.includes("PointerEvent");
+const gridReload = app.includes('"reload"') || app.includes("'reload'");
+const beforePrint = app.includes("beforeprint");
+const wrapAria = app.includes('aria-hidden') && app.includes('.wrap');
+const touchCallout = css.includes("-webkit-touch-callout: none");
+const themeColor = html.includes('name="theme-color"');
+const rate16 = /\.rate-box input\s*\{[\s\S]{0,220}?font-size:\s*16px/.test(css);
+console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
+console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
+console.log(`  grid retry cache reload: ${gridReload ? "PASS" : "FAIL"}`);
+console.log(`  beforeprint closes modal: ${beforePrint ? "PASS" : "FAIL"}`);
+console.log(`  modal wrap aria-hidden: ${wrapAria ? "PASS" : "FAIL"}`);
+console.log(`  slider-row touch-callout none: ${touchCallout ? "PASS" : "FAIL"}`);
+console.log(`  theme-color + rate 16px: ${themeColor && rate16 ? "PASS" : "FAIL"}`);
+
 
 const pass =
   ok &&
@@ -292,7 +308,15 @@ const pass =
   hasPointerDrag &&
   thumb44 &&
   overscrollRow &&
-  viewportFit;
+  viewportFit &&
+  tiltWLabel &&
+  touchFallback &&
+  gridReload &&
+  beforePrint &&
+  wrapAria &&
+  touchCallout &&
+  themeColor &&
+  rate16;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

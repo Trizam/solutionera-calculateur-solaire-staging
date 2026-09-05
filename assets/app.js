@@ -206,6 +206,9 @@
       $("deneigeLive").innerHTML = "−" + lossPct + "&nbsp;% annuel";
     }
     updateTiltViz(r.tilt);
+    if ($("tiltWLabel")) {
+      $("tiltWLabel").innerHTML = Math.round(r.W * 100) + "&nbsp;%";
+    }
     updateGridStatusUi();
 
     $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
@@ -258,6 +261,7 @@
   }
 
   function printPdf() {
+    closeInfo();
     window.print();
   }
 
@@ -305,7 +309,10 @@
     if (!m) return;
     infoOpener = document.activeElement;
     m.hidden = false;
+    m.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
+    const wrap = document.querySelector(".wrap");
+    if (wrap) wrap.setAttribute("aria-hidden", "true");
     const closer = $("btnInfoClose");
     if (closer) closer.focus();
   }
@@ -313,7 +320,10 @@
     const m = $("infoModal");
     if (!m || m.hidden) return;
     m.hidden = true;
+    m.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
+    const wrap = document.querySelector(".wrap");
+    if (wrap) wrap.removeAttribute("aria-hidden");
     const back = infoOpener && document.contains(infoOpener) ? infoOpener : $("btnInfo");
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
@@ -321,12 +331,13 @@
 
   /**
    * iOS Safari often eats range drag (page scroll wins). Pointer capture +
-   * clientX→value mapping keeps thumbs draggable; mouse/pen stay native-friendly
-   * by only forcing the path for touch.
+   * clientX→value mapping keeps thumbs draggable; mouse stays native.
+   * Touch-event fallback covers older WebKit without PointerEvent.
    */
   function wireRangePointerDrag(input) {
     if (!input || input.type !== "range") return;
     let activeId = null;
+    let touching = false;
 
     function valueFromClientX(clientX) {
       const rect = input.getBoundingClientRect();
@@ -358,28 +369,50 @@
       if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    input.addEventListener("pointerdown", function (e) {
-      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
-      activeId = e.pointerId;
-      try { input.setPointerCapture(e.pointerId); } catch (_) {}
-      applyClientX(e.clientX, false);
-      e.preventDefault();
-    }, { passive: false });
+    if (typeof window.PointerEvent === "function") {
+      input.addEventListener("pointerdown", function (e) {
+        if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+        activeId = e.pointerId;
+        try { input.setPointerCapture(e.pointerId); } catch (_) {}
+        applyClientX(e.clientX, false);
+        e.preventDefault();
+      }, { passive: false });
 
-    input.addEventListener("pointermove", function (e) {
-      if (activeId === null || e.pointerId !== activeId) return;
-      applyClientX(e.clientX, false);
-      e.preventDefault();
-    }, { passive: false });
+      input.addEventListener("pointermove", function (e) {
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClientX(e.clientX, false);
+        e.preventDefault();
+      }, { passive: false });
 
-    function endDrag(e) {
-      if (activeId === null || e.pointerId !== activeId) return;
-      applyClientX(e.clientX, true);
-      activeId = null;
-      try { input.releasePointerCapture(e.pointerId); } catch (_) {}
+      function endDrag(e) {
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClientX(e.clientX, true);
+        activeId = null;
+        try { input.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      input.addEventListener("pointerup", endDrag);
+      input.addEventListener("pointercancel", endDrag);
+    } else {
+      input.addEventListener("touchstart", function (e) {
+        if (!e.touches || !e.touches[0]) return;
+        touching = true;
+        applyClientX(e.touches[0].clientX, false);
+        e.preventDefault();
+      }, { passive: false });
+      input.addEventListener("touchmove", function (e) {
+        if (!touching || !e.touches || !e.touches[0]) return;
+        applyClientX(e.touches[0].clientX, false);
+        e.preventDefault();
+      }, { passive: false });
+      function endTouch(e) {
+        if (!touching) return;
+        const t = (e.changedTouches && e.changedTouches[0]) || null;
+        if (t) applyClientX(t.clientX, true);
+        touching = false;
+      }
+      input.addEventListener("touchend", endTouch);
+      input.addEventListener("touchcancel", endTouch);
     }
-    input.addEventListener("pointerup", endDrag);
-    input.addEventListener("pointercancel", endDrag);
   }
 
   function wireUi() {
@@ -445,8 +478,9 @@
     return false;
   }
 
-  async function fetchGridOnce() {
-    const res = await fetch("assets/quebec-full-grid.json", { cache: "force-cache" });
+  async function fetchGridOnce(cacheMode) {
+    const mode = cacheMode || "force-cache";
+    const res = await fetch("assets/quebec-full-grid.json", { cache: mode });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     if (!setGridFromPayload(data)) throw new Error("payload sans cells");
@@ -456,12 +490,12 @@
     gridStatus = "loading";
     updateGridStatusUi();
     try {
-      await fetchGridOnce();
+      await fetchGridOnce("force-cache");
     } catch (err1) {
-      // One quiet retry (CDN / cold Pages), then fail-soft
+      // One quiet retry with reload (bypass bad CDN cache), then fail-soft
       try {
         await new Promise((r) => setTimeout(r, 400));
-        await fetchGridOnce();
+        await fetchGridOnce("reload");
       } catch (err2) {
         console.warn("Grille Québec non chargée — repli S/30", err2);
         gridReady = false;
@@ -501,10 +535,16 @@
   window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
+    const m0 = $("infoModal");
+    if (m0) m0.setAttribute("aria-hidden", "true");
     wireUi();
     render();
     await loadGrid();
     render();
+  });
+
+  window.addEventListener("beforeprint", () => {
+    closeInfo();
   });
 
   // Skip-link: browsers often leave focus on <body> after hash jump — force #main
