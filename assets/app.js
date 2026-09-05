@@ -425,4 +425,14 @@
     await loadGrid();
     render();
   });
+
+  // Skip-link: after #main jump, browsers leave focus on <body> — move it to main
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest && e.target.closest("a.skip-link");
+    if (!link) return;
+    const main = document.getElementById("main");
+    if (!main) return;
+    requestAnimationFrame(() => { main.focus(); });
+  });
+
 })();
