@@ -171,9 +171,13 @@
     if (label) label.textContent = Math.round(t) + "°";
   }
 
+  let lastGridUiStatus = null;
   function updateGridStatusUi() {
     const el = $("gridStatus");
     if (!el) return;
+    // Avoid thrashing DOM (and retry button) on every slider render
+    if (lastGridUiStatus === gridStatus) return;
+    lastGridUiStatus = gridStatus;
     el.classList.remove("is-loading", "is-error", "is-ready");
     if (gridStatus === "loading") {
       el.hidden = false;
@@ -349,8 +353,26 @@
    * pen / browsers where touch is absent. Mouse stays native.
    * viaTouch gates pointer handlers so we do not double-fire on iOS.
    */
+  let docDragGuardWired = false;
+  function onDocTouchMoveWhileDragging(e) {
+    if (!document.body.classList.contains("is-range-dragging")) return;
+    // Finger left the control: still kill iOS rubber-band / page scroll
+    if (e.cancelable) e.preventDefault();
+  }
+  function clearRangeDragging() {
+    document.body.classList.remove("is-range-dragging");
+  }
   function setRangeDragging(on) {
     document.body.classList.toggle("is-range-dragging", !!on);
+    if (!docDragGuardWired) {
+      docDragGuardWired = true;
+      document.addEventListener("touchmove", onDocTouchMoveWhileDragging, { passive: false, capture: true });
+      window.addEventListener("pagehide", clearRangeDragging);
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState !== "visible") clearRangeDragging();
+      });
+      window.addEventListener("blur", clearRangeDragging);
+    }
   }
 
   function wireRangePointerDrag(input) {
@@ -628,6 +650,7 @@
 
   async function loadGrid() {
     gridStatus = "loading";
+    lastGridUiStatus = null; // force status UI refresh
     updateGridStatusUi();
     try {
       await fetchGridOnce("force-cache");

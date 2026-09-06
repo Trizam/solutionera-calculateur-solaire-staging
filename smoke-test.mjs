@@ -243,6 +243,9 @@ const rate16 = /\.rate-box input\s*\{[\s\S]{0,220}?font-size:\s*16px/.test(css);
 const rowDrag = app.includes("wireSliderRowDrag") && app.includes("slider-row");
 const rangeDragLock = app.includes("is-range-dragging") && /body\.is-range-dragging\s*\{/.test(css);
 const wrapInert = app.includes("wrap.inert") || (app.includes("inert") && app.includes("openInfo"));
+const docDragGuard = app.includes("onDocTouchMoveWhileDragging") && app.includes("clearRangeDragging");
+const gridUiStable = app.includes("lastGridUiStatus");
+const noTelDetect = html.includes('name="format-detection"') && html.includes("telephone=no");
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
 console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
@@ -255,6 +258,9 @@ console.log(`  theme-color + rate 16px: ${themeColor && rate16 ? "PASS" : "FAIL"
 console.log(`  slider-row miss-hit drag (wireSliderRowDrag): ${rowDrag ? "PASS" : "FAIL"}`);
 console.log(`  body.is-range-dragging scroll-lock: ${rangeDragLock ? "PASS" : "FAIL"}`);
 console.log(`  modal wrap inert: ${wrapInert ? "PASS" : "FAIL"}`);
+console.log(`  doc touchmove drag guard: ${docDragGuard ? "PASS" : "FAIL"}`);
+console.log(`  grid status UI stable (lastGridUiStatus): ${gridUiStable ? "PASS" : "FAIL"}`);
+console.log(`  format-detection telephone=no: ${noTelDetect ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -331,7 +337,10 @@ const pass =
   rate16 &&
   rowDrag &&
   rangeDragLock &&
-  wrapInert;
+  wrapInert &&
+  docDragGuard &&
+  gridUiStable &&
+  noTelDetect;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
