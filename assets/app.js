@@ -319,7 +319,10 @@
     m.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
     const wrap = document.querySelector(".wrap");
-    if (wrap) wrap.setAttribute("aria-hidden", "true");
+    if (wrap) {
+      wrap.setAttribute("aria-hidden", "true");
+      try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
+    }
     const closer = $("btnInfoClose");
     if (closer) closer.focus();
   }
@@ -330,7 +333,10 @@
     m.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
-    if (wrap) wrap.removeAttribute("aria-hidden");
+    if (wrap) {
+      wrap.removeAttribute("aria-hidden");
+      try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
+    }
     const back = infoOpener && document.contains(infoOpener) ? infoOpener : $("btnInfo");
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
@@ -343,6 +349,10 @@
    * pen / browsers where touch is absent. Mouse stays native.
    * viaTouch gates pointer handlers so we do not double-fire on iOS.
    */
+  function setRangeDragging(on) {
+    document.body.classList.toggle("is-range-dragging", !!on);
+  }
+
   function wireRangePointerDrag(input) {
     if (!input || input.type !== "range") return;
     let activeId = null;
@@ -385,6 +395,7 @@
       touching = true;
       viaTouch = true;
       activeId = null;
+      setRangeDragging(true);
       applyClientX(e.touches[0].clientX, false);
       e.preventDefault();
     }, { passive: false });
@@ -398,6 +409,7 @@
       const t = (e.changedTouches && e.changedTouches[0]) || null;
       if (t) applyClientX(t.clientX, true);
       touching = false;
+      setRangeDragging(false);
       // Keep viaTouch until next pointerdown without touch
       setTimeout(function () { if (!touching) viaTouch = false; }, 0);
     }
@@ -410,6 +422,7 @@
         if (viaTouch || touching) return; // touch path owns this gesture
         if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
         activeId = e.pointerId;
+        setRangeDragging(true);
         try { input.setPointerCapture(e.pointerId); } catch (_) {}
         applyClientX(e.clientX, false);
         e.preventDefault();
@@ -427,10 +440,115 @@
         if (activeId === null || e.pointerId !== activeId) return;
         applyClientX(e.clientX, true);
         activeId = null;
+        setRangeDragging(false);
         try { input.releasePointerCapture(e.pointerId); } catch (_) {}
       }
       input.addEventListener("pointerup", endDrag);
       input.addEventListener("pointercancel", endDrag);
+    }
+  }
+
+  /**
+   * iOS miss-hits: finger often lands on .slider-val-left / .slider-meta, not the
+   * <input>. Map those touches onto the row's range (same viaTouch dual path).
+   * Skip when target is already the range (input handlers own that gesture).
+   */
+  function wireSliderRowDrag(row) {
+    if (!row || row._rowDragWired) return;
+    const input = row.querySelector('input[type="range"]');
+    if (!input) return;
+    row._rowDragWired = true;
+    let touching = false;
+    let viaTouch = false;
+    let activeId = null;
+
+    function valueFromClientX(clientX) {
+      const rect = input.getBoundingClientRect();
+      if (!rect.width) return Number(input.value);
+      const min = Number(input.min);
+      const max = Number(input.max);
+      const stepRaw = input.step === "any" ? 0 : Number(input.step);
+      const step = isFinite(stepRaw) && stepRaw > 0 ? stepRaw : 1;
+      const lo = isFinite(min) ? min : 0;
+      const hi = isFinite(max) ? max : 100;
+      let ratio = (clientX - rect.left) / rect.width;
+      if (getComputedStyle(input).direction === "rtl") ratio = 1 - ratio;
+      ratio = Math.min(1, Math.max(0, ratio));
+      let raw = lo + ratio * (hi - lo);
+      const steps = Math.round((raw - lo) / step);
+      raw = lo + steps * step;
+      const decimals = (String(step).split(".")[1] || "").length;
+      if (decimals) raw = Number(raw.toFixed(decimals));
+      return Math.min(hi, Math.max(lo, raw));
+    }
+
+    function applyClientX(clientX, fireChange) {
+      const next = valueFromClientX(clientX);
+      if (String(input.value) !== String(next)) {
+        input.value = String(next);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function fromInput(el) {
+      return el === input || (el && input.contains && input.contains(el));
+    }
+
+    row.addEventListener("touchstart", function (e) {
+      if (fromInput(e.target)) return;
+      if (!e.touches || !e.touches[0]) return;
+      touching = true;
+      viaTouch = true;
+      activeId = null;
+      setRangeDragging(true);
+      applyClientX(e.touches[0].clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+    row.addEventListener("touchmove", function (e) {
+      if (!touching || !e.touches || !e.touches[0]) return;
+      applyClientX(e.touches[0].clientX, false);
+      e.preventDefault();
+    }, { passive: false });
+    function endTouch(e) {
+      if (!touching) return;
+      const t = (e.changedTouches && e.changedTouches[0]) || null;
+      if (t) applyClientX(t.clientX, true);
+      touching = false;
+      setRangeDragging(false);
+      setTimeout(function () { if (!touching) viaTouch = false; }, 0);
+    }
+    row.addEventListener("touchend", endTouch);
+    row.addEventListener("touchcancel", endTouch);
+
+    if (typeof window.PointerEvent === "function") {
+      row.addEventListener("pointerdown", function (e) {
+        if (fromInput(e.target)) return;
+        if (e.pointerType === "mouse") return;
+        if (viaTouch || touching) return;
+        if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+        activeId = e.pointerId;
+        setRangeDragging(true);
+        try { row.setPointerCapture(e.pointerId); } catch (_) {}
+        applyClientX(e.clientX, false);
+        e.preventDefault();
+      }, { passive: false });
+      row.addEventListener("pointermove", function (e) {
+        if (viaTouch || touching) return;
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClientX(e.clientX, false);
+        e.preventDefault();
+      }, { passive: false });
+      function endDrag(e) {
+        if (viaTouch || touching) { activeId = null; return; }
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClientX(e.clientX, true);
+        activeId = null;
+        setRangeDragging(false);
+        try { row.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      row.addEventListener("pointerup", endDrag);
+      row.addEventListener("pointercancel", endDrag);
     }
   }
 
@@ -444,6 +562,9 @@
     ["util", "deneige", "priceW"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
+    });
+    document.querySelectorAll(".slider-row").forEach(function (row) {
+      wireSliderRowDrag(row);
     });
     const area = $("area");
     if (area) {

@@ -28,6 +28,13 @@ body {
   overflow-x: hidden;
 }
 body.modal-open { overflow: hidden; touch-action: none; }
+/* While dragging a range (or its slider-row), kill rubber-band scroll on iOS */
+body.is-range-dragging {
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
 
 /* Skip link (keyboard / a11y) */
 .skip-link {

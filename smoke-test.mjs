@@ -240,6 +240,9 @@ const wrapAria = app.includes('aria-hidden') && app.includes('.wrap');
 const touchCallout = css.includes("-webkit-touch-callout: none");
 const themeColor = html.includes('name="theme-color"');
 const rate16 = /\.rate-box input\s*\{[\s\S]{0,220}?font-size:\s*16px/.test(css);
+const rowDrag = app.includes("wireSliderRowDrag") && app.includes("slider-row");
+const rangeDragLock = app.includes("is-range-dragging") && /body\.is-range-dragging\s*\{/.test(css);
+const wrapInert = app.includes("wrap.inert") || (app.includes("inert") && app.includes("openInfo"));
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
 console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
@@ -249,6 +252,9 @@ console.log(`  beforeprint closes modal: ${beforePrint ? "PASS" : "FAIL"}`);
 console.log(`  modal wrap aria-hidden: ${wrapAria ? "PASS" : "FAIL"}`);
 console.log(`  slider-row touch-callout none: ${touchCallout ? "PASS" : "FAIL"}`);
 console.log(`  theme-color + rate 16px: ${themeColor && rate16 ? "PASS" : "FAIL"}`);
+console.log(`  slider-row miss-hit drag (wireSliderRowDrag): ${rowDrag ? "PASS" : "FAIL"}`);
+console.log(`  body.is-range-dragging scroll-lock: ${rangeDragLock ? "PASS" : "FAIL"}`);
+console.log(`  modal wrap inert: ${wrapInert ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -322,7 +328,10 @@ const pass =
   wrapAria &&
   touchCallout &&
   themeColor &&
-  rate16;
+  rate16 &&
+  rowDrag &&
+  rangeDragLock &&
+  wrapInert;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
