@@ -246,6 +246,7 @@ const wrapInert = app.includes("wrap.inert") || (app.includes("inert") && app.in
 const docDragGuard = app.includes("onDocTouchMoveWhileDragging") && app.includes("clearRangeDragging");
 const gridUiStable = app.includes("lastGridUiStatus");
 const noTelDetect = html.includes('name="format-detection"') && html.includes("telephone=no");
+const pageShowClear = app.includes('pageshow') && app.includes("clearRangeDragging");
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
 console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
@@ -261,6 +262,7 @@ console.log(`  modal wrap inert: ${wrapInert ? "PASS" : "FAIL"}`);
 console.log(`  doc touchmove drag guard: ${docDragGuard ? "PASS" : "FAIL"}`);
 console.log(`  grid status UI stable (lastGridUiStatus): ${gridUiStable ? "PASS" : "FAIL"}`);
 console.log(`  format-detection telephone=no: ${noTelDetect ? "PASS" : "FAIL"}`);
+console.log(`  pageshow clears range drag: ${pageShowClear ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -340,7 +342,8 @@ const pass =
   wrapInert &&
   docDragGuard &&
   gridUiStable &&
-  noTelDetect;
+  noTelDetect &&
+  pageShowClear;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

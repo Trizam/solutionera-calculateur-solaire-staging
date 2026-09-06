@@ -368,6 +368,8 @@
       docDragGuardWired = true;
       document.addEventListener("touchmove", onDocTouchMoveWhileDragging, { passive: false, capture: true });
       window.addEventListener("pagehide", clearRangeDragging);
+      // iOS bfcache restore can leave body.is-range-dragging stuck
+      window.addEventListener("pageshow", clearRangeDragging);
       document.addEventListener("visibilitychange", function () {
         if (document.visibilityState !== "visible") clearRangeDragging();
       });
