@@ -206,8 +206,7 @@
             <span class="prod-period">an</span>
           </div>
         </div>
-        <div class="label">avec votre installation solaire</div>
-        <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kWc</strong></p>
+        <div class="label prod-power">avec votre installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
       </div>
     </section>
 
@@ -492,35 +491,37 @@
   </template>
 
   <!-- Bug report — visible in webi + full; POST create-only proxy (no token in page) -->
-  <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
+  <div class="modal-backdrop info-sheet" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="bugTitle">Signaler un bug</h3>
         <button type="button" class="modal-close" id="btnBugClose" aria-label="Fermer">×</button>
       </div>
 
-      <form id="bugForm" novalidate>
-        <div class="hp-field" aria-hidden="true">
-          <label for="bugHp">Site web</label>
-          <input type="text" id="bugHp" name="website" tabindex="-1" autocomplete="off" />
+      <form id="bugForm" class="sheet-form" novalidate>
+        <div class="modal-body">
+          <div class="hp-field" aria-hidden="true">
+            <label for="bugHp">Site web</label>
+            <input type="text" id="bugHp" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="bugText">Description du bug</label>
+            <textarea id="bugText" name="bug" required minlength="10" rows="5" maxlength="4000" placeholder="Décris le bug… (tu peux aussi dire la réparation désirée)"></textarea>
+          </div>
+          <div class="field">
+            <label for="bugName">Votre nom (si vous désirez)</label>
+            <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
+          </div>
+          <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
         </div>
-        <div class="field">
-          <label for="bugText">Description du bug</label>
-          <textarea id="bugText" name="bug" required minlength="10" rows="5" maxlength="4000" placeholder="Décris le bug… (tu peux aussi dire la réparation désirée)"></textarea>
-        </div>
-        <div class="field">
-          <label for="bugName">Votre nom (si vous désirez)</label>
-          <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
-        </div>
-        <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
-        <div class="modal-actions">
-          <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
-        </div>
+        <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
       </form>
 
-      <div id="bugSuccess" hidden>
-        <p class="bug-success-msg">Merci — signalement envoyé.</p>
-        <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
+      <div id="bugSuccess" class="sheet-form" hidden>
+        <div class="modal-body">
+          <p class="bug-success-msg">Merci — signalement envoyé.</p>
+          <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
+        </div>
         <button type="button" class="btn" id="btnBugOk">Fermer</button>
       </div>
     </div>

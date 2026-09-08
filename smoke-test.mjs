@@ -381,6 +381,7 @@ const infoSheetUi =
   html.includes('class="modal-backdrop info-sheet mode-full-only" id="infoModal"') &&
   html.includes('class="modal-backdrop info-sheet mode-full-only" id="rateModal"') &&
   html.includes('class="modal-backdrop info-sheet" id="fieldInfoModal"') &&
+  html.includes('class="modal-backdrop info-sheet" id="bugModal"') &&
   app.includes("openFieldInfo") &&
   app.includes("fieldInfoModal") &&
   html.includes('data-info="orient"') &&
@@ -492,7 +493,9 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   /id="outKw"[^>]*>— kWc</.test(html) &&
-  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app);
+  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app) &&
+  html.includes("avec votre installation solaire d’une puissance de") &&
+  !html.includes("Puissance estimée");
 const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
   !/id="outKwh"[^>]*>≈/.test(html) &&
@@ -685,10 +688,13 @@ const bugJsWired =
   !app.includes("## Correction souhaitée") &&
   !app.includes("btnBugCancel");
 const bugMobileCss =
-  css.includes(".bug-modal") &&
+  html.includes('class="modal-backdrop info-sheet" id="bugModal"') &&
+  css.includes(".info-sheet") &&
+  css.includes(".sheet-form") &&
+  /max-height:\s*100dvh/.test(css) &&
   /min-height:\s*48px/.test(css) &&
-  css.includes("position: sticky") &&
-  css.includes("align-items: flex-end");
+  !html.includes("bug-modal") &&
+  !css.includes(".bug-modal");
 const htmlEndpointMeta = /<meta name="bug-report-endpoint" content="https:\/\//.test(html);
 const noTokenInFrontend =
   htmlEndpointMeta &&
@@ -726,7 +732,7 @@ console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PAS
 console.log(`  proxy validate min / no-token / CORS: ${bugMinPath && bugNoTokenPath && bugCors ? "PASS" : "FAIL"}`);
 console.log(`  api/bug-report Netlify handler: ${netlifyApiFn ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
-console.log(`  bug modal mobile-first CSS (48px / sticky / sheet): ${bugMobileCss ? "PASS" : "FAIL"}`);
+console.log(`  bug modal same info-sheet fullscreen shell: ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
