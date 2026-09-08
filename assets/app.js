@@ -339,14 +339,188 @@
     window.print();
   }
 
-  function reportBug(e) {
-    e.preventDefault();
+  const BUG_MIN_LEN = 10;
+  const BUG_MIN_FORM_MS = 2000;
+  const BUG_ISSUES_URL =
+    "https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report";
+
+  function bugReportEndpoint() {
+    if (typeof window !== "undefined" && window.__BUG_REPORT_ENDPOINT__) {
+      return String(window.__BUG_REPORT_ENDPOINT__).trim();
+    }
+    const meta = document.querySelector('meta[name="bug-report-endpoint"]');
+    return meta ? String(meta.getAttribute("content") || "").trim() : "";
+  }
+
+  function appVersionString() {
+    const el = document.querySelector(".bug-ver") || document.querySelector(".brand-sub");
+    const t = el ? el.textContent.replace(/\s+/g, " ") : "";
+    const m = t.match(/version\s+[0-9.]+/i);
+    return m ? m[0] : "version 0.2";
+  }
+
+  function currentDisplayMode() {
+    const api = typeof window !== "undefined" && window.SolarDisplayMode;
+    if (api && api.current) return api.current;
+    return (document.documentElement.getAttribute("data-mode") || "full").toLowerCase();
+  }
+
+  function mailtoBugHref(bug, correction) {
     const subject = encodeURIComponent("Calculateur solaire version 0.2 — signalement");
     const body = encodeURIComponent(
-      "Décris le bug ou l'erreur de calcul:\n\n" +
+      "Bug:\n" + bug + "\n\nCorrection souhaitée:\n" + correction + "\n\n" +
       "Entrées:\n" + JSON.stringify(calc(), null, 2)
     );
-    window.location.href = "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
+    return "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
+  }
+
+  function validateBugReport(payload, nowMs) {
+    const now = typeof nowMs === "number" ? nowMs : Date.now();
+    const data = payload && typeof payload === "object" ? payload : {};
+    if (String(data.hp || "").trim() !== "") return { ok: false, reason: "honeypot" };
+    const bug = String(data.bug || "").trim();
+    const correction = String(data.correction || "").trim();
+    if (bug.length < BUG_MIN_LEN) return { ok: false, reason: "bug-min" };
+    if (!correction) return { ok: false, reason: "correction-required" };
+    const openedAt = Number(data.openedAt);
+    if (!isFinite(openedAt) || now - openedAt < BUG_MIN_FORM_MS) {
+      return { ok: false, reason: "too-fast" };
+    }
+    return { ok: true, bug, correction };
+  }
+
+  let bugOpenedAt = 0;
+  let bugSubmitting = false;
+  let bugUnlockTimer = null;
+
+  function setBugStatus(msg) {
+    const el = $("bugFormStatus");
+    if (!el) return;
+    if (!msg) {
+      el.hidden = true;
+      el.textContent = "";
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = msg;
+  }
+
+  function resetBugForm() {
+    const form = $("bugForm");
+    if (form) form.reset();
+    if ($("bugHp")) $("bugHp").value = "";
+    setBugStatus("");
+    if ($("bugForm")) $("bugForm").hidden = false;
+    if ($("bugSuccess")) $("bugSuccess").hidden = true;
+    bugSubmitting = false;
+    const btn = $("btnBugSubmit");
+    if (btn) btn.disabled = true;
+    if (bugUnlockTimer) clearTimeout(bugUnlockTimer);
+    bugOpenedAt = Date.now();
+    bugUnlockTimer = setTimeout(function () {
+      if ($("btnBugSubmit") && !bugSubmitting) $("btnBugSubmit").disabled = false;
+    }, BUG_MIN_FORM_MS);
+  }
+
+  function showBugSuccess(url) {
+    if ($("bugForm")) $("bugForm").hidden = true;
+    const ok = $("bugSuccess");
+    if (ok) ok.hidden = false;
+    const link = $("bugIssueLink");
+    if (link) {
+      link.href = url || BUG_ISSUES_URL;
+      link.textContent = url ? "Ouvrir le signalement" : "Voir les signalements";
+    }
+    const closer = $("btnBugOk") || $("btnBugClose");
+    if (closer) closer.focus();
+  }
+
+  function openBugReport(e) {
+    if (e) e.preventDefault();
+    resetBugForm();
+    openModal("bugModal");
+    const field = $("bugText");
+    if (field) {
+      try { field.focus(); } catch (_) {}
+    }
+  }
+
+  function buildBugPayload() {
+    let mode = currentDisplayMode();
+    try {
+      const q = new URLSearchParams(location.search).get("mode");
+      if (q) mode = String(q).trim().toLowerCase() || mode;
+    } catch (_) {}
+    return {
+      bug: $("bugText") ? $("bugText").value : "",
+      correction: $("bugFix") ? $("bugFix").value : "",
+      hp: $("bugHp") ? $("bugHp").value : "",
+      openedAt: bugOpenedAt,
+      context: {
+        url: String(location.href || ""),
+        mode: mode,
+        version: appVersionString(),
+        calc: calc(),
+        ua: String(navigator.userAgent || "").slice(0, 180),
+        ts: new Date().toISOString()
+      }
+    };
+  }
+
+  async function submitBugReport(e) {
+    if (e) e.preventDefault();
+    if (bugSubmitting) return;
+    const payload = buildBugPayload();
+    const checked = validateBugReport(payload);
+    if (!checked.ok && checked.reason === "honeypot") {
+      showBugSuccess(BUG_ISSUES_URL);
+      return;
+    }
+    if (!checked.ok) {
+      if (checked.reason === "bug-min") {
+        setBugStatus("Décris le bug en au moins 10 caractères.");
+      } else if (checked.reason === "correction-required") {
+        setBugStatus("Indique la correction souhaitée.");
+      } else if (checked.reason === "too-fast") {
+        setBugStatus("Un instant — réessaie dans une seconde.");
+      } else {
+        setBugStatus("Vérifie les deux champs, puis réessaie.");
+      }
+      return;
+    }
+    const endpoint = bugReportEndpoint();
+    const fallback = mailtoBugHref(checked.bug, checked.correction);
+    if (!endpoint) {
+      setBugStatus(
+        'Envoi indisponible pour le moment. <a href="' + fallback + '">Envoyer par courriel</a>.'
+      );
+      return;
+    }
+    bugSubmitting = true;
+    if ($("btnBugSubmit")) $("btnBugSubmit").disabled = true;
+    setBugStatus("");
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(function () { return {}; });
+      if (data && data.ok) {
+        showBugSuccess(data.html_url || BUG_ISSUES_URL);
+        return;
+      }
+      throw new Error("api");
+    } catch (_) {
+      setBugStatus(
+        'Envoi impossible pour le moment. <a href="' + fallback + '">Envoyer par courriel</a>.'
+      );
+    } finally {
+      bugSubmitting = false;
+      if ($("btnBugSubmit") && $("bugForm") && !$("bugForm").hidden) {
+        $("btnBugSubmit").disabled = false;
+      }
+    }
   }
 
   let infoOpener = null;
@@ -354,11 +528,12 @@
 
   function currentModal() {
     if (activeModalId && $(activeModalId)) return $(activeModalId);
-    const info = $("infoModal");
-    if (info && !info.hidden) return info;
-    const rate = $("rateModal");
-    if (rate && !rate.hidden) return rate;
-    return info;
+    const ids = ["bugModal", "infoModal", "rateModal"];
+    for (let i = 0; i < ids.length; i++) {
+      const el = $(ids[i]);
+      if (el && !el.hidden) return el;
+    }
+    return $("infoModal");
   }
 
   function modalFocusables() {
@@ -409,7 +584,11 @@
       try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
     }
     const closer = m.querySelector(".modal-close");
-    if (closer) closer.focus();
+    if (id === "bugModal" && $("bugText")) {
+      $("bugText").focus();
+    } else if (closer) {
+      closer.focus();
+    }
   }
   function openInfo() {
     openModal("infoModal");
@@ -420,7 +599,11 @@
   function closeInfo() {
     const m = currentModal();
     if (!m || m.hidden) return;
-    const fallbackId = activeModalId === "rateModal" ? "btnRateInfo" : "btnInfo";
+    const fallbackId = activeModalId === "rateModal"
+      ? "btnRateInfo"
+      : activeModalId === "bugModal"
+        ? "bugLink2"
+        : "btnInfo";
     hideModalEl(m);
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
@@ -692,14 +875,15 @@
     $("unitSqft").addEventListener("click", () => setUnit("sqft"));
     $("btnPdf").addEventListener("click", printPdf);
     document.querySelectorAll(".bug-report").forEach((a) => {
-      a.addEventListener("click", reportBug);
+      a.addEventListener("click", openBugReport);
     });
+    if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk"].forEach(function (id) {
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnBugClose", "btnBugCancel", "btnBugOk"].forEach(function (id) {
       if ($(id)) $(id).addEventListener("click", closeInfo);
     });
-    ["infoModal", "rateModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "bugModal"].forEach(function (id) {
       const el = $(id);
       if (!el) return;
       el.addEventListener("click", function (e) {
@@ -774,6 +958,8 @@
     winterWFromTilt,
     sig2Round,
     fmtSig2,
+    validateBugReport,
+    bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
     applyDisplayMode: displayModeApi && displayModeApi.applyDisplayMode,
     get displayMode() {
@@ -809,7 +995,7 @@
     if (displayModeApi && typeof displayModeApi.applyDisplayMode === "function") {
       displayModeApi.applyDisplayMode(displayModeApi.current);
     }
-    ["infoModal", "rateModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "bugModal"].forEach(function (id) {
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");
     });

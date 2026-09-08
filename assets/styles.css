@@ -717,6 +717,63 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   white-space: nowrap;
 }
 .modal-card .btn { margin-top: 0.5rem; }
+.modal-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.modal-card textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  resize: vertical;
+  color: var(--text);
+  background: #fff;
+}
+.modal-card textarea:focus-visible {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 2px;
+}
+.modal-actions {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+.modal-actions .btn { margin-top: 0.35rem; flex: 1; }
+.btn-ghost {
+  background: #fff;
+  color: var(--green-dark);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.btn-ghost:hover { background: var(--green-soft); }
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.bug-form-status {
+  font-size: 0.82rem;
+  color: var(--warn);
+  margin: 0 0 0.5rem;
+}
+.bug-form-status[hidden] { display: none; }
+.bug-success-msg {
+  font-weight: 700;
+  color: var(--green-dark);
+  font-size: 1rem;
+}
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+@media print {
+  #bugModal { display: none !important; }
+}
 
 @page {
   margin: 12mm;
