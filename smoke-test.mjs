@@ -504,7 +504,7 @@ console.log(`  sec-prod render uses fmtSig2 only: ${prodUsesSig2 ? "PASS" : "FAI
 const nowBug = 1700000000000;
 const bugGood = {
   bug: "Le total kWh ne bouge pas",
-  correction: "Recalculer quand la superficie change",
+  name: "",
   openedAt: nowBug - 3000,
   honeypot: "",
   context: { url: "https://trizam.github.io/x/?mode=webi", mode: "webi", version: "0.2", calc: { kW: 6.4 }, userAgent: "TestUA", timestamp: "2026-09-08T00:00:00.000Z" }
@@ -514,6 +514,8 @@ const bugHpReject = validateBugPayload(Object.assign({}, bugGood, { honeypot: "h
 const bugMinReject = validateBugPayload(Object.assign({}, bugGood, { bug: "court" }), nowBug).reason === "bug-min";
 const bugFastReject = validateBugPayload(Object.assign({}, bugGood, { openedAt: nowBug }), nowBug).reason === "too-fast";
 const builtIssue = buildBugIssue(bugGood, validateBugPayload(bugGood, nowBug));
+const namedPayload = Object.assign({}, bugGood, { name: "Fred" });
+const namedIssue = buildBugIssue(namedPayload, validateBugPayload(namedPayload, nowBug));
 const bugIssueShape =
   builtIssue &&
   builtIssue.title.indexOf("[user-report] ") === 0 &&
@@ -521,9 +523,13 @@ const bugIssueShape =
   builtIssue.labels.indexOf("user-report") >= 0 &&
   builtIssue.labels.indexOf("bug") >= 0 &&
   builtIssue.body.indexOf("## Bug") >= 0 &&
-  builtIssue.body.indexOf("## Correction souhaitée") >= 0 &&
+  builtIssue.body.indexOf("## Nom") >= 0 &&
   builtIssue.body.indexOf("## Contexte (auto)") >= 0 &&
-  builtIssue.body.indexOf("```json") >= 0;
+  builtIssue.body.indexOf("```json") >= 0 &&
+  builtIssue.body.indexOf("## Correction souhaitée") < 0 &&
+  /## Nom\s+—/.test(builtIssue.body) &&
+  namedIssue &&
+  namedIssue.body.indexOf("Fred") >= 0;
 const clientIssueFn =
   app.includes('labels: ["user-report", "bug"]') &&
   app.includes('"[user-report] "') &&
@@ -542,7 +548,11 @@ const bugModalTag = bugModalIdx >= 0 ? html.slice(Math.max(0, bugModalIdx - 50),
 const footerOpen =
   html.includes('id="bugModal"') &&
   html.includes('id="bugText"') &&
-  html.includes('id="bugFix"') &&
+  html.includes("Description du bug") &&
+  html.includes("Votre nom (si vous désirez)") &&
+  html.includes('id="bugName"') &&
+  !html.includes('id="bugFix"') &&
+  html.includes("réparation désirée") &&
   html.includes('id="bugHp"') &&
   /<footer class="bug">/.test(html) &&
   !/<footer class="bug[^"]*mode-full-only/.test(html) &&
@@ -560,7 +570,14 @@ const bugJsWired =
   app.includes("Signalement temporairement indisponible") &&
   !app.includes("function reportBug") &&
   !app.includes("mailtoBugHref") &&
-  !app.includes("mailto:hello@solutionera.com");
+  !app.includes("mailto:hello@solutionera.com") &&
+  app.includes("## Nom") &&
+  !app.includes("## Correction souhaitée");
+const bugMobileCss =
+  css.includes(".bug-modal") &&
+  /min-height:\s*48px/.test(css) &&
+  css.includes("position: sticky") &&
+  css.includes("align-items: flex-end");
 const htmlTokenMeta = /<meta name="bug-report-token" content=""/.test(html);
 const noTokenInFrontend =
   htmlTokenMeta &&
@@ -586,6 +603,7 @@ console.log(`  bug payload valid / honeypot / min / too-fast: ${bugValidOk && bu
 console.log(`  bug issue title+labels+sections: ${bugIssueShape && clientIssueFn ? "PASS" : "FAIL"}`);
 console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
+console.log(`  bug modal mobile-first CSS (48px / sticky / sheet): ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
@@ -702,6 +720,7 @@ const pass =
   clientIssueFn &&
   bugHpIgnoredPath &&
   footerOpen &&
+  bugMobileCss &&
   bugJsWired &&
   noTokenInFrontend &&
   bugDocs &&

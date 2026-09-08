@@ -1,7 +1,7 @@
 /** Shared L1 bug-report: validate payload, build issue, POST to GitHub. No token in the browser. */
 export const BUG_REPO = "Trizam/solutionera-calculateur-solaire-staging";
 export const BUG_MIN_LEN = 10;
-export const CORRECTION_MIN_LEN = 1;
+export const NAME_MAX = 80;
 export const MIN_FORM_MS = 2000;
 export const ISSUES_LIST_URL =
   "https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report";
@@ -42,12 +42,9 @@ export function validateBugPayload(payload, nowMs) {
     return { ok: false, reason: "honeypot" };
   }
   const bug = clipText(data.bug, FIELD_MAX);
-  const correction = clipText(data.correction, FIELD_MAX);
+  const name = clipText(data.name, NAME_MAX);
   if (bug.length < BUG_MIN_LEN) {
     return { ok: false, reason: "bug-min" };
-  }
-  if (correction.length < CORRECTION_MIN_LEN) {
-    return { ok: false, reason: "correction-required" };
   }
   const openedAt = Number(data.openedAt);
   if (!isFinite(openedAt) || now - openedAt < MIN_FORM_MS) {
@@ -56,7 +53,7 @@ export function validateBugPayload(payload, nowMs) {
   if (now - openedAt > 24 * 60 * 60 * 1000) {
     return { ok: false, reason: "stale" };
   }
-  return { ok: true, bug, correction };
+  return { ok: true, bug: bug, name: name };
 }
 
 function titleFromBug(bug) {
@@ -106,9 +103,9 @@ export function buildBugIssue(payload, extras) {
       "",
       checked.bug,
       "",
-      "## Correction souhaitée",
+      "## Nom",
       "",
-      checked.correction,
+      checked.name || "—",
       "",
       "## Contexte (auto)",
       "",

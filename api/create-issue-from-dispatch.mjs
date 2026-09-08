@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Optional helper: build payload from dispatch JSON or BUG/CORRECTION/CONTEXT_JSON. */
+/** Optional helper: build payload from dispatch JSON or BUG/NAME/CONTEXT_JSON. */
 import {
   validateBugPayload,
   buildBugIssue,
@@ -19,7 +19,7 @@ function payloadFromEnv() {
   }
   return {
     bug: process.env.BUG || "",
-    correction: process.env.CORRECTION || "",
+    name: process.env.NAME || "",
     honeypot: "",
     openedAt: Date.now() - 3000,
     context: ctx

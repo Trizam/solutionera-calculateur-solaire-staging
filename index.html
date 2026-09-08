@@ -329,13 +329,13 @@
   </div>
 
   <!-- Bug report — visible in webi + full; POST GitHub Issues API if meta token is set -->
-  <div class="modal-backdrop" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle" aria-describedby="bugDesc">
+  <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle" aria-describedby="bugDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="bugTitle">Signaler un bug</h3>
         <button type="button" class="modal-close" id="btnBugClose" aria-label="Fermer">×</button>
       </div>
-      <p class="modal-lead" id="bugDesc">Décris le problème — on ouvre une Issue pour l’équipe. Pas besoin de compte GitHub.</p>
+      <p class="modal-lead" id="bugDesc">Un champ suffit — pas besoin de compte GitHub.</p>
 
       <form id="bugForm" novalidate>
         <div class="hp-field" aria-hidden="true">
@@ -343,17 +343,17 @@
           <input type="text" id="bugHp" name="website" tabindex="-1" autocomplete="off" />
         </div>
         <div class="field">
-          <label for="bugText">Bug / erreur</label>
-          <textarea id="bugText" name="bug" required minlength="10" rows="3" maxlength="4000" placeholder="Ex. le kWh / an ne change pas quand j’augmente la superficie"></textarea>
+          <label for="bugText">Description du bug</label>
+          <textarea id="bugText" name="bug" required minlength="10" rows="5" maxlength="4000" placeholder="Décris le bug… (tu peux aussi dire la réparation désirée)"></textarea>
         </div>
         <div class="field">
-          <label for="bugFix">Correction souhaitée</label>
-          <textarea id="bugFix" name="correction" required rows="3" maxlength="4000" placeholder="Ex. le total devrait suivre la superficie"></textarea>
+          <label for="bugName">Votre nom (si vous désirez)</label>
+          <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
         </div>
         <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
         <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" id="btnBugCancel">Annuler</button>
           <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
+          <button type="button" class="btn btn-ghost" id="btnBugCancel">Annuler</button>
         </div>
       </form>
 
