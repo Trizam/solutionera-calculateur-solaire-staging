@@ -108,10 +108,15 @@ body.is-range-dragging {
 .brand-logo {
   width: 44px;
   height: 44px;
+  padding: 2px;
+  box-sizing: content-box;
   object-fit: contain;
+  object-position: center;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: 50%;
+  overflow: visible;
   display: block;
+  background: transparent;
   /* crisp on retina; source ~197×200 */
   image-rendering: -webkit-optimize-contrast;
 }

@@ -176,7 +176,19 @@ const liveFmt =
   !html.includes("−14,4") &&
   !html.includes("% annuel") &&
   !html.includes("%&nbsp;annuel");
-const verOk = /\bv0\.2\b/.test(html) && !/V0\.2/.test(html) && !html.includes("V0.1") && !/version 0\.2/i.test(html);
+const brandSubSlice = html.includes("brand-sub")
+  ? html.slice(html.indexOf("brand-sub"), html.indexOf("brand-sub") + 180)
+  : "";
+const verOk =
+  /\bv0\.2\b/.test(html) &&
+  !/V0\.2/.test(html) &&
+  !html.includes("V0.1") &&
+  !/version 0\.2/i.test(html) &&
+  !/v0\.2/.test(brandSubSlice) &&
+  html.includes('id="buildId"') &&
+  existsSync(join(__dirname, "assets/build.json")) &&
+  app.includes("function loadBuildId") &&
+  app.includes("assets/build.json");
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
 const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal/i.test(html);
 const heroSlice = html.slice(html.indexOf('class="hero"'), html.indexOf("</header>") + 10);
@@ -201,7 +213,12 @@ const orientLabel =
 const orient24 = (html.match(/option value="/g) || []).length >= 24 + 7;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
-const logoOk = html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg");
+const logoOk =
+  (html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg")) &&
+  css.includes(".brand-logo") &&
+  /border-radius:\s*50%/.test(css) &&
+  !/\.brand-logo[\s\S]{0,220}border-radius:\s*10px/.test(css) &&
+  css.includes("overflow: visible");
 const taxes15 = html.includes("15&nbsp;%") || html.includes("15 %");
 const logisDefault = /id="subv"[^>]*checked/.test(html) || /id="subv" checked/.test(html);
 const logisCopy =
@@ -216,7 +233,8 @@ const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
   html.includes("bug-ver") &&
-  html.includes("v0.2 staging") &&
+  html.includes('id="buildId"') &&
+  !html.includes("v0.2 staging") &&
   !html.includes("Solution Era");
 const infoBtn = html.includes("En apprendre plus") && html.includes("infoModal");
 const tiltViz = html.includes("tiltViz") || html.includes("tiltLine");
