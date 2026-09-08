@@ -39,64 +39,20 @@
     <!-- 1 · Production — visible in both modes; webi = this block only -->
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
       <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie&nbsp;?</h2>
-
       <div class="field">
-        <!-- field-info pattern (réutilisable) : .label-row > label + .field-info-btn + .field-info-tip -->
         <div class="label-row field-info-wrap">
-          <label for="area">Superficie de la toiture</label>
+          <label for="orient">Orientation de la toiture</label>
           <button
             type="button"
             class="field-info-btn"
-            aria-describedby="tip-area"
-            aria-label="Aide : Superficie de la toiture"
-            title="La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case."
+            aria-describedby="tip-orient"
+            aria-label="Aide : Orientation de la toiture"
+            title="Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest)."
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
-          <span id="tip-area" class="field-info-tip" role="tooltip">La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case.</span>
+          <span id="tip-orient" class="field-info-tip" role="tooltip">Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest).</span>
         </div>
-        <div class="row">
-          <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
-          <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
-          <div class="unit-toggle" role="group" aria-label="Unité de surface">
-            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
-            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
-          </div>
-        </div>
-        <p class="hint">→ Plus de surface = plus de panneaux (indiquez la superficie de votre toiture qui est le plus orientée au sud)</p>
-      </div>
-
-      <div class="field">
-        <div class="label-row">
-          <label for="tilt">Inclinaison de la toiture</label>
-          <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
-            <svg viewBox="0 0 64 48" width="56" height="42" role="img">
-              <!-- ground — stronger contrast vs soft green card -->
-              <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
-              <!-- roof/panel line (updated by JS) -->
-              <g id="tiltPanel">
-                <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
-                <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
-              </g>
-              <!-- angle label -->
-              <text id="tiltDegLabel" x="38" y="16" font-size="12" font-weight="700" fill="#1b4332" font-family="Lato,sans-serif">30°</text>
-            </svg>
-          </div>
-        </div>
-        <select id="tilt">
-          <option value="0">0° (plat)</option>
-          <option value="15">15°</option>
-          <option value="30" selected>30°</option>
-          <option value="45">45°</option>
-          <option value="60">60°</option>
-          <option value="75">75°</option>
-          <option value="90">90° (vertical)</option>
-        </select>
-        <p class="hint" id="tiltHint">→ Au Québec, l’idéal est de 30° l’été et 90° l’hiver (sans déneigement). Toutefois, pour une toiture fixe à l’année, l’angle moyen optimal se situe entre 40° et 45°.</p>
-      </div>
-
-      <div class="field">
-        <label for="orient">Orientation de la toiture</label>
         <select id="orient">
           <option value="0">0° (Nord)</option>
           <option value="15">15°</option>
@@ -125,7 +81,59 @@
         </select>
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
       </div>
-
+      <div class="field">
+        <!-- field-info pattern (réutilisable) : .label-row > label + .field-info-btn + .field-info-tip -->
+        <div class="label-row field-info-wrap">
+          <label for="area">Superficie de la toiture</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            aria-describedby="tip-area"
+            aria-label="Aide : Superficie de la toiture"
+            title="La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case."
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+          <span id="tip-area" class="field-info-tip" role="tooltip">La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case.</span>
+        </div>
+        <div class="row">
+          <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
+          <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
+          <div class="unit-toggle" role="group" aria-label="Unité de surface">
+            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
+            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
+          </div>
+        </div>
+        <p class="hint">→ Plus de surface = plus de panneaux (indiquez la superficie de votre toiture qui est le plus orientée au sud)</p>
+      </div>
+      <div class="field">
+        <div class="label-row">
+          <label for="tilt">Inclinaison de la toiture</label>
+          <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
+            <svg viewBox="0 0 64 48" width="56" height="42" role="img">
+              <!-- ground — stronger contrast vs soft green card -->
+              <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
+              <!-- roof/panel line (updated by JS) -->
+              <g id="tiltPanel">
+                <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
+                <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
+              </g>
+              <!-- angle label -->
+              <text id="tiltDegLabel" x="38" y="16" font-size="12" font-weight="700" fill="#1b4332" font-family="Lato,sans-serif">30°</text>
+            </svg>
+          </div>
+        </div>
+        <select id="tilt">
+          <option value="0">0° (plat)</option>
+          <option value="15">15°</option>
+          <option value="30" selected>30°</option>
+          <option value="45">45°</option>
+          <option value="60">60°</option>
+          <option value="75">75°</option>
+          <option value="90">90° (vertical)</option>
+        </select>
+        <p class="hint" id="tiltHint">→ Au Québec, l’idéal est de 30° l’été et 90° l’hiver (sans déneigement). Toutefois, pour une toiture fixe à l’année, l’angle moyen optimal se situe entre 40° et 45°.</p>
+      </div>
       <div class="field">
         <label for="util">Densité d’installation (utilisation du toit)</label>
         <div class="slider-row">
@@ -137,7 +145,6 @@
         </div>
         <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
       </div>
-
       <div class="field" id="field-deneige">
         <label for="deneige">Fréquence de déneigement</label>
         <div class="slider-row">
@@ -151,9 +158,7 @@
           </div>
         </div>
         <p class="hint">→ 0&nbsp;% = je ne déneige pas · 100&nbsp;% = je déneige dès qu’il y a une chute de neige</p>
-      </div>
-
-      <div class="result-pill">
+      </div><div class="result-pill">
         <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
         <div class="big" id="outKwhDay">— kWh / jour</div>
