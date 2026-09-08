@@ -378,8 +378,9 @@ const modeBare = runDisplayMode("");
 const modeMissing = runDisplayMode("?foo=1");
 const modeFull = runDisplayMode("?mode=full");
 const modeUnknown = runDisplayMode("?mode=banana");
-const modeWebinar = runDisplayMode("?mode=webinar");
-const modeWebinarCase = runDisplayMode("?mode=WEBINAR");
+const modeWebi = runDisplayMode("?mode=webi");
+const modeWebiCase = runDisplayMode("?mode=WEBI");
+const modeWebinarAlias = runDisplayMode("?mode=webinar");
 const modeDefaultFull =
   modeBare.api.current === "full" &&
   modeBare.api.parseDisplayMode("") === "full" &&
@@ -389,12 +390,14 @@ const modeDefaultFull =
   modeUnknown.api.current === "full" &&
   modeBare.htmlEl.getAttribute("data-mode") === "full" &&
   modeBare.bodyEl.getAttribute("data-mode") === "full";
-const modeWebinarOk =
-  modeWebinar.api.current === "webinar" &&
-  modeWebinar.api.parseDisplayMode("?mode=webinar") === "webinar" &&
-  modeWebinarCase.api.current === "webinar" &&
-  modeWebinar.htmlEl.getAttribute("data-mode") === "webinar" &&
-  modeWebinar.bodyEl.getAttribute("data-mode") === "webinar";
+const modeWebiOk =
+  modeWebi.api.current === "webi" &&
+  modeWebi.api.parseDisplayMode("?mode=webi") === "webi" &&
+  modeWebiCase.api.current === "webi" &&
+  modeWebinarAlias.api.current === "webi" &&
+  modeWebinarAlias.api.parseDisplayMode("?mode=webinar") === "webi" &&
+  modeWebi.htmlEl.getAttribute("data-mode") === "webi" &&
+  modeWebi.bodyEl.getAttribute("data-mode") === "webi";
 const htmlModeDefault = /<html[^>]*data-mode="full"/.test(html);
 const htmlModeScript = html.includes('src="assets/display-mode.js"');
 const htmlProdVisible = html.includes('id="sec-prod"') && !/id="sec-prod"[^>]*mode-full-only/.test(html);
@@ -405,30 +408,45 @@ const secValueTag = secValueIdx >= 0 ? html.slice(Math.max(0, secValueIdx - 80),
 const htmlHidesCost = /mode-full-only/.test(secCostTag) && secCostTag.includes("sec-cost");
 const htmlHidesValue = /mode-full-only/.test(secValueTag) && secValueTag.includes("sec-value");
 const htmlHidesDisc = /aside class="disclaimers mode-full-only"/.test(html);
-const htmlWebinarBadge = html.includes("Mode webinaire") && html.includes("mode-webinar-only");
-const cssHidesFull = /html\[data-mode="webinar"\]\s*\.mode-full-only/.test(css);
-const cssHidesWebinarOnly = /html:not\(\[data-mode="webinar"\]\)\s*\.mode-webinar-only/.test(css);
+const htmlHidesHero = /header class="hero mode-full-only"/.test(html);
+const htmlWebiBadge = html.includes("Mode webi") && html.includes("mode-webi-only");
+const cssHidesFull = /html\[data-mode="webi"\]\s*\.mode-full-only/.test(css);
+const cssHidesWebiOnly = /html:not\(\[data-mode="webi"\]\)\s*\.mode-webi-only/.test(css);
 const runbook = readFileSync(join(__dirname, "docs/WEBINAR_RUNBOOK.md"), "utf8");
-const runbookWebinarLink =
-  runbook.includes("?mode=webinar") &&
+const runbookWebiLink =
+  runbook.includes("?mode=webi") &&
   runbook.includes("à utiliser en live mercredi") &&
+  runbook.includes("Alias de `webi`") &&
   /URL nue = full|URL nue.*complet|absent.*Mode complet/s.test(runbook);
 const appWiresMode = app.includes("SolarDisplayMode") && app.includes("parseDisplayMode");
 const htmlAllowlist =
   htmlHidesCost &&
   htmlHidesValue &&
   htmlHidesDisc &&
+  htmlHidesHero &&
   htmlProdVisible &&
   html.includes('id="sec-prod"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / jour");
+const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an");
+const prodNoWave =
+  !/id="outKwhDay"[^>]*>≈/.test(html) &&
+  !/id="outKwh"[^>]*>≈/.test(html) &&
+  !app.includes('"≈ " + fmtNum(r.kWh') &&
+  app.includes("kWh / jour") &&
+  app.includes("kWhDay");
+const dayFromAnnual = Math.round(6874 / 365);
+const dayOk = dayFromAnnual === 19;
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
-console.log(`  display mode ?mode=webinar sets data-mode=webinar: ${modeWebinarOk ? "PASS" : "FAIL"}`);
+console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
-console.log(`  webinar hides non-block-1 (cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
-console.log(`  CSS data-mode hooks + badge FR: ${cssHidesFull && cssHidesWebinarOnly && htmlWebinarBadge ? "PASS" : "FAIL"}`);
-console.log(`  runbook live URL ?mode=webinar (bare=full): ${runbookWebinarLink ? "PASS" : "FAIL"}`);
+console.log(`  webi hides non-#sec-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
+console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
+console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
+console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -519,15 +537,19 @@ const pass =
   defaultRateTtc &&
   hasRateInfoUi &&
   modeDefaultFull &&
-  modeWebinarOk &&
+  modeWebiOk &&
   htmlModeDefault &&
   htmlModeScript &&
   htmlAllowlist &&
   cssHidesFull &&
-  cssHidesWebinarOnly &&
-  htmlWebinarBadge &&
-  runbookWebinarLink &&
-  appWiresMode;
+  cssHidesWebiOnly &&
+  htmlWebiBadge &&
+  runbookWebiLink &&
+  appWiresMode &&
+  prodPillDay &&
+  prodPillAnnual &&
+  prodNoWave &&
+  dayOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

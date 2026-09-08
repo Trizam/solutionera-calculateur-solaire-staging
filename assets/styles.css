@@ -22,12 +22,13 @@ html, body { max-width: 100%; }
 /*
  * URL display modes (query ?mode=)
  * - default / full / unknown → all sections
- * - webinar → hide .mode-full-only (coût, valeur/KPI, PDF, mentions)
+ * - webi (alias webinar) → hide .mode-full-only (coût, valeur/KPI, PDF, mentions)
  */
-html:not([data-mode="webinar"]) .mode-webinar-only {
+html:not([data-mode="webi"]) .mode-webi-only,
+html:not([data-mode="webi"]) .mode-webinar-only {
   display: none !important;
 }
-html[data-mode="webinar"] .mode-full-only {
+html[data-mode="webi"] .mode-full-only {
   display: none !important;
 }
 .mode-badge {
@@ -396,6 +397,13 @@ section.block h2 .num {
   font-weight: 700;
   color: var(--green-dark);
   line-height: 1.2;
+}
+.result-pill .big-annual {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  line-height: 1.25;
+  margin-top: 0.15rem;
 }
 .result-pill .label { font-size: 0.85rem; color: var(--muted); }
 .calc-line {

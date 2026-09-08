@@ -170,9 +170,10 @@
     const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
+    const kWhDay = isFinite(kWh) ? kWh / 365 : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, table, kWhAnnuel, kWh, W,
+      kW, table, kWhAnnuel, kWh, kWhDay, W,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
@@ -248,7 +249,10 @@
     }
     updateGridStatusUi();
 
-    $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
+    if ($("outKwhDay")) {
+      $("outKwhDay").textContent = fmtNum(r.kWhDay, 0) + " kWh / jour";
+    }
+    $("outKwh").textContent = fmtNum(r.kWh, 0) + " kWh / an";
     $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";

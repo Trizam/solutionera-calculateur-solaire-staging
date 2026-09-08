@@ -19,7 +19,7 @@ hit() {
 
 echo "== Primary (GH Pages / Fastly, max-age≈600) =="
 hit "index/"   "$PRIMARY/"
-hit "webinar"  "$PRIMARY/?mode=webinar"
+hit "webi"     "$PRIMARY/?mode=webi"
 hit "index"    "$PRIMARY/index.html"
 hit "css"      "$PRIMARY/assets/styles.css"
 hit "mode-js"  "$PRIMARY/assets/display-mode.js"

@@ -15,17 +15,18 @@ Variantes **uniquement** via `?mode=` — **pas** de second repo ni de second si
 |--------|----------------|
 | **absent** (URL nue) | **Mode complet** (défaut) — toutes les sections actuelles : toit/production + coût + valeur/résultats |
 | `full` | Alias du défaut — même UI complète |
-| `webinar` | **Bloc 1 seulement** — superficie, inclinaison, orientation, densité, déneige → kWh/an. Coût, KPI, PDF et mentions avancées sont masqués |
+| `webi` | **Uniquement `#sec-prod`** — une boîte : toit → kWh/jour + kWh/an. Coût, valeur/KPI, PDF, hero, mentions masqués |
+| `webinar` | Alias de `webi` |
 | autre valeur | Traité comme **full** |
 
-Attribut racine : `data-mode="full"` ou `data-mode="webinar"` sur `<html>` / `<body>`.  
-Crochets CSS : `.mode-full-only` (masqué en webinaire) · `.mode-webinar-only` (masqué hors webinaire).  
-En mode webinaire, un petit badge FR « Mode webinaire » apparaît près du sous-titre (pour les builders).
+Attribut racine : `data-mode="full"` ou `data-mode="webi"` sur `<html>` / `<body>`.  
+Crochets CSS : `.mode-full-only` (masqué en webi) · `.mode-webi-only` (masqué hors webi).  
+En mode webi, un petit badge FR « Mode webi » apparaît près du sous-titre (pour les builders).
 
-**v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webinaire **retire** les blocs déjà présents mais hors pédagogique « étape 1 » :
+**v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webi **ne montre que** la première boîte pédagogique « Combien est-ce que je peux produire ? » :
 
-- masqués en `webinar` : `#sec-cost`, `#sec-value` (KPI + PDF), `aside.disclaimers`, modales info/tarif
-- visibles en `webinar` : marque + hero + `#sec-prod` (toit → kWh/an) + pied de bug
+- **visible en `webi` :** marque + `#sec-prod` (superficie, inclinaison, orientation, densité, déneige → kWh/jour puis kWh/an) + pied de bug
+- **masqués en `webi` :** hero, `#sec-cost`, `#sec-value` (KPI + PDF), `aside.disclaimers`, modales info/tarif
 
 ---
 
@@ -33,7 +34,7 @@ En mode webinaire, un petit badge FR « Mode webinaire » apparaît près du sou
 
 | Rôle | URL |
 |------|-----|
-| **Primary webinar (à utiliser en live mercredi)** | https://trizam.github.io/solutionera-calculateur-solaire-staging/?mode=webinar |
+| **Primary webi (à utiliser en live mercredi)** | https://trizam.github.io/solutionera-calculateur-solaire-staging/?mode=webi |
 | **Calculateur complet** (URL nue = full) | https://trizam.github.io/solutionera-calculateur-solaire-staging/ |
 | **Complet, explicite** | https://trizam.github.io/solutionera-calculateur-solaire-staging/?mode=full |
 | **jsDelivr mirror (assets / secours fichiers)** | `https://cdn.jsdelivr.net/gh/Trizam/solutionera-calculateur-solaire-staging@master/` |
@@ -90,7 +91,7 @@ Ou manuellement (primary + assets) :
 BASE=https://trizam.github.io/solutionera-calculateur-solaire-staging
 for u in \
   "$BASE/" \
-  "$BASE/?mode=webinar" \
+  "$BASE/?mode=webi" \
   "$BASE/index.html" \
   "$BASE/assets/styles.css" \
   "$BASE/assets/display-mode.js" \
@@ -156,7 +157,7 @@ Local : `node smoke-test.mjs` → doit afficher **SMOKE OK**.
 
 ## Pendant le live
 
-1. Partager **uniquement** l’URL webinar **avec** `?mode=webinar`. L’URL nue ouvre le calculateur **complet** — ne pas la projeter en live.
+1. Partager **uniquement** l’URL webi **avec** `?mode=webi`. L’URL nue ouvre le calculateur **complet** — ne pas la projeter en live. (`?mode=webinar` est un alias de `webi`.)
 2. Hard refresh (Cmd/Ctrl+Shift+R) si un participant voit une vieille version (cache 600 s).
 3. Si Pages tombe : expliquer le fallback assets via jsDelivr ; **ne pas** promettre une UI miroir tant que `index.html` est servi en `text/plain`.
 4. Bug report : lien `!` / « Signale un bug » dans le footer de l’app.
@@ -165,7 +166,7 @@ Local : `node smoke-test.mjs` → doit afficher **SMOKE OK**.
 
 ## Fichiers liés
 
-- `prewarm.sh` — curl index + `?mode=webinar` + css + js + grille (+ favicons)
+- `prewarm.sh` — curl index + `?mode=webi` + css + js + grille (+ favicons)
 - `smoke-test.mjs` — régression Analyste / grille / W-by-tilt / modes d’affichage
-- `assets/display-mode.js` — parse `?mode=` (défaut **full**)
+- `assets/display-mode.js` — parse `?mode=` (défaut **full** ; `webi` / alias `webinar`)
 - Ce runbook : `docs/WEBINAR_RUNBOOK.md`

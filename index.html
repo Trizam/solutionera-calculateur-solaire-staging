@@ -14,7 +14,7 @@
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="assets/styles.css" />
-  <!-- Sync: set data-mode before first paint (webinar must not flash full UI) -->
+  <!-- Sync: set data-mode before first paint (webi must not flash full UI) -->
   <script src="assets/display-mode.js"></script>
 </head>
 <body>
@@ -25,16 +25,16 @@
       <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="44" height="44" decoding="async" />
       <div>
         <div class="brand-name">Solution Era</div>
-        <div class="brand-sub">Calculateur solaire · version 0.2 <span class="mode-badge mode-webinar-only">Mode webinaire</span></div>
+        <div class="brand-sub">Calculateur solaire · version 0.2 <span class="mode-badge mode-webi-only">Mode webi</span></div>
       </div>
     </div>
 
-    <header class="hero">
+    <header class="hero mode-full-only">
       <h1>Calculateur solaire</h1>
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
-    <!-- 1 · Production — visible in both modes; webinar = this block only -->
+    <!-- 1 · Production — visible in both modes; webi = this block only -->
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
       <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire&nbsp;?</h2>
 
@@ -141,7 +141,8 @@
       <div class="result-pill">
         <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
-        <div class="big" id="outKwh">≈ — kWh / an</div>
+        <div class="big" id="outKwhDay">— kWh / jour</div>
+        <div class="big-annual" id="outKwh">— kWh / an</div>
         <div class="label">avec votre installation solaire</div>
         <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kW</strong></p>
       </div>
