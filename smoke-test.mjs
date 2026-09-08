@@ -506,11 +506,11 @@ const bugGood = {
   bug: "Le total kWh ne bouge pas",
   correction: "Recalculer quand la superficie change",
   openedAt: nowBug - 3000,
-  hp: "",
-  context: { url: "https://trizam.github.io/x/?mode=webi", mode: "webi", version: "version 0.2", calc: { kW: 6.4 }, ua: "TestUA", ts: "2026-09-08T00:00:00.000Z" }
+  honeypot: "",
+  context: { url: "https://trizam.github.io/x/?mode=webi", mode: "webi", version: "0.2", calc: { kW: 6.4 }, userAgent: "TestUA", timestamp: "2026-09-08T00:00:00.000Z" }
 };
 const bugValidOk = validateBugPayload(bugGood, nowBug).ok === true;
-const bugHpReject = validateBugPayload(Object.assign({}, bugGood, { hp: "http://spam" }), nowBug).reason === "honeypot";
+const bugHpReject = validateBugPayload(Object.assign({}, bugGood, { honeypot: "http://spam" }), nowBug).reason === "honeypot";
 const bugMinReject = validateBugPayload(Object.assign({}, bugGood, { bug: "court" }), nowBug).reason === "bug-min";
 const bugFastReject = validateBugPayload(Object.assign({}, bugGood, { openedAt: nowBug }), nowBug).reason === "too-fast";
 const builtIssue = buildBugIssue(bugGood, validateBugPayload(bugGood, nowBug));
@@ -527,7 +527,7 @@ const bugIssueShape =
 const hpReq = new Request("https://example.test/bug", {
   method: "POST",
   headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
-  body: JSON.stringify(Object.assign({}, bugGood, { hp: "bot" }))
+  body: JSON.stringify(Object.assign({}, bugGood, { honeypot: "bot" }))
 });
 const hpRes = await handleBugReportRequest(hpReq, {});
 const hpJson = await hpRes.json();
@@ -548,8 +548,12 @@ const bugJsWired =
   app.includes("function validateBugReport") &&
   app.includes("openBugReport") &&
   app.includes("bug-report-endpoint") &&
+  app.includes("honeypot") &&
+  app.includes("userAgent") &&
+  app.includes("Signalement temporairement indisponible") &&
   !app.includes("function reportBug") &&
-  app.includes("mailtoBugHref");
+  !app.includes("mailtoBugHref") &&
+  !app.includes("mailto:hello@solutionera.com");
 const noTokenInFrontend =
   !app.includes("BUG_REPORT_GITHUB_TOKEN") &&
   !html.includes("BUG_REPORT_GITHUB_TOKEN") &&
@@ -560,7 +564,13 @@ const bugDocs =
   existsSync(join(__dirname, "functions/bug-report.js")) &&
   existsSync(join(__dirname, ".github/workflows/bug-report.yml")) &&
   readFileSync(join(__dirname, "docs/BUG_REPORTS.md"), "utf8").includes("label:user-report");
-const bugWorkflow = readFileSync(join(__dirname, ".github/workflows/bug-report.yml"), "utf8").includes("calculateur-bug");
+const bugWorkflowSrc = readFileSync(join(__dirname, ".github/workflows/bug-report.yml"), "utf8");
+const bugWorkflow =
+  bugWorkflowSrc.includes("calculateur-bug") &&
+  bugWorkflowSrc.includes("workflow_dispatch") &&
+  bugWorkflowSrc.includes("context_json") &&
+  bugWorkflowSrc.includes("actions/github-script") &&
+  bugWorkflowSrc.includes("user-report");
 console.log(`  bug payload valid / honeypot / min / too-fast: ${bugValidOk && bugHpReject && bugMinReject && bugFastReject ? "PASS" : "FAIL"}`);
 console.log(`  bug issue title+labels+sections: ${bugIssueShape ? "PASS" : "FAIL"}`);
 console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PASS" : "FAIL"}`);

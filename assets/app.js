@@ -355,8 +355,8 @@
   function appVersionString() {
     const el = document.querySelector(".bug-ver") || document.querySelector(".brand-sub");
     const t = el ? el.textContent.replace(/\s+/g, " ") : "";
-    const m = t.match(/version\s+[0-9.]+/i);
-    return m ? m[0] : "version 0.2";
+    const m = t.match(/version\s+([0-9.]+)/i);
+    return m ? m[1] : "0.2";
   }
 
   function currentDisplayMode() {
@@ -365,19 +365,10 @@
     return (document.documentElement.getAttribute("data-mode") || "full").toLowerCase();
   }
 
-  function mailtoBugHref(bug, correction) {
-    const subject = encodeURIComponent("Calculateur solaire version 0.2 — signalement");
-    const body = encodeURIComponent(
-      "Bug:\n" + bug + "\n\nCorrection souhaitée:\n" + correction + "\n\n" +
-      "Entrées:\n" + JSON.stringify(calc(), null, 2)
-    );
-    return "mailto:hello@solutionera.com?subject=" + subject + "&body=" + body;
-  }
-
   function validateBugReport(payload, nowMs) {
     const now = typeof nowMs === "number" ? nowMs : Date.now();
     const data = payload && typeof payload === "object" ? payload : {};
-    if (String(data.hp || "").trim() !== "") return { ok: false, reason: "honeypot" };
+    if (String(data.honeypot || data.hp || "").trim() !== "") return { ok: false, reason: "honeypot" };
     const bug = String(data.bug || "").trim();
     const correction = String(data.correction || "").trim();
     if (bug.length < BUG_MIN_LEN) return { ok: false, reason: "bug-min" };
@@ -454,15 +445,15 @@
     return {
       bug: $("bugText") ? $("bugText").value : "",
       correction: $("bugFix") ? $("bugFix").value : "",
-      hp: $("bugHp") ? $("bugHp").value : "",
+      honeypot: $("bugHp") ? $("bugHp").value : "",
       openedAt: bugOpenedAt,
       context: {
         url: String(location.href || ""),
         mode: mode,
         version: appVersionString(),
-        calc: calc(),
-        ua: String(navigator.userAgent || "").slice(0, 180),
-        ts: new Date().toISOString()
+        userAgent: String(navigator.userAgent || "").slice(0, 180),
+        timestamp: new Date().toISOString(),
+        calc: calc()
       }
     };
   }
@@ -489,11 +480,8 @@
       return;
     }
     const endpoint = bugReportEndpoint();
-    const fallback = mailtoBugHref(checked.bug, checked.correction);
     if (!endpoint) {
-      setBugStatus(
-        'Envoi indisponible pour le moment. <a href="' + fallback + '">Envoyer par courriel</a>.'
-      );
+      setBugStatus("Signalement temporairement indisponible");
       return;
     }
     bugSubmitting = true;
@@ -512,9 +500,7 @@
       }
       throw new Error("api");
     } catch (_) {
-      setBugStatus(
-        'Envoi impossible pour le moment. <a href="' + fallback + '">Envoyer par courriel</a>.'
-      );
+      setBugStatus("Signalement temporairement indisponible");
     } finally {
       bugSubmitting = false;
       if ($("btnBugSubmit") && $("bugForm") && !$("bugForm").hidden) {

@@ -70,8 +70,8 @@ function contextBlock(ctx) {
   const url = clipText(c.url, 500);
   const mode = clipText(c.mode || "full", 40);
   const version = clipText(c.version, 80);
-  const ua = clipText(c.ua, 180);
-  const ts = clipText(c.ts, 40);
+  const ua = clipText(c.userAgent || c.ua, 180);
+  const ts = clipText(c.timestamp || c.ts, 40);
   let calcJson = "";
   try {
     calcJson = JSON.stringify(c.calc != null ? c.calc : {}, null, 2);
