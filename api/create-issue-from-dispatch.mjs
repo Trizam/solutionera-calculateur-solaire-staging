@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** GitHub Action helper: repository_dispatch type calculateur-bug → Issue. */
+/** Optional helper: build payload from dispatch JSON or BUG/CORRECTION/CONTEXT_JSON. */
 import {
   validateBugPayload,
   buildBugIssue,
@@ -7,12 +7,30 @@ import {
   BUG_REPO
 } from "./bug-report-core.mjs";
 
-const raw = process.env.CLIENT_PAYLOAD || "{}";
+function payloadFromEnv() {
+  if (process.env.CLIENT_PAYLOAD && process.env.CLIENT_PAYLOAD !== "{}") {
+    return JSON.parse(process.env.CLIENT_PAYLOAD);
+  }
+  let ctx = {};
+  try {
+    ctx = JSON.parse(process.env.CONTEXT_JSON || "{}");
+  } catch (_) {
+    ctx = {};
+  }
+  return {
+    bug: process.env.BUG || "",
+    correction: process.env.CORRECTION || "",
+    honeypot: "",
+    openedAt: Date.now() - 3000,
+    context: ctx
+  };
+}
+
 let payload;
 try {
-  payload = JSON.parse(raw);
+  payload = payloadFromEnv();
 } catch (_) {
-  console.error("invalid CLIENT_PAYLOAD");
+  console.error("invalid payload JSON");
   process.exit(1);
 }
 
