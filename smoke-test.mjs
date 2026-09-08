@@ -427,6 +427,13 @@ const infoSheetUi =
   !html.includes("field-info-tip");
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 console.log(`  ⓘ floating cards + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
+const orientVersantTip =
+  html.includes("tpl-info-orient") &&
+  html.includes("Indiquez un seul versant à la fois") &&
+  html.includes("refaites le calcul") &&
+  html.includes("additionnez les résultats") &&
+  !html.includes("Ne répartissez pas le calcul");
+console.log(`  ⓘ orientation un seul versant + addition: ${orientVersantTip ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -855,6 +862,7 @@ const pass =
   defaultRateTtc &&
   hasRateInfoUi &&
   infoSheetUi &&
+  orientVersantTip &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
