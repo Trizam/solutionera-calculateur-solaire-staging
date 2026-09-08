@@ -3,6 +3,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { runInNewContext } from "vm";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
@@ -347,6 +348,88 @@ console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "F
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 
+const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
+function runDisplayMode(search) {
+  const htmlEl = {
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    getAttribute(k) { return this.attrs[k]; }
+  };
+  const bodyEl = {
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    getAttribute(k) { return this.attrs[k]; }
+  };
+  const sandbox = {
+    URLSearchParams,
+    location: { search },
+    document: {
+      documentElement: htmlEl,
+      body: bodyEl,
+      addEventListener() {}
+    }
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  runInNewContext(modeSrc, sandbox, { filename: "display-mode.js" });
+  return { api: sandbox.SolarDisplayMode, htmlEl, bodyEl };
+}
+const modeBare = runDisplayMode("");
+const modeMissing = runDisplayMode("?foo=1");
+const modeFull = runDisplayMode("?mode=full");
+const modeUnknown = runDisplayMode("?mode=banana");
+const modeWebinar = runDisplayMode("?mode=webinar");
+const modeWebinarCase = runDisplayMode("?mode=WEBINAR");
+const modeDefaultFull =
+  modeBare.api.current === "full" &&
+  modeBare.api.parseDisplayMode("") === "full" &&
+  modeBare.api.parseDisplayMode("?") === "full" &&
+  modeMissing.api.current === "full" &&
+  modeFull.api.current === "full" &&
+  modeUnknown.api.current === "full" &&
+  modeBare.htmlEl.getAttribute("data-mode") === "full" &&
+  modeBare.bodyEl.getAttribute("data-mode") === "full";
+const modeWebinarOk =
+  modeWebinar.api.current === "webinar" &&
+  modeWebinar.api.parseDisplayMode("?mode=webinar") === "webinar" &&
+  modeWebinarCase.api.current === "webinar" &&
+  modeWebinar.htmlEl.getAttribute("data-mode") === "webinar" &&
+  modeWebinar.bodyEl.getAttribute("data-mode") === "webinar";
+const htmlModeDefault = /<html[^>]*data-mode="full"/.test(html);
+const htmlModeScript = html.includes('src="assets/display-mode.js"');
+const htmlProdVisible = html.includes('id="sec-prod"') && !/id="sec-prod"[^>]*mode-full-only/.test(html);
+const secCostIdx = html.indexOf('id="sec-cost"');
+const secValueIdx = html.indexOf('id="sec-value"');
+const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
+const secValueTag = secValueIdx >= 0 ? html.slice(Math.max(0, secValueIdx - 80), secValueIdx + 40) : "";
+const htmlHidesCost = /mode-full-only/.test(secCostTag) && secCostTag.includes("sec-cost");
+const htmlHidesValue = /mode-full-only/.test(secValueTag) && secValueTag.includes("sec-value");
+const htmlHidesDisc = /aside class="disclaimers mode-full-only"/.test(html);
+const htmlWebinarBadge = html.includes("Mode webinaire") && html.includes("mode-webinar-only");
+const cssHidesFull = /html\[data-mode="webinar"\]\s*\.mode-full-only/.test(css);
+const cssHidesWebinarOnly = /html:not\(\[data-mode="webinar"\]\)\s*\.mode-webinar-only/.test(css);
+const runbook = readFileSync(join(__dirname, "docs/WEBINAR_RUNBOOK.md"), "utf8");
+const runbookWebinarLink =
+  runbook.includes("?mode=webinar") &&
+  runbook.includes("à utiliser en live mercredi") &&
+  /URL nue = full|URL nue.*complet|absent.*Mode complet/s.test(runbook);
+const appWiresMode = app.includes("SolarDisplayMode") && app.includes("parseDisplayMode");
+const htmlAllowlist =
+  htmlHidesCost &&
+  htmlHidesValue &&
+  htmlHidesDisc &&
+  htmlProdVisible &&
+  html.includes('id="sec-prod"') &&
+  html.includes('id="sec-cost"') &&
+  html.includes('id="sec-value"');
+console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
+console.log(`  display mode ?mode=webinar sets data-mode=webinar: ${modeWebinarOk ? "PASS" : "FAIL"}`);
+console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
+console.log(`  webinar hides non-block-1 (cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  CSS data-mode hooks + badge FR: ${cssHidesFull && cssHidesWebinarOnly && htmlWebinarBadge ? "PASS" : "FAIL"}`);
+console.log(`  runbook live URL ?mode=webinar (bare=full): ${runbookWebinarLink ? "PASS" : "FAIL"}`);
+console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
+
 
 const pass =
   ok &&
@@ -434,7 +517,17 @@ const pass =
   hasCreditFn &&
   hasConsoWired &&
   defaultRateTtc &&
-  hasRateInfoUi;
+  hasRateInfoUi &&
+  modeDefaultFull &&
+  modeWebinarOk &&
+  htmlModeDefault &&
+  htmlModeScript &&
+  htmlAllowlist &&
+  cssHidesFull &&
+  cssHidesWebinarOnly &&
+  htmlWebinarBadge &&
+  runbookWebinarLink &&
+  appWiresMode;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

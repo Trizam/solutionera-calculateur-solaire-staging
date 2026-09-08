@@ -733,6 +733,8 @@
     updateGridStatusUi();
   }
 
+  const displayModeApi = (typeof window !== "undefined" && window.SolarDisplayMode) || null;
+
   window.SolarCalcV02 = {
     calc,
     applyDeneigement,
@@ -740,6 +742,11 @@
     consoAnnuelleKwh,
     lookupCell,
     winterWFromTilt,
+    parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
+    applyDisplayMode: displayModeApi && displayModeApi.applyDisplayMode,
+    get displayMode() {
+      return displayModeApi ? displayModeApi.current : "full";
+    },
     AZ_LABELS,
     roundAreaInput,
     constants: {
@@ -767,6 +774,9 @@
   window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
+    if (displayModeApi && typeof displayModeApi.applyDisplayMode === "function") {
+      displayModeApi.applyDisplayMode(displayModeApi.current);
+    }
     ["infoModal", "rateModal"].forEach(function (id) {
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");

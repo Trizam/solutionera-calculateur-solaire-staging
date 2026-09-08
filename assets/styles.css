@@ -18,6 +18,32 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 html, body { max-width: 100%; }
+
+/*
+ * URL display modes (query ?mode=)
+ * - default / full / unknown → all sections
+ * - webinar → hide .mode-full-only (coût, valeur/KPI, PDF, mentions)
+ */
+html:not([data-mode="webinar"]) .mode-webinar-only {
+  display: none !important;
+}
+html[data-mode="webinar"] .mode-full-only {
+  display: none !important;
+}
+.mode-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  border: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
 body {
   margin: 0;
   font-family: var(--font);
@@ -693,7 +719,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
   .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .tilt-viz,
-  .modal-backdrop, .hint { display: none !important; }
+  .modal-backdrop, .hint, .mode-badge { display: none !important; }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
   .slider-meta,
