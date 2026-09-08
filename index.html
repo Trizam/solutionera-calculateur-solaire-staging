@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1b4332" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="description" content="Calculateur solaire version 0.2 — Solution Era. Estimation pédagogique de ton projet solaire en quelques minutes." />
-  <title>Calculateur solaire · version 0.2 · Solution Era</title>
+  <meta name="description" content="Calculateur solaire v0.2 — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
+  <title>Calculateur solaire · v0.2 · Solution ERA</title>
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,10 +24,10 @@
   <div class="wrap">
     <main id="main" tabindex="-1">
     <div class="brand">
-      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="44" height="44" decoding="async" />
-      <div>
-        <div class="brand-name">Solution Era</div>
-        <div class="brand-sub">Calculateur solaire · version 0.2 <span class="mode-badge mode-webi-only">Mode webi</span></div>
+      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="44" height="44" decoding="async" />
+      <div class="brand-text">
+        <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
+        <div class="brand-sub">Calculateur solaire · v0.2 <span class="mode-badge mode-webi-only">Mode webi</span></div>
       </div>
     </div>
 
@@ -45,13 +45,13 @@
           <button
             type="button"
             class="field-info-btn"
-            aria-describedby="tip-orient"
+            data-info="orient"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
             aria-label="Aide : Orientation de la toiture"
-            title="Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest)."
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
-          <span id="tip-orient" class="field-info-tip" role="tooltip">Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest).</span>
         </div>
         <select id="orient">
           <option value="0">0° (Nord)</option>
@@ -82,19 +82,19 @@
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
       </div>
       <div class="field">
-        <!-- field-info pattern (réutilisable) : .label-row > label + .field-info-btn + .field-info-tip -->
+        <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
         <div class="label-row field-info-wrap">
           <label for="area">Superficie de la toiture</label>
           <button
             type="button"
             class="field-info-btn"
-            aria-describedby="tip-area"
+            data-info="area"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
             aria-label="Aide : Superficie de la toiture"
-            title="La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case."
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
-          <span id="tip-area" class="field-info-tip" role="tooltip">La superficie de votre toiture détermine le nombre de panneaux installables et votre potentiel de production. Inscrivez ci-dessous l’espace utile en privilégiant les zones les plus ensoleillées : excluez l’ombre des arbres et prévoyez un dégagement suffisant autour des cheminées et autres obstacles. Sélectionnez ensuite votre unité de mesure à la droite de la case.</span>
         </div>
         <div class="row">
           <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
@@ -108,7 +108,19 @@
       </div>
       <div class="field">
         <div class="label-row">
-          <label for="tilt">Inclinaison de la toiture</label>
+          <div class="field-info-wrap">
+            <label for="tilt">Inclinaison de la toiture</label>
+            <button
+              type="button"
+              class="field-info-btn"
+              data-info="tilt"
+              aria-haspopup="dialog"
+              aria-controls="fieldInfoModal"
+              aria-label="Aide : Inclinaison de la toiture"
+            >
+              <span aria-hidden="true">ⓘ</span>
+            </button>
+          </div>
           <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
             <svg viewBox="0 0 64 48" width="56" height="42" role="img">
               <!-- ground — stronger contrast vs soft green card -->
@@ -132,7 +144,7 @@
           <option value="75">75°</option>
           <option value="90">90° (vertical)</option>
         </select>
-        <p class="hint" id="tiltHint">→ Au Québec, l’idéal est de 30° l’été et 90° l’hiver (sans déneigement). Toutefois, pour une toiture fixe à l’année, l’angle moyen optimal se situe entre 40° et 45°.</p>
+        <p class="hint" id="tiltHint">→ Toiture fixe à l’année : 40° à 45° est un bon compromis.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -140,13 +152,13 @@
           <button
             type="button"
             class="field-info-btn"
-            aria-describedby="tip-util"
+            data-info="util"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
             aria-label="Aide : Densité d’installation"
-            title="Ajustez le curseur pour définir le pourcentage de toiture utilisé. En conception solaire, il est fortement recommandé de ne pas dépasser 80 %. Conserver au moins 20 % d’espace libre (marges et périmètres) est essentiel pour sécuriser l’accès lors de l’entretien, respecter les dégagements contre les forts vents aux rebords, et gérer l’accumulation ainsi que la glisse de la neige en hiver."
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
-          <span id="tip-util" class="field-info-tip" role="tooltip">Ajustez le curseur pour définir le pourcentage de toiture utilisé. En conception solaire, il est fortement recommandé de ne pas dépasser 80 %. Conserver au moins 20 % d’espace libre (marges et périmètres) est essentiel pour sécuriser l’accès lors de l’entretien, respecter les dégagements contre les forts vents aux rebords, et gérer l’accumulation ainsi que la glisse de la neige en hiver.</span>
         </div>
         <div class="slider-row">
           <div class="slider-val-left" id="utilVal">80 %</div>
@@ -163,19 +175,16 @@
           <button
             type="button"
             class="field-info-btn"
-            aria-describedby="tip-deneige"
+            data-info="deneige"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
             aria-label="Aide : Fréquence de déneigement"
-            title="Ajustez le curseur de 0 % (aucun déneigement) à 100 % (déneigement systématique après chaque chute). Puisque la neige bloque complètement la captation solaire, votre assiduité a un impact majeur sur le rendement hivernal. Choisissez un niveau d’effort réaliste et observez les calculs s’actualiser juste en dessous pour constater l’influence directe de votre déneigement sur la production annuelle."
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
-          <span id="tip-deneige" class="field-info-tip" role="tooltip">Ajustez le curseur de 0 % (aucun déneigement) à 100 % (déneigement systématique après chaque chute). Puisque la neige bloque complètement la captation solaire, votre assiduité a un impact majeur sur le rendement hivernal. Choisissez un niveau d’effort réaliste et observez les calculs s’actualiser juste en dessous pour constater l’influence directe de votre déneigement sur la production annuelle.</span>
         </div>
         <div class="slider-row">
-          <div class="slider-val-left slider-val-left-stack" aria-live="polite">
-            <span id="deneigeVal">20 %</span>
-            <span id="deneigeLive" class="loss-annuel">−14&nbsp;% annuel</span>
-          </div>
+          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−14&nbsp;%</div>
           <div class="slider-track">
             <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
             <div class="slider-meta"><span>0&nbsp;%</span><span>100&nbsp;%</span></div>
@@ -185,10 +194,19 @@
       </div><div class="result-pill">
         <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
-        <div class="big" id="outKwhDay">— kWh / jour</div>
-        <div class="big" id="outKwh">— kWh / an</div>
-        <div class="label">avec votre installation solaire</div>
-        <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kWc</strong></p>
+        <div class="prod-lines">
+          <div class="big prod-line" id="outKwhDay">
+            <span class="prod-num">—</span>
+            <span class="prod-unit">kWh /</span>
+            <span class="prod-period">jour</span>
+          </div>
+          <div class="big prod-line" id="outKwh">
+            <span class="prod-num">—</span>
+            <span class="prod-unit">kWh /</span>
+            <span class="prod-period">an</span>
+          </div>
+        </div>
+        <div class="label prod-power">avec votre installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
       </div>
     </section>
 
@@ -288,7 +306,7 @@
         </button>
       </div>
       <ul>
-        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis. Version&nbsp;0.2.</li>
+        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis. v0.2.</li>
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -302,106 +320,208 @@
       <a href="#bugModal" id="bugLink" class="bug-report" title="Signaler un bug">!</a>
       &nbsp;Un chiffre te semble off&nbsp;? <a href="#bugModal" id="bugLink2" class="bug-report">Signale un bug ou une erreur de calcul</a>
       — on apprend ensemble.<br />
-      <span class="bug-ver">© Solution Era · Calculateur solaire · version 0.2 staging</span>
+      <span class="bug-ver">© Solution ERA | DÉFI Autonomie Énergétique · Calculateur solaire · v0.2 staging</span>
     </footer>
     </main>
   </div>
 
   <!-- Pedagogical info modal -->
-  <div class="modal-backdrop mode-full-only" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
+  <div class="modal-backdrop info-sheet mode-full-only" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="infoTitle">En apprendre plus</h3>
         <button type="button" class="modal-close" id="btnInfoClose" aria-label="Fermer">×</button>
       </div>
       <div class="modal-body" id="infoDesc">
-        <p><strong>Grille d’irradiation</strong> — estimation annuelle basée sur NREL PVWatts, grille fixe ancrée sur Québec (ville). 7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
-        <p><strong>Déneigement (W)</strong> — part de production « à risque neige », modèle pédagogique simplifié selon l’inclinaison (pas l’orientation)&nbsp;:</p>
-        <ul>
-          <li>≤ 45° → W = 18&nbsp;%</li>
-          <li>90° (vertical) → W = 0&nbsp;%</li>
-          <li>entre 45° et 90° → gradient linéaire, arrondi à l’entier (ex. 60° → 12&nbsp;%, 75° → 6&nbsp;%)</li>
-        </ul>
-        <p>L’idée vient de la part déc+jan+fév / annuel (NREL), simplifiée pour la version 0.2. Efficacité du déneigement <em>d</em>&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
-        <p>Ce n’est <strong>pas</strong> une soumission ni un devis — outil pédagogique seulement.</p>
+        <div class="info-block">
+          <h4>Grille d’irradiation</h4>
+          <p>Estimation annuelle NREL/PVWatts, grille fixe ancrée sur Québec (ville).</p>
+          <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
+        </div>
+        <div class="info-block">
+          <h4>Déneigement (W)</h4>
+          <p>Part de production « à risque neige », modèle pédagogique simplifié selon l’inclinaison (pas l’orientation)&nbsp;:</p>
+          <ul>
+            <li>≤ 45° → W = 18&nbsp;%</li>
+            <li>90° (vertical) → W = 0&nbsp;%</li>
+            <li>entre 45° et 90° → gradient linéaire, arrondi à l’entier (ex. 60° → 12&nbsp;%, 75° → 6&nbsp;%)</li>
+          </ul>
+        </div>
+        <div class="info-block">
+          <h4>Efficacité du déneigement</h4>
+          <p>Idée simplifiée pour la v0.2, à partir de la part déc+jan+fév / annuel (NREL).</p>
+          <p>Le chiffre à gauche du curseur (ex.&nbsp;−14&nbsp;%) est la perte restante, pas l’effort de déneigement.</p>
+          <p>Formule&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
+        </div>
+        <div class="info-block">
+          <h4>Rappel</h4>
+          <p>Ce n’est <strong>pas</strong> une soumission ni un devis — outil pédagogique seulement.</p>
+        </div>
       </div>
       <button type="button" class="btn" id="btnInfoOk">Compris</button>
     </div>
   </div>
 
   <!-- HQ rate info modal — Analyste locks (moyenne 2025 + paliers 2026) -->
-  <div class="modal-backdrop mode-full-only" id="rateModal" hidden role="dialog" aria-modal="true" aria-labelledby="rateTitle" aria-describedby="rateDesc">
+  <div class="modal-backdrop info-sheet mode-full-only" id="rateModal" hidden role="dialog" aria-modal="true" aria-labelledby="rateTitle" aria-describedby="rateDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="rateTitle">Tarif Hydro-Québec</h3>
         <button type="button" class="modal-close" id="btnRateClose" aria-label="Fermer">×</button>
       </div>
       <div class="modal-body" id="rateDesc">
-        <div class="rate-avg">
-          <span class="rate-avg-label">Moyenne Québec TTC</span>
+        <div class="info-block rate-avg">
+          <h4 class="rate-avg-label">Moyenne Québec TTC</h4>
           <span class="amt">9,53&nbsp;¢/kWh</span>
-          <p>Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois, 1<sup>er</sup> avr. 2025). Même profil HT&nbsp;: 8,29&nbsp;¢/kWh. Source&nbsp;: <a href="https://hydroquebec.com/data/documents-donnees/pdf/comparaison-prix-electricite-2025.pdf" target="_blank" rel="noopener noreferrer">Comparaison des prix 2025</a> (toutes taxes comprises, frais d’accès amortis + TPS/TVQ). Pas indexée à avril 2026.</p>
+          <p>Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois, 1<sup>er</sup> avr. 2025).</p>
+          <p>Même profil HT&nbsp;: 8,29&nbsp;¢/kWh.</p>
+          <p>Source&nbsp;: <a href="https://hydroquebec.com/data/documents-donnees/pdf/comparaison-prix-electricite-2025.pdf" target="_blank" rel="noopener noreferrer">Comparaison des prix 2025</a> (toutes taxes comprises, frais d’accès amortis + TPS/TVQ).</p>
+          <p>Pas indexée à avril 2026.</p>
         </div>
-        <p>Paliers Tarif D (Régie, 1<sup>er</sup> avril 2026), hors frais d’accès au réseau (46,154&nbsp;¢/jour). TTC = HT × 1,14975 (TPS 5&nbsp;% + TVQ 9,975&nbsp;%).</p>
-        <table class="rate-table">
-          <thead>
-            <tr>
-              <th scope="col">Palier</th>
-              <th scope="col">Avant taxes (HT)</th>
-              <th scope="col">Taxes comprises (TTC)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">1<sup>re</sup> tranche<br /><span class="rate-sub">jusqu’à 40&nbsp;kWh / jour</span></th>
-              <td class="amt">7,065&nbsp;¢/kWh</td>
-              <td class="amt">8,123&nbsp;¢/kWh</td>
-            </tr>
-            <tr>
-              <th scope="row">2<sup>e</sup> tranche<br /><span class="rate-sub">au-delà de 40&nbsp;kWh / jour</span></th>
-              <td class="amt">11,142&nbsp;¢/kWh</td>
-              <td class="amt">12,811&nbsp;¢/kWh</td>
-            </tr>
-          </tbody>
-        </table>
-        <p>Le champ tarif du calculateur utilise par défaut le <strong>tarif de 2<sup>e</sup> tranche TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975), comme tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
+        <div class="info-block">
+          <h4>Paliers Tarif D</h4>
+          <p>Régie, 1<sup>er</sup> avril 2026. Hors frais d’accès au réseau (46,154&nbsp;¢/jour).</p>
+          <p>TTC = HT × 1,14975 (TPS 5&nbsp;% + TVQ 9,975&nbsp;%).</p>
+          <table class="rate-table">
+            <thead>
+              <tr>
+                <th scope="col">Palier</th>
+                <th scope="col">Avant taxes (HT)</th>
+                <th scope="col">Taxes comprises (TTC)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">1<sup>re</sup> tranche<br /><span class="rate-sub">jusqu’à 40&nbsp;kWh / jour</span></th>
+                <td class="amt">7,065&nbsp;¢/kWh</td>
+                <td class="amt">8,123&nbsp;¢/kWh</td>
+              </tr>
+              <tr>
+                <th scope="row">2<sup>e</sup> tranche<br /><span class="rate-sub">au-delà de 40&nbsp;kWh / jour</span></th>
+                <td class="amt">11,142&nbsp;¢/kWh</td>
+                <td class="amt">12,811&nbsp;¢/kWh</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="info-block">
+          <h4>Défaut du calculateur</h4>
+          <p>Le champ tarif utilise par défaut le <strong>tarif de 2<sup>e</sup> tranche TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975).</p>
+          <p>C’est le tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
+        </div>
       </div>
       <button type="button" class="btn" id="btnRateOk">Compris</button>
     </div>
   </div>
 
+  <!-- Shared field ⓘ sheet (webi + full) -->
+  <div class="modal-backdrop info-sheet" id="fieldInfoModal" hidden role="dialog" aria-modal="true" aria-labelledby="fieldInfoTitle" aria-describedby="fieldInfoBody">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="fieldInfoTitle">Aide</h3>
+        <button type="button" class="modal-close" id="btnFieldInfoClose" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body" id="fieldInfoBody"></div>
+      <button type="button" class="btn" id="btnFieldInfoOk">Compris</button>
+    </div>
+  </div>
+
+  <template id="tpl-info-orient">
+    <span data-info-title>Orientation de la toiture</span>
+    <div class="info-block">
+      <h4>Comment choisir</h4>
+      <p>Indiquez l’orientation au 15° près. 180° = Sud, 0° = Nord.</p>
+      <p>Plus vous êtes proche du plein sud (180°), plus la production d’énergie est élevée.</p>
+    </div>
+    <div class="info-block">
+      <h4>Un seul versant</h4>
+      <p>Choisissez la surface la plus orientée au sud et la moins ombragée.</p>
+      <p>Ne répartissez pas le calcul sur deux pans (ex. sud-est et sud-ouest).</p>
+    </div>
+  </template>
+  <template id="tpl-info-area">
+    <span data-info-title>Superficie de la toiture</span>
+    <div class="info-block">
+      <h4>Quelle surface compter</h4>
+      <p>La superficie détermine le nombre de panneaux et le potentiel de production.</p>
+      <p>Inscrivez l’espace utile : privilégiez les zones ensoleillées, excluez l’ombre des arbres, et dégagez cheminées et obstacles.</p>
+    </div>
+    <div class="info-block">
+      <h4>Unité</h4>
+      <p>Choisissez m² ou pi² à droite du champ.</p>
+    </div>
+  </template>
+  <template id="tpl-info-tilt">
+    <span data-info-title>Inclinaison de la toiture</span>
+    <div class="info-block">
+      <h4>Quel angle viser</h4>
+      <p>Au Québec, l’idéal est de 30° l’été et 90° l’hiver (sans déneigement).</p>
+      <p>Toutefois, pour une toiture fixe à l’année, l’angle moyen optimal se situe entre 40° et 45°.</p>
+    </div>
+  </template>
+  <template id="tpl-info-util">
+    <span data-info-title>Densité d’installation</span>
+    <div class="info-block">
+      <h4>Combien de toit utiliser</h4>
+      <p>Le curseur fixe le pourcentage de toiture occupé par les panneaux.</p>
+      <p>Il est fortement recommandé de ne pas dépasser 80&nbsp;%.</p>
+    </div>
+    <div class="info-block">
+      <h4>Pourquoi laisser de l’espace</h4>
+      <p>Gardez au moins 20&nbsp;% de libre : accès d’entretien, dégagements au vent, neige et glisse en hiver.</p>
+    </div>
+  </template>
+  <template id="tpl-info-deneige">
+    <span data-info-title>Fréquence de déneigement</span>
+    <div class="info-block">
+      <h4>Le curseur</h4>
+      <p>0&nbsp;% = aucun déneigement. 100&nbsp;% = déneigement après chaque chute.</p>
+      <p>Choisissez un effort réaliste : la neige bloque le soleil.</p>
+    </div>
+    <div class="info-block">
+      <h4>Le chiffre à gauche</h4>
+      <p>C’est la <strong>perte de production</strong> qui reste à cause de la neige (ex.&nbsp;−14&nbsp;%).</p>
+      <p>On la compare à une année sans perte due à la neige. Plus vous déneigez, plus ce % se rapproche de 0.</p>
+    </div>
+    <div class="info-block">
+      <h4>Pourquoi ça bouge</h4>
+      <p>L’inclinaison fixe aussi le risque : un toit plus plat retient plus de neige.</p>
+      <p>La production sous le curseur se met à jour en même temps.</p>
+    </div>
+  </template>
+
   <!-- Bug report — visible in webi + full; POST create-only proxy (no token in page) -->
-  <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle" aria-describedby="bugDesc">
+  <div class="modal-backdrop info-sheet" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="bugTitle">Signaler un bug</h3>
         <button type="button" class="modal-close" id="btnBugClose" aria-label="Fermer">×</button>
       </div>
-      <p class="modal-lead" id="bugDesc">Un champ suffit — pas besoin de compte GitHub.</p>
 
-      <form id="bugForm" novalidate>
-        <div class="hp-field" aria-hidden="true">
-          <label for="bugHp">Site web</label>
-          <input type="text" id="bugHp" name="website" tabindex="-1" autocomplete="off" />
+      <form id="bugForm" class="sheet-form" novalidate>
+        <div class="modal-body">
+          <div class="hp-field" aria-hidden="true">
+            <label for="bugHp">Site web</label>
+            <input type="text" id="bugHp" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="bugText">Description du bug</label>
+            <textarea id="bugText" name="bug" required minlength="10" rows="5" maxlength="4000" placeholder="Décris le bug… (tu peux aussi dire la réparation désirée)"></textarea>
+          </div>
+          <div class="field">
+            <label for="bugName">Votre nom (si vous désirez)</label>
+            <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
+          </div>
+          <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
         </div>
-        <div class="field">
-          <label for="bugText">Description du bug</label>
-          <textarea id="bugText" name="bug" required minlength="10" rows="5" maxlength="4000" placeholder="Décris le bug… (tu peux aussi dire la réparation désirée)"></textarea>
-        </div>
-        <div class="field">
-          <label for="bugName">Votre nom (si vous désirez)</label>
-          <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
-        </div>
-        <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
-        <div class="modal-actions">
-          <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
-          <button type="button" class="btn btn-ghost" id="btnBugCancel">Annuler</button>
-        </div>
+        <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
       </form>
 
-      <div id="bugSuccess" hidden>
-        <p class="bug-success-msg">Merci — signalement envoyé.</p>
-        <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
+      <div id="bugSuccess" class="sheet-form" hidden>
+        <div class="modal-body">
+          <p class="bug-success-msg">Merci — signalement envoyé.</p>
+          <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
+        </div>
         <button type="button" class="btn" id="btnBugOk">Fermer</button>
       </div>
     </div>

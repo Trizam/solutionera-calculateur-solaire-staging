@@ -262,12 +262,9 @@
     const r = calc();
     if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
-    if ($("deneigeVal")) {
-      $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
-    }
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
-      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;% annuel";
+      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;%";
     }
     updateTiltViz(r.tilt);
     if ($("tiltWLabel")) {
@@ -276,9 +273,13 @@
     updateGridStatusUi();
 
     if ($("outKwhDay")) {
-      $("outKwhDay").textContent = fmtSig2(r.kWhDay) + " kWh / jour";
+      const dayNum = $("outKwhDay").querySelector(".prod-num");
+      if (dayNum) dayNum.textContent = fmtSig2(r.kWhDay);
     }
-    $("outKwh").textContent = fmtSig2(r.kWh) + " kWh / an";
+    if ($("outKwh")) {
+      const yearNum = $("outKwh").querySelector(".prod-num");
+      if (yearNum) yearNum.textContent = fmtSig2(r.kWh);
+    }
     $("outKw").textContent = fmtSig2(r.kW) + " kWc";
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
@@ -355,7 +356,7 @@
   function appVersionString() {
     const el = document.querySelector(".bug-ver") || document.querySelector(".brand-sub");
     const t = el ? el.textContent.replace(/\s+/g, " ") : "";
-    const m = t.match(/version\s+([0-9.]+)/i);
+    const m = t.match(/\bv(?:ersion)?\s*([0-9.]+)/i);
     return m ? m[1] : "0.2";
   }
 
@@ -511,7 +512,7 @@
 
   function currentModal() {
     if (activeModalId && $(activeModalId)) return $(activeModalId);
-    const ids = ["bugModal", "infoModal", "rateModal"];
+    const ids = ["bugModal", "infoModal", "rateModal", "fieldInfoModal"];
     for (let i = 0; i < ids.length; i++) {
       const el = $(ids[i]);
       if (el && !el.hidden) return el;
@@ -579,14 +580,25 @@
   function openRateInfo() {
     openModal("rateModal");
   }
+  function openFieldInfo(key) {
+    const tpl = document.getElementById("tpl-info-" + key);
+    const titleEl = $("fieldInfoTitle");
+    const bodyEl = $("fieldInfoBody");
+    if (!tpl || !titleEl || !bodyEl) return;
+    const frag = tpl.content.cloneNode(true);
+    const titleSrc = frag.querySelector("[data-info-title]");
+    titleEl.textContent = titleSrc && titleSrc.textContent ? titleSrc.textContent : "Aide";
+    if (titleSrc) titleSrc.remove();
+    bodyEl.replaceChildren(frag);
+    openModal("fieldInfoModal");
+  }
   function closeInfo() {
     const m = currentModal();
     if (!m || m.hidden) return;
-    const fallbackId = activeModalId === "rateModal"
-      ? "btnRateInfo"
-      : activeModalId === "bugModal"
-        ? "bugLink2"
-        : "btnInfo";
+    let fallback = $("btnInfo");
+    if (activeModalId === "rateModal") fallback = $("btnRateInfo");
+    else if (activeModalId === "bugModal") fallback = $("bugLink2");
+    else if (activeModalId === "fieldInfoModal") fallback = document.querySelector(".field-info-btn");
     hideModalEl(m);
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
@@ -594,7 +606,7 @@
       wrap.removeAttribute("aria-hidden");
       try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
     }
-    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $(fallbackId);
+    const back = infoOpener && document.contains(infoOpener) ? infoOpener : fallback;
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
     activeModalId = null;
@@ -863,10 +875,15 @@
     if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnBugClose", "btnBugCancel", "btnBugOk"].forEach(function (id) {
+    document.querySelectorAll(".field-info-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        openFieldInfo(btn.getAttribute("data-info"));
+      });
+    });
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugOk"].forEach(function (id) {
       if ($(id)) $(id).addEventListener("click", closeInfo);
     });
-    ["infoModal", "rateModal", "bugModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
       const el = $(id);
       if (!el) return;
       el.addEventListener("click", function (e) {
@@ -978,7 +995,7 @@
     if (displayModeApi && typeof displayModeApi.applyDisplayMode === "function") {
       displayModeApi.applyDisplayMode(displayModeApi.current);
     }
-    ["infoModal", "rateModal", "bugModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");
     });
