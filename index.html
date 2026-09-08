@@ -135,7 +135,19 @@
         <p class="hint" id="tiltHint">→ Au Québec, l’idéal est de 30° l’été et 90° l’hiver (sans déneigement). Toutefois, pour une toiture fixe à l’année, l’angle moyen optimal se situe entre 40° et 45°.</p>
       </div>
       <div class="field">
-        <label for="util">Densité d’installation (utilisation du toit)</label>
+        <div class="label-row field-info-wrap">
+          <label for="util">Densité d’installation (utilisation du toit)</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            aria-describedby="tip-util"
+            aria-label="Aide : Densité d’installation"
+            title="Ajustez le curseur pour définir le pourcentage de toiture utilisé. En conception solaire, il est fortement recommandé de ne pas dépasser 80 %. Conserver au moins 20 % d’espace libre (marges et périmètres) est essentiel pour sécuriser l’accès lors de l’entretien, respecter les dégagements contre les forts vents aux rebords, et gérer l’accumulation ainsi que la glisse de la neige en hiver."
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+          <span id="tip-util" class="field-info-tip" role="tooltip">Ajustez le curseur pour définir le pourcentage de toiture utilisé. En conception solaire, il est fortement recommandé de ne pas dépasser 80 %. Conserver au moins 20 % d’espace libre (marges et périmètres) est essentiel pour sécuriser l’accès lors de l’entretien, respecter les dégagements contre les forts vents aux rebords, et gérer l’accumulation ainsi que la glisse de la neige en hiver.</span>
+        </div>
         <div class="slider-row">
           <div class="slider-val-left" id="utilVal">80 %</div>
           <div class="slider-track">
