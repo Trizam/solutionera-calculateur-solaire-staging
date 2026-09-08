@@ -184,10 +184,7 @@
           </button>
         </div>
         <div class="slider-row">
-          <div class="slider-val-left slider-val-left-stack" aria-live="polite">
-            <span id="deneigeVal">20 %</span>
-            <span id="deneigeLive" class="loss-annuel">−14&nbsp;% annuel</span>
-          </div>
+          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−14&nbsp;%</div>
           <div class="slider-track">
             <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
             <div class="slider-meta"><span>0&nbsp;%</span><span>100&nbsp;%</span></div>
@@ -354,6 +351,7 @@
         <div class="info-block">
           <h4>Efficacité du déneigement</h4>
           <p>Idée simplifiée pour la v0.2, à partir de la part déc+jan+fév / annuel (NREL).</p>
+          <p>Le chiffre à gauche du curseur (ex.&nbsp;−14&nbsp;%) est la perte restante, pas l’effort de déneigement.</p>
           <p>Formule&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
         </div>
         <div class="info-block">
@@ -477,24 +475,29 @@
   <template id="tpl-info-deneige">
     <span data-info-title>Fréquence de déneigement</span>
     <div class="info-block">
-      <h4>Quel effort compter</h4>
+      <h4>Le curseur</h4>
       <p>0&nbsp;% = aucun déneigement. 100&nbsp;% = déneigement après chaque chute.</p>
-      <p>La neige bloque le soleil : votre assiduité change beaucoup le rendement hivernal.</p>
+      <p>Choisissez un effort réaliste : la neige bloque le soleil.</p>
     </div>
     <div class="info-block">
-      <h4>Lire le résultat</h4>
-      <p>Choisissez un niveau réaliste, puis regardez la production se mettre à jour juste en dessous.</p>
+      <h4>Le chiffre à gauche</h4>
+      <p>C’est la <strong>perte de production</strong> qui reste à cause de la neige (ex.&nbsp;−14&nbsp;%).</p>
+      <p>On la compare à une année sans perte due à la neige. Plus vous déneigez, plus ce % se rapproche de 0.</p>
+    </div>
+    <div class="info-block">
+      <h4>Pourquoi ça bouge</h4>
+      <p>L’inclinaison fixe aussi le risque : un toit plus plat retient plus de neige.</p>
+      <p>La production sous le curseur se met à jour en même temps.</p>
     </div>
   </template>
 
   <!-- Bug report — visible in webi + full; POST create-only proxy (no token in page) -->
-  <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle" aria-describedby="bugDesc">
+  <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="bugTitle">Signaler un bug</h3>
         <button type="button" class="modal-close" id="btnBugClose" aria-label="Fermer">×</button>
       </div>
-      <p class="modal-lead" id="bugDesc">Un champ suffit — pas besoin de compte GitHub.</p>
 
       <form id="bugForm" novalidate>
         <div class="hp-field" aria-hidden="true">

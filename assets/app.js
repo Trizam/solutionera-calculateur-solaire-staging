@@ -262,12 +262,9 @@
     const r = calc();
     if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
-    if ($("deneigeVal")) {
-      $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
-    }
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
-      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;% annuel";
+      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;%";
     }
     updateTiltViz(r.tilt);
     if ($("tiltWLabel")) {

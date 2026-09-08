@@ -166,8 +166,16 @@ const html = readFileSync(join(__dirname, "index.html"), "utf8");
 const css = readFileSync(join(__dirname, "assets/styles.css"), "utf8");
 
 const labelOk = html.includes("Efficacité du déneigement") && !/perte\s+neige/i.test(html);
-const liveBeside = html.includes("deneigeLive") && (html.includes("% annuel") || html.includes("%&nbsp;annuel") || html.includes("&nbsp;% annuel"));
-const liveFmt = (html.includes("−14&nbsp;%") || html.includes("−14 %")) && html.includes("annuel") && !html.includes("−14,4");
+const liveBeside =
+  html.includes('id="deneigeLive"') &&
+  !html.includes("deneigeVal") &&
+  !html.includes("slider-val-left-stack") &&
+  !html.includes("loss-annuel");
+const liveFmt =
+  (html.includes("−14&nbsp;%") || html.includes("−14 %")) &&
+  !html.includes("−14,4") &&
+  !html.includes("% annuel") &&
+  !html.includes("%&nbsp;annuel");
 const verOk = /\bv0\.2\b/.test(html) && !/V0\.2/.test(html) && !html.includes("V0.1") && !/version 0\.2/i.test(html);
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
 const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal/i.test(html);
@@ -221,15 +229,18 @@ const noMtlAssets =
   !existsSync(join(__dirname, "assets/montreal-monthly.json"));
 const lossAt20 = Math.round((1 - 0.2) * W * 100);
 const lossOk = lossAt20 === 14;
-const appLive = app.includes("&nbsp;% annuel") || app.includes("% annuel");
+const appLive =
+  app.includes("deneigeLive") &&
+  app.includes('fmtSig2(lossPct) + "&nbsp;%"') &&
+  !app.includes("% annuel");
 const subvDefaultJs = /subv"\)\.checked\s*=\s*true/.test(app) || /\$\("subv"\)\.checked = true/.test(app);
 const discTiltW =
   (html.includes("selon l’inclinaison") || html.includes("selon l'inclinaison") || html.includes("selon l’<strong>inclinaison")) &&
   html.includes("18");
 
 console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : "FAIL"}`);
-console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
-console.log(`  app.js live format « −X % annuel » + fmtSig2: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
+console.log(`  live loss left of slider (deneigeLive · −N % only): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
+console.log(`  app.js live format « −X % » + fmtSig2: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
 console.log(`  v0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
 console.log(`  brand Solution ERA | DÉFI Autonomie Énergétique: ${brandDefi ? "PASS" : "FAIL"}`);
 console.log(`  badge removed + no Québec in hero/results: ${noBadge && noQcHero ? "PASS" : "FAIL"}`);
@@ -381,6 +392,10 @@ const infoSheetUi =
   html.includes("30° l’été") &&
   html.includes("90° l’hiver") &&
   html.includes("40° et 45°") &&
+  html.includes("perte de production") &&
+  html.includes("chiffre à gauche") &&
+  html.includes("perte restante") &&
+  !html.includes("Lire le résultat") &&
   !html.includes("field-info-tip");
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 console.log(`  ⓘ full-page sheets + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
@@ -646,7 +661,9 @@ const footerOpen =
   /<footer class="bug">/.test(html) &&
   !/<footer class="bug[^"]*mode-full-only/.test(html) &&
   bugModalTag.includes("modal-backdrop") &&
-  !bugModalTag.includes("mode-full-only");
+  !bugModalTag.includes("mode-full-only") &&
+  !html.includes("Un champ suffit") &&
+  !html.includes("pas besoin de compte GitHub");
 const bugJsWired =
   app.includes("function openBugReport") &&
   app.includes("function validateBugReport") &&
