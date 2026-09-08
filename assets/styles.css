@@ -459,11 +459,7 @@ section.block h2 .num {
   color: var(--green-dark);
   line-height: 1.2;
 }
-.result-pill .big-annual {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--green-dark);
-  line-height: 1.25;
+.result-pill .big + .big {
   margin-top: 0.15rem;
 }
 .result-pill .label { font-size: 0.85rem; color: var(--muted); }

@@ -279,7 +279,7 @@
       $("outKwhDay").textContent = fmtSig2(r.kWhDay) + " kWh / jour";
     }
     $("outKwh").textContent = fmtSig2(r.kWh) + " kWh / an";
-    $("outKw").textContent = fmtSig2(r.kW) + " kW";
+    $("outKw").textContent = fmtSig2(r.kW) + " kWc";
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
 
