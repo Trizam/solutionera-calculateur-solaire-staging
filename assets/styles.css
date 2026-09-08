@@ -181,6 +181,67 @@ section.block h2 .num {
   margin-bottom: 0.35rem;
 }
 .label-row label { margin-bottom: 0; }
+
+/* field-info : ⓘ à droite du titre, tip au survol + focus clavier (réutilisable) */
+.field-info-wrap {
+  position: relative;
+}
+.field-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--green-soft);
+  color: var(--green-dark);
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.field-info-btn:hover,
+.field-info-btn:focus-visible {
+  background: #c8ebd0;
+}
+.field-info-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.field-info-tip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 6;
+  box-sizing: border-box;
+  width: min(22rem, calc(100vw - 2.5rem));
+  max-width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.4;
+  box-shadow: 0 6px 18px rgba(27, 67, 50, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+.field-info-btn:hover + .field-info-tip,
+.field-info-btn:focus + .field-info-tip,
+.field-info-btn:focus-visible + .field-info-tip {
+  opacity: 1;
+  visibility: visible;
+}
+
 .tilt-viz {
   color: var(--green-dark);
   flex-shrink: 0;
@@ -848,7 +909,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .tilt-viz,
+  .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge { display: none !important; }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
