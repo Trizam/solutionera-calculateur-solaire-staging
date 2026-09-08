@@ -237,7 +237,7 @@ const logisCopy =
 const htmlSansBrand = html
   .replace(/DÉFI Autonomie Énergétique/g, "")
   .replace(/Autonomie et neige/g, "")
-  .replace(/projets en autonomie/gi, "");
+  .replace(/en autonomie/gi, "");
 const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -421,9 +421,16 @@ const infoSheetUi =
   html.includes('data-info="tilt"') &&
   html.includes("tpl-info-tilt") &&
   html.includes("Maximum de production") &&
-  html.includes("35–40°") &&
+  html.includes("entre 35° et 40°") &&
+  html.includes("maximum de production") &&
   html.includes("plein sud") &&
-  html.includes("90° (vertical) pour zéro neige") &&
+  html.includes("vivent en autonomie") &&
+  html.includes("panneaux à 90°") &&
+  html.includes("aucune accumulation de neige") &&
+  !html.includes("zéro neige") &&
+  !html.includes("15–30°") &&
+  !html.includes("60–75°") &&
+  !html.includes("n’est pas l’idéal énergétique") &&
   !html.includes("40–45°") &&
   !html.includes("40° à 45°") &&
   !html.includes("id=\"tiltHint\"") &&
