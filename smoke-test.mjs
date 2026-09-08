@@ -305,6 +305,7 @@ const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
   html.includes("9,53") &&
+  html.includes("Moyenne Québec TTC") &&
   html.includes("Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois") &&
   html.includes("8,29") &&
   html.includes("comparaison-prix-electricite-2025.pdf") &&
