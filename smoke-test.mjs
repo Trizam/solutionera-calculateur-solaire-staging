@@ -186,7 +186,9 @@ const verOk =
   !/version 0\.2/i.test(html) &&
   !/v0\.2/.test(brandSubSlice) &&
   html.includes('id="buildId"') &&
+  html.includes("v0.2+3f2a41c") &&
   existsSync(join(__dirname, "assets/build.json")) &&
+  readFileSync(join(__dirname, "assets/build.json"), "utf8").includes("3f2a41c") &&
   app.includes("function loadBuildId") &&
   app.includes("assets/build.json");
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
