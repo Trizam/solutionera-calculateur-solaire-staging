@@ -1,56 +1,35 @@
 # Signalements visiteurs (L1)
 
-Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le pied de page ouvre une modale (2 champs). Quand le proxy HTTP est en place, un POST crée une Issue.
+Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le footer ouvre une modale ; le navigateur crée une Issue via l’API GitHub.
 
 ## Review Fred
 
 1. Filtrer : [Issues `label:user-report`](https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report)
 2. Lire **Bug** + **Correction souhaitée** + **Contexte (auto)**
-3. Prioriser **toi-même** avec `P0` / `P1` / `P2` (jamais auto)
+3. Prioriser **toi-même** avec `P0` / `P1` / `P2`
 4. Labels auto : `user-report` + `bug`
 
-## Client POST (UI)
+## Auth (coordinateur)
 
-Endpoint = `meta[name="bug-report-endpoint"]` dans `index.html` (vide tant que le coordinateur n’a pas collé l’URL).
-
-```json
-{
-  "bug": "...",
-  "correction": "...",
-  "honeypot": "",
-  "openedAt": 1234567890,
-  "context": {
-    "url": "...",
-    "mode": "webi|full",
-    "version": "0.2",
-    "userAgent": "...",
-    "timestamp": "ISO",
-    "calc": {}
-  }
-}
-```
-
-Si la meta est vide : **« Signalement temporairement indisponible »** (pas de mailto).
-
-## Action GitHub (test Cash / fallback)
-
-`.github/workflows/bug-report.yml`
-
-- `repository_dispatch` type `calculateur-bug` (`client_payload` = même JSON)
-- `workflow_dispatch` inputs : `bug`, `correction`, `context_json`
-- Crée l’Issue avec `GITHUB_TOKEN` (`actions/github-script`) + labels `user-report`, `bug`
-
-## Proxy HTTP (coordinateur, follow-up)
-
-Secret `BUG_REPORT_GITHUB_TOKEN` (Issues write). Puis remplir la meta :
+Token **vide dans ce commit**. Follow-up : coller un PAT fine-grained **Issues: write uniquement** sur ce repo dans :
 
 ```html
-<meta name="bug-report-endpoint" content="https://TON-WORKER.workers.dev" />
+<meta name="bug-report-token" content="github_pat_…" />
 ```
 
-Cloudflare : `npx wrangler secret put BUG_REPORT_GITHUB_TOKEN` puis `npx wrangler deploy`.  
-Netlify : env du site + `/.netlify/functions/bug-report`.
+aussi accepté : `window.__BUG_REPORT_TOKEN__` ou `assets/bug-config.json` (`{ "token": "…" }`, gitignoré — copier `assets/bug-config.example.json`).
+
+Sans token : **« Signalement temporairement indisponible »** (pas de mailto).
+
+## Client → GitHub
+
+`POST https://api.github.com/repos/Trizam/solutionera-calculateur-solaire-staging/issues`  
+`Authorization: Bearer <token>`
+
+CORS vérifié (2026-09-08) : preflight `OPTIONS` → `access-control-allow-origin: *` + `access-control-allow-headers: Authorization, Content-Type` + `POST`. Un POST navigateur depuis Pages est OK.
+
+Si le POST Issues échoue, le client tente `repository_dispatch` type `calculateur-bug` (le PAT doit alors aussi pouvoir déclencher des workflows / `contents:write`). Voir `.github/workflows/bug-report.yml` (`workflow_dispatch` pour tests Cash).
 
 ## Anti-spam L1
 
-Honeypot (200 ignoré), délai ≥ 2 s, bug ≥ 10 caractères, pas de double-envoi.
+Honeypot (pas d’appel API), délai ≥ 2 s, bug ≥ 10 caractères, pas de double-envoi.

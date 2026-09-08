@@ -524,6 +524,11 @@ const bugIssueShape =
   builtIssue.body.indexOf("## Correction souhaitée") >= 0 &&
   builtIssue.body.indexOf("## Contexte (auto)") >= 0 &&
   builtIssue.body.indexOf("```json") >= 0;
+const clientIssueFn =
+  app.includes('labels: ["user-report", "bug"]') &&
+  app.includes('"[user-report] "') &&
+  app.includes("api.github.com/repos/Trizam/solutionera-calculateur-solaire-staging") &&
+  app.includes('BUG_REPO_API + "/issues"');
 const hpReq = new Request("https://example.test/bug", {
   method: "POST",
   headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
@@ -546,22 +551,28 @@ const footerOpen =
 const bugJsWired =
   app.includes("function openBugReport") &&
   app.includes("function validateBugReport") &&
-  app.includes("openBugReport") &&
-  app.includes("bug-report-endpoint") &&
+  app.includes("function buildGithubIssue") &&
+  app.includes("bug-report-token") &&
+  app.includes("/issues") &&
+  app.includes("Authorization") &&
   app.includes("honeypot") &&
   app.includes("userAgent") &&
   app.includes("Signalement temporairement indisponible") &&
   !app.includes("function reportBug") &&
   !app.includes("mailtoBugHref") &&
   !app.includes("mailto:hello@solutionera.com");
+const htmlTokenMeta = /<meta name="bug-report-token" content=""/.test(html);
 const noTokenInFrontend =
-  !app.includes("BUG_REPORT_GITHUB_TOKEN") &&
-  !html.includes("BUG_REPORT_GITHUB_TOKEN") &&
-  !app.includes("ghp_");
+  htmlTokenMeta &&
+  !app.includes("ghp_") &&
+  !html.includes("ghp_") &&
+  !html.includes("github_pat_") &&
+  !app.includes("github_pat_");
 const bugDocs =
   existsSync(join(__dirname, "docs/BUG_REPORTS.md")) &&
-  existsSync(join(__dirname, "api/bug-report-core.mjs")) &&
-  existsSync(join(__dirname, "functions/bug-report.js")) &&
+  existsSync(join(__dirname, "assets/bug-config.example.json")) &&
+  existsSync(join(__dirname, ".gitignore")) &&
+  readFileSync(join(__dirname, ".gitignore"), "utf8").includes("assets/bug-config.json") &&
   existsSync(join(__dirname, ".github/workflows/bug-report.yml")) &&
   readFileSync(join(__dirname, "docs/BUG_REPORTS.md"), "utf8").includes("label:user-report");
 const bugWorkflowSrc = readFileSync(join(__dirname, ".github/workflows/bug-report.yml"), "utf8");
@@ -572,7 +583,7 @@ const bugWorkflow =
   bugWorkflowSrc.includes("actions/github-script") &&
   bugWorkflowSrc.includes("user-report");
 console.log(`  bug payload valid / honeypot / min / too-fast: ${bugValidOk && bugHpReject && bugMinReject && bugFastReject ? "PASS" : "FAIL"}`);
-console.log(`  bug issue title+labels+sections: ${bugIssueShape ? "PASS" : "FAIL"}`);
+console.log(`  bug issue title+labels+sections: ${bugIssueShape && clientIssueFn ? "PASS" : "FAIL"}`);
 console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
@@ -688,6 +699,7 @@ const pass =
   bugMinReject &&
   bugFastReject &&
   bugIssueShape &&
+  clientIssueFn &&
   bugHpIgnoredPath &&
   footerOpen &&
   bugJsWired &&

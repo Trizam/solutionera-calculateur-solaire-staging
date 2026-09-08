@@ -160,7 +160,7 @@ Local : `node smoke-test.mjs` → doit afficher **SMOKE OK**.
 1. Partager **uniquement** l’URL webi **avec** `?mode=webi`. L’URL nue ouvre le calculateur **complet** — ne pas la projeter en live. (`?mode=webinar` est un alias de `webi`.)
 2. Hard refresh (Cmd/Ctrl+Shift+R) si un participant voit une vieille version (cache 600 s).
 3. Si Pages tombe : expliquer le fallback assets via jsDelivr ; **ne pas** promettre une UI miroir tant que `index.html` est servi en `text/plain`.
-4. Bug report : lien `!` / « Signale un bug » dans le footer (visible aussi en webi) → modale. Meta `bug-report-endpoint` vide = « Signalement temporairement indisponible ». Voir `docs/BUG_REPORTS.md`.
+4. Bug report : lien `!` / « Signale un bug » dans le footer (visible aussi en webi) → modale. Meta `bug-report-token` vide = « Signalement temporairement indisponible ». Voir `docs/BUG_REPORTS.md`.
 
 ---
 
