@@ -170,9 +170,10 @@
     const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
+    const kWhDay = isFinite(kWh) ? kWh / 365 : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, table, kWhAnnuel, kWh, W,
+      kW, table, kWhAnnuel, kWh, kWhDay, W,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
@@ -248,7 +249,10 @@
     }
     updateGridStatusUi();
 
-    $("outKwh").textContent = "≈ " + fmtNum(r.kWh, 0) + " kWh / an";
+    if ($("outKwhDay")) {
+      $("outKwhDay").textContent = fmtNum(r.kWhDay, 0) + " kWh / jour";
+    }
+    $("outKwh").textContent = fmtNum(r.kWh, 0) + " kWh / an";
     $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
@@ -733,6 +737,8 @@
     updateGridStatusUi();
   }
 
+  const displayModeApi = (typeof window !== "undefined" && window.SolarDisplayMode) || null;
+
   window.SolarCalcV02 = {
     calc,
     applyDeneigement,
@@ -740,6 +746,11 @@
     consoAnnuelleKwh,
     lookupCell,
     winterWFromTilt,
+    parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
+    applyDisplayMode: displayModeApi && displayModeApi.applyDisplayMode,
+    get displayMode() {
+      return displayModeApi ? displayModeApi.current : "full";
+    },
     AZ_LABELS,
     roundAreaInput,
     constants: {
@@ -767,6 +778,9 @@
   window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
+    if (displayModeApi && typeof displayModeApi.applyDisplayMode === "function") {
+      displayModeApi.applyDisplayMode(displayModeApi.current);
+    }
     ["infoModal", "rateModal"].forEach(function (id) {
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-mode="full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,6 +14,8 @@
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="assets/styles.css" />
+  <!-- Sync: set data-mode before first paint (webi must not flash full UI) -->
+  <script src="assets/display-mode.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au calculateur</a>
@@ -23,16 +25,16 @@
       <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution Era" width="44" height="44" decoding="async" />
       <div>
         <div class="brand-name">Solution Era</div>
-        <div class="brand-sub">Calculateur solaire · version 0.2</div>
+        <div class="brand-sub">Calculateur solaire · version 0.2 <span class="mode-badge mode-webi-only">Mode webi</span></div>
       </div>
     </div>
 
-    <header class="hero">
+    <header class="hero mode-full-only">
       <h1>Calculateur solaire</h1>
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
-    <!-- 1 · Production -->
+    <!-- 1 · Production — visible in both modes; webi = this block only -->
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
       <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire&nbsp;?</h2>
 
@@ -139,14 +141,15 @@
       <div class="result-pill">
         <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
         <div class="label">Vous pourrez alors produire</div>
-        <div class="big" id="outKwh">≈ — kWh / an</div>
+        <div class="big" id="outKwhDay">— kWh / jour</div>
+        <div class="big-annual" id="outKwh">— kWh / an</div>
         <div class="label">avec votre installation solaire</div>
         <p class="calc-line">Puissance estimée&nbsp;: <strong id="outKw">— kW</strong></p>
       </div>
     </section>
 
     <!-- 2 · Coût -->
-    <section class="block" id="sec-cost" aria-labelledby="h-cost">
+    <section class="block mode-full-only" id="sec-cost" aria-labelledby="h-cost">
       <h2 id="h-cost"><span class="num">2</span> Combien ça coûte&nbsp;?</h2>
 
       <div class="field">
@@ -185,7 +188,7 @@
     </section>
 
     <!-- 3 · Valeur + résultat -->
-    <section class="block" id="sec-value" aria-labelledby="h-value">
+    <section class="block mode-full-only" id="sec-value" aria-labelledby="h-value">
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
@@ -232,7 +235,7 @@
       <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
 
-    <aside class="disclaimers">
+    <aside class="disclaimers mode-full-only">
       <div class="disc-head">
         <strong>À retenir</strong>
         <button type="button" class="info-btn" id="btnInfo" aria-haspopup="dialog" aria-controls="infoModal" title="En apprendre plus">
@@ -261,7 +264,7 @@
   </div>
 
   <!-- Pedagogical info modal -->
-  <div class="modal-backdrop" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
+  <div class="modal-backdrop mode-full-only" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="infoTitle">En apprendre plus</h3>
@@ -283,7 +286,7 @@
   </div>
 
   <!-- HQ rate info modal — Analyste locks (moyenne 2025 + paliers 2026) -->
-  <div class="modal-backdrop" id="rateModal" hidden role="dialog" aria-modal="true" aria-labelledby="rateTitle" aria-describedby="rateDesc">
+  <div class="modal-backdrop mode-full-only" id="rateModal" hidden role="dialog" aria-modal="true" aria-labelledby="rateTitle" aria-describedby="rateDesc">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="rateTitle">Tarif Hydro-Québec</h3>

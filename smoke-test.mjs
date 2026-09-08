@@ -3,6 +3,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { runInNewContext } from "vm";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
@@ -347,6 +348,106 @@ console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "F
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 
+const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
+function runDisplayMode(search) {
+  const htmlEl = {
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    getAttribute(k) { return this.attrs[k]; }
+  };
+  const bodyEl = {
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    getAttribute(k) { return this.attrs[k]; }
+  };
+  const sandbox = {
+    URLSearchParams,
+    location: { search },
+    document: {
+      documentElement: htmlEl,
+      body: bodyEl,
+      addEventListener() {}
+    }
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  runInNewContext(modeSrc, sandbox, { filename: "display-mode.js" });
+  return { api: sandbox.SolarDisplayMode, htmlEl, bodyEl };
+}
+const modeBare = runDisplayMode("");
+const modeMissing = runDisplayMode("?foo=1");
+const modeFull = runDisplayMode("?mode=full");
+const modeUnknown = runDisplayMode("?mode=banana");
+const modeWebi = runDisplayMode("?mode=webi");
+const modeWebiCase = runDisplayMode("?mode=WEBI");
+const modeWebinarAlias = runDisplayMode("?mode=webinar");
+const modeDefaultFull =
+  modeBare.api.current === "full" &&
+  modeBare.api.parseDisplayMode("") === "full" &&
+  modeBare.api.parseDisplayMode("?") === "full" &&
+  modeMissing.api.current === "full" &&
+  modeFull.api.current === "full" &&
+  modeUnknown.api.current === "full" &&
+  modeBare.htmlEl.getAttribute("data-mode") === "full" &&
+  modeBare.bodyEl.getAttribute("data-mode") === "full";
+const modeWebiOk =
+  modeWebi.api.current === "webi" &&
+  modeWebi.api.parseDisplayMode("?mode=webi") === "webi" &&
+  modeWebiCase.api.current === "webi" &&
+  modeWebinarAlias.api.current === "webi" &&
+  modeWebinarAlias.api.parseDisplayMode("?mode=webinar") === "webi" &&
+  modeWebi.htmlEl.getAttribute("data-mode") === "webi" &&
+  modeWebi.bodyEl.getAttribute("data-mode") === "webi";
+const htmlModeDefault = /<html[^>]*data-mode="full"/.test(html);
+const htmlModeScript = html.includes('src="assets/display-mode.js"');
+const htmlProdVisible = html.includes('id="sec-prod"') && !/id="sec-prod"[^>]*mode-full-only/.test(html);
+const secCostIdx = html.indexOf('id="sec-cost"');
+const secValueIdx = html.indexOf('id="sec-value"');
+const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
+const secValueTag = secValueIdx >= 0 ? html.slice(Math.max(0, secValueIdx - 80), secValueIdx + 40) : "";
+const htmlHidesCost = /mode-full-only/.test(secCostTag) && secCostTag.includes("sec-cost");
+const htmlHidesValue = /mode-full-only/.test(secValueTag) && secValueTag.includes("sec-value");
+const htmlHidesDisc = /aside class="disclaimers mode-full-only"/.test(html);
+const htmlHidesHero = /header class="hero mode-full-only"/.test(html);
+const htmlWebiBadge = html.includes("Mode webi") && html.includes("mode-webi-only");
+const cssHidesFull = /html\[data-mode="webi"\]\s*\.mode-full-only/.test(css);
+const cssHidesWebiOnly = /html:not\(\[data-mode="webi"\]\)\s*\.mode-webi-only/.test(css);
+const runbook = readFileSync(join(__dirname, "docs/WEBINAR_RUNBOOK.md"), "utf8");
+const runbookWebiLink =
+  runbook.includes("?mode=webi") &&
+  runbook.includes("à utiliser en live mercredi") &&
+  runbook.includes("Alias de `webi`") &&
+  /URL nue = full|URL nue.*complet|absent.*Mode complet/s.test(runbook);
+const appWiresMode = app.includes("SolarDisplayMode") && app.includes("parseDisplayMode");
+const htmlAllowlist =
+  htmlHidesCost &&
+  htmlHidesValue &&
+  htmlHidesDisc &&
+  htmlHidesHero &&
+  htmlProdVisible &&
+  html.includes('id="sec-prod"') &&
+  html.includes('id="sec-cost"') &&
+  html.includes('id="sec-value"');
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / jour");
+const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an");
+const prodNoWave =
+  !/id="outKwhDay"[^>]*>≈/.test(html) &&
+  !/id="outKwh"[^>]*>≈/.test(html) &&
+  !app.includes('"≈ " + fmtNum(r.kWh') &&
+  app.includes("kWh / jour") &&
+  app.includes("kWhDay");
+const dayFromAnnual = Math.round(6874 / 365);
+const dayOk = dayFromAnnual === 19;
+console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
+console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
+console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
+console.log(`  webi hides non-#sec-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
+console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
+console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
+console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
+console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
+
 
 const pass =
   ok &&
@@ -434,7 +535,21 @@ const pass =
   hasCreditFn &&
   hasConsoWired &&
   defaultRateTtc &&
-  hasRateInfoUi;
+  hasRateInfoUi &&
+  modeDefaultFull &&
+  modeWebiOk &&
+  htmlModeDefault &&
+  htmlModeScript &&
+  htmlAllowlist &&
+  cssHidesFull &&
+  cssHidesWebiOnly &&
+  htmlWebiBadge &&
+  runbookWebiLink &&
+  appWiresMode &&
+  prodPillDay &&
+  prodPillAnnual &&
+  prodNoWave &&
+  dayOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

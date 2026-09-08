@@ -18,6 +18,33 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 html, body { max-width: 100%; }
+
+/*
+ * URL display modes (query ?mode=)
+ * - default / full / unknown → all sections
+ * - webi (alias webinar) → hide .mode-full-only (coût, valeur/KPI, PDF, mentions)
+ */
+html:not([data-mode="webi"]) .mode-webi-only,
+html:not([data-mode="webi"]) .mode-webinar-only {
+  display: none !important;
+}
+html[data-mode="webi"] .mode-full-only {
+  display: none !important;
+}
+.mode-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  border: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
 body {
   margin: 0;
   font-family: var(--font);
@@ -371,6 +398,13 @@ section.block h2 .num {
   color: var(--green-dark);
   line-height: 1.2;
 }
+.result-pill .big-annual {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  line-height: 1.25;
+  margin-top: 0.15rem;
+}
 .result-pill .label { font-size: 0.85rem; color: var(--muted); }
 .calc-line {
   font-size: 0.88rem;
@@ -693,7 +727,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
   .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .tilt-viz,
-  .modal-backdrop, .hint { display: none !important; }
+  .modal-backdrop, .hint, .mode-badge { display: none !important; }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
   .slider-meta,

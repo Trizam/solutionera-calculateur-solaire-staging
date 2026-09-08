@@ -19,8 +19,10 @@ hit() {
 
 echo "== Primary (GH Pages / Fastly, max-age≈600) =="
 hit "index/"   "$PRIMARY/"
+hit "webi"     "$PRIMARY/?mode=webi"
 hit "index"    "$PRIMARY/index.html"
 hit "css"      "$PRIMARY/assets/styles.css"
+hit "mode-js"  "$PRIMARY/assets/display-mode.js"
 hit "js"       "$PRIMARY/assets/app.js"
 hit "grid"     "$PRIMARY/assets/quebec-full-grid.json"
 hit "favicon"  "$PRIMARY/favicon.ico"
@@ -30,6 +32,7 @@ echo
 echo "== jsDelivr (assets only; index.html = text/plain, not a UI mirror) =="
 hit "jsd-index" "$JSD/index.html"
 hit "jsd-css"   "$JSD/assets/styles.css"
+hit "jsd-mode"  "$JSD/assets/display-mode.js"
 hit "jsd-js"    "$JSD/assets/app.js"
 hit "jsd-grid"  "$JSD/assets/quebec-full-grid.json"
 
