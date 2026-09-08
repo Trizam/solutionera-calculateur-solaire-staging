@@ -41,7 +41,20 @@
       <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie&nbsp;?</h2>
 
       <div class="field">
-        <label for="area">Superficie de la toiture</label>
+        <!-- field-info pattern (réutilisable) : .label-row > label + .field-info-btn + .field-info-tip -->
+        <div class="label-row field-info-wrap">
+          <label for="area">Superficie de la toiture</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            aria-describedby="tip-area"
+            aria-label="Aide : Superficie de la toiture"
+            title="La superficie de la toiture permet d’estimer la surface de captation de l’énergie solaire avec des panneaux photovoltaïques."
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+          <span id="tip-area" class="field-info-tip" role="tooltip">La superficie de la toiture permet d’estimer la surface de captation de l’énergie solaire avec des panneaux photovoltaïques.</span>
+        </div>
         <div class="row">
           <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
           <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
