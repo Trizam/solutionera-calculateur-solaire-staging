@@ -107,7 +107,7 @@ export function buildBugIssue(payload, extras) {
       "",
       checked.name || "—",
       "",
-      "## Contexte (auto)",
+      "## Contexte",
       "",
       contextBlock(ctx)
     ].join("\n")
@@ -143,7 +143,7 @@ export async function handleBugReportRequest(request, env) {
   headers["Content-Type"] = "application/json; charset=utf-8";
 
   if (request.method === "OPTIONS") {
-    return new Response("", { status: 204, headers });
+    return new Response(null, { status: 204, headers });
   }
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "method" }), {

@@ -14,8 +14,8 @@
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="assets/styles.css" />
-  <!-- Coordinator follow-up: fine-grained PAT Issues:write on this repo only -->
-  <meta name="bug-report-token" content="" />
+  <!-- Public HTTPS proxy (create-only). Token stays server-side — never in this page. -->
+  <meta name="bug-report-endpoint" content="https://solutionera-bug-report.smooth-search.workers.dev" />
   <!-- Sync: set data-mode before first paint (webi must not flash full UI) -->
   <script src="assets/display-mode.js"></script>
 </head>
@@ -328,7 +328,7 @@
     </div>
   </div>
 
-  <!-- Bug report — visible in webi + full; POST GitHub Issues API if meta token is set -->
+  <!-- Bug report — visible in webi + full; POST create-only proxy (no token in page) -->
   <div class="modal-backdrop bug-modal" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle" aria-describedby="bugDesc">
     <div class="modal-card">
       <div class="modal-head">
