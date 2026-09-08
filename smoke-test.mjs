@@ -436,9 +436,13 @@ const infoSheetUi =
   !html.includes("id=\"tiltHint\"") &&
   !html.includes("90° l’hiver") &&
   !html.includes("30° l’été et 90°") &&
-  html.includes("superficie exacte des panneaux") &&
-  html.includes("toit dégagée") &&
+  html.includes("superficie qu’ils vont avoir") &&
+  html.includes("superficie utile") &&
+  html.includes("superficie du toit") &&
+  html.includes("dégagée") &&
+  html.includes("quelques obstacles") &&
   html.includes("puits de ventilation") &&
+  !html.includes("superficie exacte des panneaux") &&
   html.includes("class=\"tilt-select-row\"") &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
   html.includes("avec une installation solaire d’une puissance de") &&
