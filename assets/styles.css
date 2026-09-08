@@ -694,11 +694,11 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 .info-sheet.modal-backdrop {
   align-items: flex-end;
   justify-content: center;
-  padding: 0.75rem;
-  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
   background: rgba(27, 67, 50, 0.45);
 }
 @media (min-width: 520px) {
