@@ -40,7 +40,19 @@
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
       <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie&nbsp;?</h2>
       <div class="field">
-        <label for="orient">Orientation de la toiture</label>
+        <div class="label-row field-info-wrap">
+          <label for="orient">Orientation de la toiture</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            aria-describedby="tip-orient"
+            aria-label="Aide : Orientation de la toiture"
+            title="Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest)."
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+          <span id="tip-orient" class="field-info-tip" role="tooltip">Indiquez l’orientation de votre toiture (au 15° près), sachant que 180° correspond au Sud et 0° au Nord. Une orientation s’approchant du plein sud (180°) est primordiale pour maximiser la production d’énergie. Pour la simplicité de ce calcul, choisissez un seul pan de toiture : sélectionnez l’unique surface la plus orientée au sud et la moins ombragée, plutôt que de répartir votre installation sur deux versants différents (ex. : sud-est et sud-ouest).</span>
+        </div>
         <select id="orient">
           <option value="0">0° (Nord)</option>
           <option value="15">15°</option>
