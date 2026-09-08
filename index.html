@@ -189,13 +189,22 @@
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
+        <label for="conso">Consommation annuelle (kWh / an)</label>
+        <div class="rate-box">
+          <input id="conso" type="number" min="0" step="1" value="17000" inputmode="numeric" autocomplete="off" />
+          <span>kWh / an</span>
+        </div>
+        <p class="hint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
+      </div>
+
+      <div class="field">
         <label for="rate">Tarif marginal HQ (base version 0.2)</label>
         <div class="rate-box">
           <input id="rate" type="number" min="0" step="0.00001" value="0.11142" inputmode="decimal" autocomplete="off" />
           <span>$/kWh</span>
         </div>
         <p class="hint">→ Tarif D, 2<sup>e</sup> tranche (1<sup>er</sup> avr. 2026) · 2 paliers = plus tard</p>
-        <p class="calc-line">Production × tarif = <strong id="outEcoYear">≈ — $/an</strong></p>
+        <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
       </div>
 
       <div class="cards">
@@ -206,6 +215,7 @@
         <div class="card-kpi">
           <div class="kpi" id="kpiEco">—</div>
           <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
+          <p class="kpi-note" id="kpiEcoNote" hidden>Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
         </div>
         <div class="card-kpi">
           <div class="kpi" id="kpiYears">—</div>
@@ -232,6 +242,7 @@
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
+        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage et 2 paliers Tarif D = plus tard.</li>
       </ul>
     </aside>

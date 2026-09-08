@@ -439,6 +439,19 @@ section.block h2 .num {
   font-family: inherit;
   font-size: 16px; /* iOS: avoid auto-zoom on focus */
 }
+.rate-box input#conso {
+  max-width: 8.5rem;
+}
+.card-kpi .kpi-note {
+  font-size: 0.68rem;
+  color: var(--green-dark);
+  margin: 0.45rem 0 0;
+  line-height: 1.35;
+  font-weight: 400;
+}
+.card-kpi .kpi-note[hidden] {
+  display: none;
+}
 .btn {
   display: inline-flex;
   align-items: center;

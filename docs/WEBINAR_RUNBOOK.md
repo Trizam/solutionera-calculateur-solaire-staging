@@ -108,6 +108,7 @@ Ouvrir le primary, laisser les valeurs par défaut de la page (ou les rétablir)
 | Prix au watt | **3,00 $/W** |
 | Taxes | **ON** (TPS+TVQ ≈ 14,975 %) |
 | LogisVert | **ON** (si admissible) |
+| Consommation annuelle | **17 000 kWh / an** (ballpark résidentiel Québec) |
 | Tarif marginal | **0,11142 $/kWh** |
 
 ### Check financier Analyste (réf. `smoke-test.mjs`)
