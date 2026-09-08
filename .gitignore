@@ -1,1 +1,4 @@
+# Local overrides — never commit tokens
 assets/bug-config.json
+.dev.vars
+.netlify

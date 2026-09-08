@@ -1,8 +1,8 @@
 name: calculateur-bug
 
+# Create-only: this job may only call github.rest.issues.create.
+# Triggers are for coordinator tests — the public site never talks to this workflow.
 on:
-  repository_dispatch:
-    types: [calculateur-bug]
   workflow_dispatch:
     inputs:
       bug:
@@ -20,6 +20,7 @@ on:
         type: string
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
@@ -29,31 +30,15 @@ jobs:
       - name: Create user-report issue
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.BUG_REPORT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
-            const eventName = context.eventName;
             const event = context.payload || {};
-            let bug = "";
-            let reporter = "";
-            let honeypot = "";
+            const inputs = event.inputs || {};
+            const bug = String(inputs.bug || "").trim();
+            const reporter = String(inputs.name || "").trim();
             let ctx = {};
+            try { ctx = JSON.parse(inputs.context_json || "{}"); } catch (_) { ctx = {}; }
 
-            if (eventName === "workflow_dispatch") {
-              const inputs = event.inputs || {};
-              bug = String(inputs.bug || "").trim();
-              reporter = String(inputs.name || "").trim();
-              try { ctx = JSON.parse(inputs.context_json || "{}"); } catch (_) { ctx = {}; }
-            } else {
-              const p = event.client_payload || {};
-              bug = String(p.bug || "").trim();
-              reporter = String(p.name || "").trim();
-              honeypot = String(p.honeypot || p.hp || "").trim();
-              ctx = p.context && typeof p.context === "object" ? p.context : {};
-            }
-
-            if (honeypot) {
-              core.info("ignored honeypot");
-              return;
-            }
             if (bug.length < 10) {
               throw new Error("bug-min");
             }
@@ -76,7 +61,7 @@ jobs:
               "",
               reporter || "—",
               "",
-              "## Contexte (auto)",
+              "## Contexte",
               "",
               "- **URL :** " + (ctx.url || "—"),
               "- **mode :** `" + (ctx.mode || "full") + "`",

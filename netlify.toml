@@ -1,2 +1,8 @@
 [functions]
   directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/bug-report"
+  to = "/.netlify/functions/bug-report"
+  status = 200
+  force = true

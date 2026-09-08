@@ -1,3 +1,4 @@
 name = "solutionera-bug-report"
 main = "functions/bug-report.js"
 compatibility_date = "2026-09-08"
+workers_dev = true

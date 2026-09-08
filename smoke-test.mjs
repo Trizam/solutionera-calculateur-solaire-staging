@@ -9,6 +9,7 @@ import {
   buildBugIssue,
   handleBugReportRequest
 } from "./api/bug-report-core.mjs";
+import { handler as netlifyBugHandler } from "./api/bug-report.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
@@ -524,17 +525,19 @@ const bugIssueShape =
   builtIssue.labels.indexOf("bug") >= 0 &&
   builtIssue.body.indexOf("## Bug") >= 0 &&
   builtIssue.body.indexOf("## Nom") >= 0 &&
-  builtIssue.body.indexOf("## Contexte (auto)") >= 0 &&
+  builtIssue.body.indexOf("## Contexte") >= 0 &&
   builtIssue.body.indexOf("```json") >= 0 &&
   builtIssue.body.indexOf("## Correction souhaitée") < 0 &&
   /## Nom\s+—/.test(builtIssue.body) &&
   namedIssue &&
   namedIssue.body.indexOf("Fred") >= 0;
 const clientIssueFn =
-  app.includes('labels: ["user-report", "bug"]') &&
-  app.includes('"[user-report] "') &&
-  app.includes("api.github.com/repos/Trizam/solutionera-calculateur-solaire-staging") &&
-  app.includes('BUG_REPO_API + "/issues"');
+  app.includes("function bugReportEndpoint") &&
+  app.includes('meta[name="bug-report-endpoint"]') &&
+  app.includes("fetch(endpoint") &&
+  !app.includes("Authorization") &&
+  !app.includes("/dispatches") &&
+  !app.includes("api.github.com/repos");
 const hpReq = new Request("https://example.test/bug", {
   method: "POST",
   headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
@@ -543,6 +546,48 @@ const hpReq = new Request("https://example.test/bug", {
 const hpRes = await handleBugReportRequest(hpReq, {});
 const hpJson = await hpRes.json();
 const bugHpIgnoredPath = hpRes.status === 200 && hpJson.ok === true && hpJson.ignored === true;
+const minReq = new Request("https://example.test/bug", {
+  method: "POST",
+  headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
+  body: JSON.stringify(Object.assign({}, bugGood, { bug: "court" }))
+});
+const minRes = await handleBugReportRequest(minReq, {});
+const minJson = await minRes.json();
+const bugMinPath = minRes.status === 400 && minJson.error === "bug-min";
+const noTokRes = await handleBugReportRequest(
+  new Request("https://example.test/bug", {
+    method: "POST",
+    headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
+    body: JSON.stringify(Object.assign({}, bugGood, { openedAt: Date.now() - 3000 }))
+  }),
+  {}
+);
+const noTokJson = await noTokRes.json();
+const bugNoTokenPath = noTokRes.status === 503 && noTokJson.error === "not-configured";
+const optRes = await handleBugReportRequest(
+  new Request("https://example.test/bug", {
+    method: "OPTIONS",
+    headers: { Origin: "https://trizam.github.io" }
+  }),
+  {}
+);
+const bugCors =
+  optRes.status === 204 &&
+  optRes.headers.get("Access-Control-Allow-Origin") === "https://trizam.github.io" &&
+  String(optRes.headers.get("Access-Control-Allow-Methods") || "").indexOf("POST") >= 0;
+const nfHp = await netlifyBugHandler({
+  httpMethod: "POST",
+  headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
+  body: JSON.stringify(Object.assign({}, bugGood, { honeypot: "bot" })),
+  path: "/api/bug-report",
+  rawUrl: "https://example.test/api/bug-report"
+});
+const nfHpJson = JSON.parse(nfHp.body);
+const netlifyApiFn =
+  existsSync(join(__dirname, "api/bug-report.mjs")) &&
+  nfHp.statusCode === 200 &&
+  nfHpJson.ok === true &&
+  nfHpJson.ignored === true;
 const bugModalIdx = html.indexOf('id="bugModal"');
 const bugModalTag = bugModalIdx >= 0 ? html.slice(Math.max(0, bugModalIdx - 50), bugModalIdx + 90) : "";
 const footerOpen =
@@ -561,47 +606,59 @@ const footerOpen =
 const bugJsWired =
   app.includes("function openBugReport") &&
   app.includes("function validateBugReport") &&
-  app.includes("function buildGithubIssue") &&
-  app.includes("bug-report-token") &&
-  app.includes("/issues") &&
-  app.includes("Authorization") &&
+  app.includes("function bugReportEndpoint") &&
+  app.includes("bug-report-endpoint") &&
   app.includes("honeypot") &&
   app.includes("userAgent") &&
   app.includes("Signalement temporairement indisponible") &&
   !app.includes("function reportBug") &&
   !app.includes("mailtoBugHref") &&
   !app.includes("mailto:hello@solutionera.com") &&
-  app.includes("## Nom") &&
+  !app.includes("bug-report-token") &&
+  !app.includes("Authorization") &&
+  !app.includes("function buildGithubIssue") &&
   !app.includes("## Correction souhaitée");
 const bugMobileCss =
   css.includes(".bug-modal") &&
   /min-height:\s*48px/.test(css) &&
   css.includes("position: sticky") &&
   css.includes("align-items: flex-end");
-const htmlTokenMeta = /<meta name="bug-report-token" content=""/.test(html);
+const htmlEndpointMeta = /<meta name="bug-report-endpoint" content="https:\/\//.test(html);
 const noTokenInFrontend =
-  htmlTokenMeta &&
+  htmlEndpointMeta &&
+  !html.includes("bug-report-token") &&
+  !app.includes("bug-report-token") &&
   !app.includes("ghp_") &&
   !html.includes("ghp_") &&
   !html.includes("github_pat_") &&
   !app.includes("github_pat_");
+const bugDocsSrc = readFileSync(join(__dirname, "docs/BUG_REPORTS.md"), "utf8");
 const bugDocs =
   existsSync(join(__dirname, "docs/BUG_REPORTS.md")) &&
-  existsSync(join(__dirname, "assets/bug-config.example.json")) &&
+  existsSync(join(__dirname, "api/bug-report.mjs")) &&
+  existsSync(join(__dirname, "functions/bug-report.js")) &&
+  existsSync(join(__dirname, "wrangler.toml")) &&
   existsSync(join(__dirname, ".gitignore")) &&
-  readFileSync(join(__dirname, ".gitignore"), "utf8").includes("assets/bug-config.json") &&
-  existsSync(join(__dirname, ".github/workflows/bug-report.yml")) &&
-  readFileSync(join(__dirname, "docs/BUG_REPORTS.md"), "utf8").includes("label:user-report");
+  bugDocsSrc.includes("label:user-report") &&
+  bugDocsSrc.includes("api/bug-report") &&
+  !bugDocsSrc.includes("github_pat_");
 const bugWorkflowSrc = readFileSync(join(__dirname, ".github/workflows/bug-report.yml"), "utf8");
 const bugWorkflow =
   bugWorkflowSrc.includes("calculateur-bug") &&
   bugWorkflowSrc.includes("workflow_dispatch") &&
   bugWorkflowSrc.includes("context_json") &&
   bugWorkflowSrc.includes("actions/github-script") &&
-  bugWorkflowSrc.includes("user-report");
+  bugWorkflowSrc.includes("user-report") &&
+  bugWorkflowSrc.includes("github-token:") &&
+  bugWorkflowSrc.includes("issues.create") &&
+  !bugWorkflowSrc.includes("repository_dispatch") &&
+  !bugWorkflowSrc.includes("github.rest.repos") &&
+  !bugWorkflowSrc.includes("github.rest.actions");
 console.log(`  bug payload valid / honeypot / min / too-fast: ${bugValidOk && bugHpReject && bugMinReject && bugFastReject ? "PASS" : "FAIL"}`);
 console.log(`  bug issue title+labels+sections: ${bugIssueShape && clientIssueFn ? "PASS" : "FAIL"}`);
 console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PASS" : "FAIL"}`);
+console.log(`  proxy validate min / no-token / CORS: ${bugMinPath && bugNoTokenPath && bugCors ? "PASS" : "FAIL"}`);
+console.log(`  api/bug-report Netlify handler: ${netlifyApiFn ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
 console.log(`  bug modal mobile-first CSS (48px / sticky / sheet): ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
@@ -719,6 +776,10 @@ const pass =
   bugIssueShape &&
   clientIssueFn &&
   bugHpIgnoredPath &&
+  bugMinPath &&
+  bugNoTokenPath &&
+  bugCors &&
+  netlifyApiFn &&
   footerOpen &&
   bugMobileCss &&
   bugJsWired &&
