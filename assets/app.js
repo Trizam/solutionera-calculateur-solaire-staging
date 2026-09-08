@@ -9,7 +9,11 @@
 
   const PANEL_KW_PER_M2 = 0.20;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
-  const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
+  const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
+  // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
+  const DEFAULT_RATE = 0.12811; // Tarif D 2e tranche TTC, 1 avr 2026
+  /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
+  const DEFAULT_CONSO_KWH = 17000;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -115,6 +119,24 @@
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
+  /** Annual household consumption (kWh). Empty / invalid → no cap. */
+  function consoAnnuelleKwh() {
+    const el = $("conso");
+    if (!el) return null;
+    const raw = String(el.value).trim().replace(",", ".");
+    if (raw === "" || raw === "-" || raw === ".") return null;
+    const v = parseFloat(raw);
+    if (!isFinite(v) || v <= 0) return null;
+    return v;
+  }
+
+  /** kWh_credites = min(production, consommation) when conso is provided */
+  function creditKwh(kWhProd, kWhConso) {
+    if (!isFinite(kWhProd) || kWhProd < 0) return 0;
+    if (!isFinite(kWhConso) || kWhConso <= 0) return kWhProd;
+    return Math.min(kWhProd, kWhConso);
+  }
+
   function calc() {
     const m2 = areaM2();
     const util = utilFrac();
@@ -142,12 +164,16 @@
     const subv = subvOn ? Math.min(1000 * kW, 0.4 * HT) : 0;
     const base = taxesOn ? TTC : HT;
     const reel = Math.max(0, base - subv);
-    const eco = kWh * rateOk;
+    const conso = consoAnnuelleKwh();
+    const kWhCredites = creditKwh(kWh, conso);
+    const ecoClamped = conso != null && kWh > conso;
+    const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, table, kWhAnnuel, kWh, W,
+      conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
     };
@@ -233,8 +259,15 @@
     $("lineTotal").textContent = fmtMoney(r.reel);
 
     $("outEcoYear").textContent = "≈ " + fmtMoney(r.eco) + " / an";
+    if ($("outEcoFormula")) {
+      $("outEcoFormula").textContent = r.ecoClamped
+        ? "Crédit (plafonné à la conso) × tarif"
+        : "Production × tarif";
+    }
     $("kpiReel").textContent = fmtMoney(r.reel);
     $("kpiEco").textContent = fmtMoney(r.eco);
+    const note = $("kpiEcoNote");
+    if (note) note.hidden = !r.ecoClamped;
     $("kpiYears").textContent = fmtYears(r.years);
     $("outPayback").textContent =
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
@@ -287,9 +320,19 @@
   }
 
   let infoOpener = null;
+  let activeModalId = null;
+
+  function currentModal() {
+    if (activeModalId && $(activeModalId)) return $(activeModalId);
+    const info = $("infoModal");
+    if (info && !info.hidden) return info;
+    const rate = $("rateModal");
+    if (rate && !rate.hidden) return rate;
+    return info;
+  }
 
   function modalFocusables() {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden) return [];
     const sel = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     return Array.prototype.slice.call(m.querySelectorAll(sel)).filter(function (el) {
@@ -298,7 +341,7 @@
   }
 
   function trapModalTab(e) {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden || e.key !== "Tab") return;
     const list = modalFocusables();
     if (list.length === 0) return;
@@ -315,10 +358,18 @@
     }
   }
 
-  function openInfo() {
-    const m = $("infoModal");
+  function hideModalEl(m) {
     if (!m) return;
+    m.hidden = true;
+    m.setAttribute("aria-hidden", "true");
+  }
+
+  function openModal(id) {
+    const m = $(id);
+    if (!m) return;
+    if (activeModalId && activeModalId !== id) hideModalEl($(activeModalId));
     infoOpener = document.activeElement;
+    activeModalId = id;
     m.hidden = false;
     m.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
@@ -327,23 +378,30 @@
       wrap.setAttribute("aria-hidden", "true");
       try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
     }
-    const closer = $("btnInfoClose");
+    const closer = m.querySelector(".modal-close");
     if (closer) closer.focus();
   }
+  function openInfo() {
+    openModal("infoModal");
+  }
+  function openRateInfo() {
+    openModal("rateModal");
+  }
   function closeInfo() {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden) return;
-    m.hidden = true;
-    m.setAttribute("aria-hidden", "true");
+    const fallbackId = activeModalId === "rateModal" ? "btnRateInfo" : "btnInfo";
+    hideModalEl(m);
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
     if (wrap) {
       wrap.removeAttribute("aria-hidden");
       try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
     }
-    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $("btnInfo");
+    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $(fallbackId);
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
+    activeModalId = null;
   }
 
   /**
@@ -577,7 +635,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "conso"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", render);
@@ -607,13 +665,17 @@
       a.addEventListener("click", reportBug);
     });
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
-    if ($("btnInfoClose")) $("btnInfoClose").addEventListener("click", closeInfo);
-    if ($("btnInfoOk")) $("btnInfoOk").addEventListener("click", closeInfo);
-    if ($("infoModal")) {
-      $("infoModal").addEventListener("click", (e) => {
-        if (e.target === $("infoModal")) closeInfo();
+    if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk"].forEach(function (id) {
+      if ($(id)) $(id).addEventListener("click", closeInfo);
+    });
+    ["infoModal", "rateModal"].forEach(function (id) {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("click", function (e) {
+        if (e.target === el) closeInfo();
       });
-    }
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeInfo();
       trapModalTab(e);
@@ -628,6 +690,7 @@
     $("taxes").checked = true;
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
+    if ($("conso")) $("conso").value = String(DEFAULT_CONSO_KWH);
     if ($("unitM2")) $("unitM2").setAttribute("aria-pressed", "true");
     if ($("unitSqft")) $("unitSqft").setAttribute("aria-pressed", "false");
   }
@@ -673,6 +736,8 @@
   window.SolarCalcV02 = {
     calc,
     applyDeneigement,
+    creditKwh,
+    consoAnnuelleKwh,
     lookupCell,
     winterWFromTilt,
     AZ_LABELS,
@@ -680,8 +745,10 @@
     constants: {
       PANEL_KW_PER_M2,
       TAX_MULT,
+      RATE_D_T2_HT,
       DEFAULT_RATE,
       DEFAULT_DENEIGEMENT,
+      DEFAULT_CONSO_KWH,
       FALLBACK_S30
     },
     get gridReady() { return gridReady; },
@@ -700,8 +767,10 @@
   window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
-    const m0 = $("infoModal");
-    if (m0) m0.setAttribute("aria-hidden", "true");
+    ["infoModal", "rateModal"].forEach(function (id) {
+      const m0 = $(id);
+      if (m0) m0.setAttribute("aria-hidden", "true");
+    });
     wireUi();
     render();
     await loadGrid();

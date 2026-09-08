@@ -439,6 +439,46 @@ section.block h2 .num {
   font-family: inherit;
   font-size: 16px; /* iOS: avoid auto-zoom on focus */
 }
+.rate-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--green-soft);
+  color: var(--green-dark);
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.rate-info-btn:hover,
+.rate-info-btn:focus-visible {
+  background: #c8ebd0;
+}
+.rate-info-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.rate-box input#conso {
+  max-width: 8.5rem;
+}
+.card-kpi .kpi-note {
+  font-size: 0.68rem;
+  color: var(--green-dark);
+  margin: 0.45rem 0 0;
+  line-height: 1.35;
+  font-weight: 400;
+}
+.card-kpi .kpi-note[hidden] {
+  display: none;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -577,8 +617,71 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   color: var(--muted);
 }
 .modal-body p { margin: 0 0 0.65rem; }
+.modal-body .rate-avg {
+  background: var(--green-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+.modal-body .rate-avg .rate-avg-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+  margin-bottom: 0.2rem;
+}
+.modal-body .rate-avg > .amt {
+  display: block;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  margin: 0.15rem 0 0.45rem;
+}
+.modal-body .rate-avg p {
+  margin: 0;
+  font-size: 0.78rem;
+}
+.modal-body .rate-avg a {
+  color: var(--green);
+  font-weight: 700;
+}
 .modal-body ul { margin: 0 0 0.65rem; padding-left: 1.15rem; }
 .modal-body li { margin-bottom: 0.25rem; }
+.modal-body .rate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0.45rem 0 0.75rem;
+}
+.modal-body .rate-table th,
+.modal-body .rate-table td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+.modal-body .rate-table thead th {
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 700;
+}
+.modal-body .rate-table tbody th {
+  font-weight: 700;
+  color: var(--green-dark);
+  width: 34%;
+}
+.modal-body .rate-table .rate-sub {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.modal-body .rate-table .amt {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .modal-card .btn { margin-top: 0.5rem; }
 
 @page {
@@ -589,7 +692,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .tilt-viz,
+  .btn, footer.bug, .unit-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .tilt-viz,
   .modal-backdrop, .hint { display: none !important; }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,

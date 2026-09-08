@@ -125,6 +125,36 @@ const expectB = kWhAn * (1 - W);
 const passB = Math.abs(kWhB - expectB) < 1e-6 && kWhB < kWhAn;
 console.log(`  smoke B deneige=0%: kWh_eff=${kWhB.toFixed(2)} expect ${expectB.toFixed(2)} (loss ${(W * 100).toFixed(0)}%) → ${passB ? "PASS" : "FAIL"}`);
 
+/** Hard lock: cannot credit more kWh than annual household consumption */
+function creditKwh(kWhProd, kWhConso) {
+  if (!isFinite(kWhProd) || kWhProd < 0) return 0;
+  if (!isFinite(kWhConso) || kWhConso <= 0) return kWhProd;
+  return Math.min(kWhProd, kWhConso);
+}
+const clampRate = 0.11142;
+const clampLow = creditKwh(10000, 6000);
+const ecoLow = clampLow * clampRate;
+const ecoUncapped = 10000 * clampRate;
+const clampHigh = creditKwh(5000, 17000);
+const clampEmpty = creditKwh(8000, null);
+const clampZero = creditKwh(8000, 0);
+const clampPass =
+  clampLow === 6000 &&
+  Math.abs(ecoLow - 668.52) < 0.01 &&
+  ecoLow < ecoUncapped &&
+  clampHigh === 5000 &&
+  clampEmpty === 8000 &&
+  clampZero === 8000;
+const yearsCapped = 15920.76 / ecoLow;
+const yearsUncapped = 15920.76 / ecoUncapped;
+const paybackUsesCap = yearsCapped > yearsUncapped && isFinite(yearsCapped);
+console.log(
+  `  clamp min(prod, conso): 10k/6k→${clampLow} kWh, eco=${ecoLow.toFixed(2)} (uncapped ${ecoUncapped.toFixed(2)}) → ${clampPass ? "PASS" : "FAIL"}`
+);
+console.log(
+  `  payback uses capped eco (years ${yearsCapped.toFixed(1)} > ${yearsUncapped.toFixed(1)}): ${paybackUsesCap ? "PASS" : "FAIL"}`
+);
+
 const html = readFileSync(join(__dirname, "index.html"), "utf8");
 const css = readFileSync(join(__dirname, "assets/styles.css"), "utf8");
 
@@ -247,6 +277,52 @@ const docDragGuard = app.includes("onDocTouchMoveWhileDragging") && app.includes
 const gridUiStable = app.includes("lastGridUiStatus");
 const noTelDetect = html.includes('name="format-detection"') && html.includes("telephone=no");
 const pageShowClear = app.includes('pageshow') && app.includes("clearRangeDragging");
+const hasConsoInput =
+  html.includes('id="conso"') &&
+  html.includes("Consommation annuelle (kWh / an)") &&
+  /id="conso"[^>]*value="17000"/.test(html);
+const hasEcoNote =
+  html.includes("kpiEcoNote") &&
+  html.includes("Plafonné à votre consommation annuelle") &&
+  html.includes("on ne peut pas économiser plus que ce qu’on consomme");
+const hasCreditFn =
+  app.includes("function creditKwh") &&
+  app.includes("Math.min(kWhProd, kWhConso)") &&
+  /DEFAULT_CONSO_KWH\s*=\s*17000/.test(app) &&
+  app.includes("kWhCredites") &&
+  app.includes("ecoClamped");
+const hasConsoWired = app.includes('"conso"') && app.includes("kpiEcoNote");
+const ttcExact = 0.11142 * TAX_MULT;
+const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
+const defaultRateTtc =
+  /DEFAULT_RATE\s*=\s*0\.12811/.test(app) &&
+  /id="rate"[^>]*value="0\.12811"/.test(html) &&
+  !/id="rate"[^>]*value="0\.11142"/.test(html) &&
+  Math.abs(ttcRounded - 0.12811) < 1e-12 &&
+  app.includes("RATE_D_T2_HT") &&
+  /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
+const hasRateInfoUi =
+  html.includes("btnRateInfo") &&
+  html.includes("rateModal") &&
+  html.includes("9,53") &&
+  html.includes("Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois") &&
+  html.includes("8,29") &&
+  html.includes("comparaison-prix-electricite-2025.pdf") &&
+  html.includes("7,065") &&
+  html.includes("11,142") &&
+  html.includes("46,154") &&
+  html.includes("8,123") &&
+  html.includes("12,811") &&
+  html.includes("0,12811") &&
+  html.includes("Avant taxes (HT)") &&
+  html.includes("Taxes comprises (TTC)") &&
+  html.includes("tarif de 2") &&
+  html.includes("tranche TTC") &&
+  !html.includes("9,82") &&
+  !html.includes("9,81") &&
+  css.includes(".rate-info-btn") &&
+  app.includes("openRateInfo") &&
+  app.includes("rateModal");
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
 console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
@@ -263,6 +339,12 @@ console.log(`  doc touchmove drag guard: ${docDragGuard ? "PASS" : "FAIL"}`);
 console.log(`  grid status UI stable (lastGridUiStatus): ${gridUiStable ? "PASS" : "FAIL"}`);
 console.log(`  format-detection telephone=no: ${noTelDetect ? "PASS" : "FAIL"}`);
 console.log(`  pageshow clears range drag: ${pageShowClear ? "PASS" : "FAIL"}`);
+console.log(`  conso annuelle input + défaut 17 000 kWh: ${hasConsoInput ? "PASS" : "FAIL"}`);
+console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL"}`);
+console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
+console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
+console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -286,6 +368,8 @@ const pass =
   hasIntegerLive &&
   passA &&
   passB &&
+  clampPass &&
+  paybackUsesCap &&
   labelOk &&
   liveBeside &&
   liveFmt &&
@@ -343,7 +427,13 @@ const pass =
   docDragGuard &&
   gridUiStable &&
   noTelDetect &&
-  pageShowClear;
+  pageShowClear &&
+  hasConsoInput &&
+  hasEcoNote &&
+  hasCreditFn &&
+  hasConsoWired &&
+  defaultRateTtc &&
+  hasRateInfoUi;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

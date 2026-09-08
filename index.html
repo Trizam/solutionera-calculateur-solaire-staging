@@ -189,13 +189,25 @@
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
-        <label for="rate">Tarif marginal HQ (base version 0.2)</label>
+        <label for="conso">Consommation annuelle (kWh / an)</label>
         <div class="rate-box">
-          <input id="rate" type="number" min="0" step="0.00001" value="0.11142" inputmode="decimal" autocomplete="off" />
-          <span>$/kWh</span>
+          <input id="conso" type="number" min="0" step="1" value="17000" inputmode="numeric" autocomplete="off" />
+          <span>kWh / an</span>
         </div>
-        <p class="hint">→ Tarif D, 2<sup>e</sup> tranche (1<sup>er</sup> avr. 2026) · 2 paliers = plus tard</p>
-        <p class="calc-line">Production × tarif = <strong id="outEcoYear">≈ — $/an</strong></p>
+        <p class="hint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
+      </div>
+
+      <div class="field">
+        <label for="rate">Tarif marginal HQ (TTC)</label>
+        <div class="rate-box">
+          <input id="rate" type="number" min="0" step="0.00001" value="0.12811" inputmode="decimal" autocomplete="off" />
+          <span>$/kWh</span>
+          <button type="button" class="rate-info-btn" id="btnRateInfo" aria-haspopup="dialog" aria-controls="rateModal" title="Moyenne résidentielle et paliers Tarif D" aria-label="Moyenne résidentielle QC et deux paliers Tarif D, avant taxes et taxes comprises">
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <p class="hint">→ Défaut 2<sup>e</sup> tranche TTC · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
+        <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
       </div>
 
       <div class="cards">
@@ -206,6 +218,7 @@
         <div class="card-kpi">
           <div class="kpi" id="kpiEco">—</div>
           <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
+          <p class="kpi-note" id="kpiEcoNote" hidden>Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
         </div>
         <div class="card-kpi">
           <div class="kpi" id="kpiYears">—</div>
@@ -232,7 +245,9 @@
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
-        <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage et 2 paliers Tarif D = plus tard.</li>
+        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
+        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ $/kWh.</li>
+        <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
     </aside>
 
@@ -264,6 +279,47 @@
         <p>Ce n’est <strong>pas</strong> une soumission ni un devis — outil pédagogique seulement.</p>
       </div>
       <button type="button" class="btn" id="btnInfoOk">Compris</button>
+    </div>
+  </div>
+
+  <!-- HQ rate info modal — Analyste locks (moyenne 2025 + paliers 2026) -->
+  <div class="modal-backdrop" id="rateModal" hidden role="dialog" aria-modal="true" aria-labelledby="rateTitle" aria-describedby="rateDesc">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="rateTitle">Tarif Hydro-Québec</h3>
+        <button type="button" class="modal-close" id="btnRateClose" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body" id="rateDesc">
+        <div class="rate-avg">
+          <span class="rate-avg-label">Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois, 1<sup>er</sup> avr. 2025)</span>
+          <span class="amt">9,53&nbsp;¢/kWh</span>
+          <p>Même profil HT&nbsp;: 8,29&nbsp;¢/kWh. Source&nbsp;: <a href="https://hydroquebec.com/data/documents-donnees/pdf/comparaison-prix-electricite-2025.pdf" target="_blank" rel="noopener noreferrer">Comparaison des prix 2025</a> (résidentiel, 1&nbsp;000&nbsp;kWh/mois, tarifs 1<sup>er</sup> avril 2025, toutes taxes comprises — frais d’accès amortis + TPS/TVQ). Moyenne 2025 — pas indexée à avril 2026.</p>
+        </div>
+        <p>Paliers Tarif D (Régie, 1<sup>er</sup> avril 2026), hors frais d’accès au réseau (46,154&nbsp;¢/jour). TTC = HT × 1,14975 (TPS 5&nbsp;% + TVQ 9,975&nbsp;%).</p>
+        <table class="rate-table">
+          <thead>
+            <tr>
+              <th scope="col">Palier</th>
+              <th scope="col">Avant taxes (HT)</th>
+              <th scope="col">Taxes comprises (TTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1<sup>re</sup> tranche<br /><span class="rate-sub">jusqu’à 40&nbsp;kWh / jour</span></th>
+              <td class="amt">7,065&nbsp;¢/kWh</td>
+              <td class="amt">8,123&nbsp;¢/kWh</td>
+            </tr>
+            <tr>
+              <th scope="row">2<sup>e</sup> tranche<br /><span class="rate-sub">au-delà de 40&nbsp;kWh / jour</span></th>
+              <td class="amt">11,142&nbsp;¢/kWh</td>
+              <td class="amt">12,811&nbsp;¢/kWh</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Le champ tarif du calculateur utilise par défaut le <strong>tarif de 2<sup>e</sup> tranche TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975), comme tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
+      </div>
+      <button type="button" class="btn" id="btnRateOk">Compris</button>
     </div>
   </div>
 
