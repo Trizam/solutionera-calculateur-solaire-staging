@@ -393,7 +393,8 @@ console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "F
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 const infoSheetUi =
   css.includes(".info-sheet") &&
-  /max-height:\s*100dvh/.test(css) &&
+  /max-height:\s*min\(88dvh/.test(css) &&
+  !/info-sheet[\s\S]{0,280}max-height:\s*100dvh/.test(css) &&
   css.includes(".info-block") &&
   html.includes('id="infoModal"') &&
   html.includes('id="rateModal"') &&
@@ -425,7 +426,7 @@ const infoSheetUi =
   !html.includes("Lire le résultat") &&
   !html.includes("field-info-tip");
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
-console.log(`  ⓘ full-page sheets + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
+console.log(`  ⓘ floating cards + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -717,7 +718,9 @@ const bugMobileCss =
   html.includes('class="modal-backdrop info-sheet" id="bugModal"') &&
   css.includes(".info-sheet") &&
   css.includes(".sheet-form") &&
-  /max-height:\s*100dvh/.test(css) &&
+  /max-height:\s*min\(88dvh/.test(css) &&
+  /\.info-sheet \.modal-card\s*\{[\s\S]{0,280}?max-width:\s*520px/.test(css) &&
+  /\.info-sheet \.modal-card\s*\{[\s\S]{0,280}?border-radius:\s*16px/.test(css) &&
   /min-height:\s*48px/.test(css) &&
   !html.includes("bug-modal") &&
   !css.includes(".bug-modal");
@@ -758,7 +761,7 @@ console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PAS
 console.log(`  proxy validate min / no-token / CORS: ${bugMinPath && bugNoTokenPath && bugCors ? "PASS" : "FAIL"}`);
 console.log(`  api/bug-report Netlify handler: ${netlifyApiFn ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
-console.log(`  bug modal same info-sheet fullscreen shell: ${bugMobileCss ? "PASS" : "FAIL"}`);
+console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
