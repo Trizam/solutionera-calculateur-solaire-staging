@@ -4,6 +4,11 @@ import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { runInNewContext } from "vm";
+import {
+  validateBugPayload,
+  buildBugIssue,
+  handleBugReportRequest
+} from "./api/bug-report-core.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
@@ -496,6 +501,73 @@ console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2Round
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
 console.log(`  sec-prod render uses fmtSig2 only: ${prodUsesSig2 ? "PASS" : "FAIL"}`);
 
+const nowBug = 1700000000000;
+const bugGood = {
+  bug: "Le total kWh ne bouge pas",
+  correction: "Recalculer quand la superficie change",
+  openedAt: nowBug - 3000,
+  hp: "",
+  context: { url: "https://trizam.github.io/x/?mode=webi", mode: "webi", version: "version 0.2", calc: { kW: 6.4 }, ua: "TestUA", ts: "2026-09-08T00:00:00.000Z" }
+};
+const bugValidOk = validateBugPayload(bugGood, nowBug).ok === true;
+const bugHpReject = validateBugPayload(Object.assign({}, bugGood, { hp: "http://spam" }), nowBug).reason === "honeypot";
+const bugMinReject = validateBugPayload(Object.assign({}, bugGood, { bug: "court" }), nowBug).reason === "bug-min";
+const bugFastReject = validateBugPayload(Object.assign({}, bugGood, { openedAt: nowBug }), nowBug).reason === "too-fast";
+const builtIssue = buildBugIssue(bugGood, validateBugPayload(bugGood, nowBug));
+const bugIssueShape =
+  builtIssue &&
+  builtIssue.title.indexOf("[user-report] ") === 0 &&
+  builtIssue.title.length <= 12 + 72 &&
+  builtIssue.labels.indexOf("user-report") >= 0 &&
+  builtIssue.labels.indexOf("bug") >= 0 &&
+  builtIssue.body.indexOf("## Bug") >= 0 &&
+  builtIssue.body.indexOf("## Correction souhaitée") >= 0 &&
+  builtIssue.body.indexOf("## Contexte (auto)") >= 0 &&
+  builtIssue.body.indexOf("```json") >= 0;
+const hpReq = new Request("https://example.test/bug", {
+  method: "POST",
+  headers: { Origin: "https://trizam.github.io", "Content-Type": "application/json" },
+  body: JSON.stringify(Object.assign({}, bugGood, { hp: "bot" }))
+});
+const hpRes = await handleBugReportRequest(hpReq, {});
+const hpJson = await hpRes.json();
+const bugHpIgnoredPath = hpRes.status === 200 && hpJson.ok === true && hpJson.ignored === true;
+const bugModalIdx = html.indexOf('id="bugModal"');
+const bugModalTag = bugModalIdx >= 0 ? html.slice(Math.max(0, bugModalIdx - 50), bugModalIdx + 90) : "";
+const footerOpen =
+  html.includes('id="bugModal"') &&
+  html.includes('id="bugText"') &&
+  html.includes('id="bugFix"') &&
+  html.includes('id="bugHp"') &&
+  /<footer class="bug">/.test(html) &&
+  !/<footer class="bug[^"]*mode-full-only/.test(html) &&
+  bugModalTag.includes("modal-backdrop") &&
+  !bugModalTag.includes("mode-full-only");
+const bugJsWired =
+  app.includes("function openBugReport") &&
+  app.includes("function validateBugReport") &&
+  app.includes("openBugReport") &&
+  app.includes("bug-report-endpoint") &&
+  !app.includes("function reportBug") &&
+  app.includes("mailtoBugHref");
+const noTokenInFrontend =
+  !app.includes("BUG_REPORT_GITHUB_TOKEN") &&
+  !html.includes("BUG_REPORT_GITHUB_TOKEN") &&
+  !app.includes("ghp_");
+const bugDocs =
+  existsSync(join(__dirname, "docs/BUG_REPORTS.md")) &&
+  existsSync(join(__dirname, "api/bug-report-core.mjs")) &&
+  existsSync(join(__dirname, "functions/bug-report.js")) &&
+  existsSync(join(__dirname, ".github/workflows/bug-report.yml")) &&
+  readFileSync(join(__dirname, "docs/BUG_REPORTS.md"), "utf8").includes("label:user-report");
+const bugWorkflow = readFileSync(join(__dirname, ".github/workflows/bug-report.yml"), "utf8").includes("calculateur-bug");
+console.log(`  bug payload valid / honeypot / min / too-fast: ${bugValidOk && bugHpReject && bugMinReject && bugFastReject ? "PASS" : "FAIL"}`);
+console.log(`  bug issue title+labels+sections: ${bugIssueShape ? "PASS" : "FAIL"}`);
+console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PASS" : "FAIL"}`);
+console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
+console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
+console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
+console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
 
 const pass =
   ok &&
@@ -600,7 +672,18 @@ const pass =
   dayOk &&
   sig2RoundOk &&
   fmt14230Ok &&
-  prodUsesSig2;
+  prodUsesSig2 &&
+  bugValidOk &&
+  bugHpReject &&
+  bugMinReject &&
+  bugFastReject &&
+  bugIssueShape &&
+  bugHpIgnoredPath &&
+  footerOpen &&
+  bugJsWired &&
+  noTokenInFrontend &&
+  bugDocs &&
+  bugWorkflow;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

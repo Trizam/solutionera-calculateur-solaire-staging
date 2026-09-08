@@ -1,0 +1,22 @@
+name: calculateur-bug
+
+on:
+  repository_dispatch:
+    types: [calculateur-bug]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  open-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create user-report issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUG_REPORT_GITHUB_TOKEN: ${{ secrets.BUG_REPORT_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: node api/create-issue-from-dispatch.mjs
