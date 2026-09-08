@@ -292,6 +292,30 @@ const hasCreditFn =
   app.includes("kWhCredites") &&
   app.includes("ecoClamped");
 const hasConsoWired = app.includes('"conso"') && app.includes("kpiEcoNote");
+const ttcExact = 0.11142 * TAX_MULT;
+const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
+const defaultRateTtc =
+  /DEFAULT_RATE\s*=\s*0\.12811/.test(app) &&
+  /id="rate"[^>]*value="0\.12811"/.test(html) &&
+  !/id="rate"[^>]*value="0\.11142"/.test(html) &&
+  Math.abs(ttcRounded - 0.12811) < 1e-12 &&
+  app.includes("RATE_D_T2_HT") &&
+  /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
+const hasRateInfoUi =
+  html.includes("btnRateInfo") &&
+  html.includes("rateModal") &&
+  html.includes("7,065") &&
+  html.includes("11,142") &&
+  html.includes("8,123") &&
+  html.includes("12,811") &&
+  html.includes("0,12811") &&
+  html.includes("Avant taxes (HT)") &&
+  html.includes("Taxes comprises (TTC)") &&
+  html.includes("tarif de 2") &&
+  html.includes("tranche TTC") &&
+  css.includes(".rate-info-btn") &&
+  app.includes("openRateInfo") &&
+  app.includes("rateModal");
 console.log(`  tilt W-by-tilt live label: ${tiltWLabel ? "PASS" : "FAIL"}`);
 console.log(`  range touch fallback (no PointerEvent): ${touchFallback ? "PASS" : "FAIL"}`);
 console.log(`  dual touch+pointer range drag (viaTouch): ${dualTouchPointer ? "PASS" : "FAIL"}`);
@@ -312,6 +336,8 @@ console.log(`  conso annuelle input + défaut 17 000 kWh: ${hasConsoInput ? "PAS
 console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL"}`);
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
+console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  Tarif D ⓘ bubble 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 
 
 const pass =
@@ -398,7 +424,9 @@ const pass =
   hasConsoInput &&
   hasEcoNote &&
   hasCreditFn &&
-  hasConsoWired;
+  hasConsoWired &&
+  defaultRateTtc &&
+  hasRateInfoUi;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

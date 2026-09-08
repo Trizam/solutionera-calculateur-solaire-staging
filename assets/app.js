@@ -9,7 +9,9 @@
 
   const PANEL_KW_PER_M2 = 0.20;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
-  const DEFAULT_RATE = 0.11142; // Tarif D 2e tranche, 1 avr 2026
+  const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
+  // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
+  const DEFAULT_RATE = 0.12811; // Tarif D 2e tranche TTC, 1 avr 2026
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
   const SQFT_PER_M2 = 10.76391041671;
@@ -318,9 +320,19 @@
   }
 
   let infoOpener = null;
+  let activeModalId = null;
+
+  function currentModal() {
+    if (activeModalId && $(activeModalId)) return $(activeModalId);
+    const info = $("infoModal");
+    if (info && !info.hidden) return info;
+    const rate = $("rateModal");
+    if (rate && !rate.hidden) return rate;
+    return info;
+  }
 
   function modalFocusables() {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden) return [];
     const sel = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     return Array.prototype.slice.call(m.querySelectorAll(sel)).filter(function (el) {
@@ -329,7 +341,7 @@
   }
 
   function trapModalTab(e) {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden || e.key !== "Tab") return;
     const list = modalFocusables();
     if (list.length === 0) return;
@@ -346,10 +358,18 @@
     }
   }
 
-  function openInfo() {
-    const m = $("infoModal");
+  function hideModalEl(m) {
     if (!m) return;
+    m.hidden = true;
+    m.setAttribute("aria-hidden", "true");
+  }
+
+  function openModal(id) {
+    const m = $(id);
+    if (!m) return;
+    if (activeModalId && activeModalId !== id) hideModalEl($(activeModalId));
     infoOpener = document.activeElement;
+    activeModalId = id;
     m.hidden = false;
     m.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
@@ -358,23 +378,30 @@
       wrap.setAttribute("aria-hidden", "true");
       try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
     }
-    const closer = $("btnInfoClose");
+    const closer = m.querySelector(".modal-close");
     if (closer) closer.focus();
   }
+  function openInfo() {
+    openModal("infoModal");
+  }
+  function openRateInfo() {
+    openModal("rateModal");
+  }
   function closeInfo() {
-    const m = $("infoModal");
+    const m = currentModal();
     if (!m || m.hidden) return;
-    m.hidden = true;
-    m.setAttribute("aria-hidden", "true");
+    const fallbackId = activeModalId === "rateModal" ? "btnRateInfo" : "btnInfo";
+    hideModalEl(m);
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
     if (wrap) {
       wrap.removeAttribute("aria-hidden");
       try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
     }
-    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $("btnInfo");
+    const back = infoOpener && document.contains(infoOpener) ? infoOpener : $(fallbackId);
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
+    activeModalId = null;
   }
 
   /**
@@ -638,13 +665,17 @@
       a.addEventListener("click", reportBug);
     });
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
-    if ($("btnInfoClose")) $("btnInfoClose").addEventListener("click", closeInfo);
-    if ($("btnInfoOk")) $("btnInfoOk").addEventListener("click", closeInfo);
-    if ($("infoModal")) {
-      $("infoModal").addEventListener("click", (e) => {
-        if (e.target === $("infoModal")) closeInfo();
+    if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk"].forEach(function (id) {
+      if ($(id)) $(id).addEventListener("click", closeInfo);
+    });
+    ["infoModal", "rateModal"].forEach(function (id) {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("click", function (e) {
+        if (e.target === el) closeInfo();
       });
-    }
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeInfo();
       trapModalTab(e);
@@ -714,6 +745,7 @@
     constants: {
       PANEL_KW_PER_M2,
       TAX_MULT,
+      RATE_D_T2_HT,
       DEFAULT_RATE,
       DEFAULT_DENEIGEMENT,
       DEFAULT_CONSO_KWH,
@@ -735,8 +767,10 @@
   window.SolarCalcV01 = window.SolarCalcV02;
 
   document.addEventListener("DOMContentLoaded", async () => {
-    const m0 = $("infoModal");
-    if (m0) m0.setAttribute("aria-hidden", "true");
+    ["infoModal", "rateModal"].forEach(function (id) {
+      const m0 = $(id);
+      if (m0) m0.setAttribute("aria-hidden", "true");
+    });
     wireUi();
     render();
     await loadGrid();

@@ -109,7 +109,7 @@ Ouvrir le primary, laisser les valeurs par défaut de la page (ou les rétablir)
 | Taxes | **ON** (TPS+TVQ ≈ 14,975 %) |
 | LogisVert | **ON** (si admissible) |
 | Consommation annuelle | **17 000 kWh / an** (ballpark résidentiel Québec) |
-| Tarif marginal | **0,11142 $/kWh** |
+| Tarif marginal | **0,12811 $/kWh** (Tarif D 2<sup>e</sup> tranche **TTC**, 1<sup>er</sup> avr. 2026 ; 0,11142 × 1,14975 = 0,128105115, arrondi) |
 
 ### Check financier Analyste (réf. `smoke-test.mjs`)
 
