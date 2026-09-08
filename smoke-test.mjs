@@ -186,11 +186,16 @@ const verOk =
   !/version 0\.2/i.test(html) &&
   !/v0\.2/.test(brandSubSlice) &&
   html.includes('id="buildId"') &&
-  html.includes("v0.2+3f2a41c") &&
   existsSync(join(__dirname, "assets/build.json")) &&
-  readFileSync(join(__dirname, "assets/build.json"), "utf8").includes("3f2a41c") &&
   app.includes("function loadBuildId") &&
   app.includes("assets/build.json");
+const buildMeta = existsSync(join(__dirname, "assets/build.json"))
+  ? JSON.parse(readFileSync(join(__dirname, "assets/build.json"), "utf8"))
+  : {};
+const buildShaOk =
+  /^[0-9a-f]{7}$/.test(String(buildMeta.sha || "")) &&
+  buildMeta.sha !== "3f2a41c" &&
+  html.includes("v0.2+" + buildMeta.sha);
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
 const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal/i.test(html);
 const heroSlice = html.slice(html.indexOf('class="hero"'), html.indexOf("</header>") + 10);
@@ -229,7 +234,10 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const htmlSansBrand = html.replace(/DÉFI Autonomie Énergétique/g, "");
+const htmlSansBrand = html
+  .replace(/DÉFI Autonomie Énergétique/g, "")
+  .replace(/Autonomie et neige/g, "")
+  .replace(/projets en autonomie/gi, "");
 const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -262,6 +270,7 @@ console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : 
 console.log(`  live loss left of slider (deneigeLive · −N % only): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
 console.log(`  app.js live format « −X % » + fmtSig2: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
 console.log(`  v0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
+console.log(`  footer build id matches build.json (not 3f2a41c): ${buildShaOk ? "PASS" : "FAIL"}`);
 console.log(`  brand Solution ERA | DÉFI Autonomie Énergétique: ${brandDefi ? "PASS" : "FAIL"}`);
 console.log(`  badge removed + no Québec in hero/results: ${noBadge && noQcHero ? "PASS" : "FAIL"}`);
 console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orient24 && has195 ? "PASS" : "FAIL"}`);
@@ -411,15 +420,22 @@ const infoSheetUi =
   html.includes('data-info="deneige"') &&
   html.includes('data-info="tilt"') &&
   html.includes("tpl-info-tilt") &&
-  html.includes("Angle idéal au Québec") &&
-  html.includes("40–45°") &&
+  html.includes("Maximum de production") &&
+  html.includes("35–40°") &&
   html.includes("plein sud") &&
-  html.includes("grille NREL") &&
-  html.includes("15–30°") &&
-  html.includes("60–75°") &&
-  html.includes("n’est pas l’idéal énergétique") &&
+  html.includes("90° (vertical) pour zéro neige") &&
+  !html.includes("40–45°") &&
+  !html.includes("40° à 45°") &&
+  !html.includes("id=\"tiltHint\"") &&
   !html.includes("90° l’hiver") &&
   !html.includes("30° l’été et 90°") &&
+  html.includes("superficie exacte des panneaux") &&
+  html.includes("toit dégagée") &&
+  html.includes("puits de ventilation") &&
+  html.includes("class=\"tilt-select-row\"") &&
+  /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
+  html.includes("avec une installation solaire d’une puissance de") &&
+  !html.includes("avec votre installation solaire") &&
   html.includes("perte de production") &&
   html.includes("chiffre à gauche") &&
   html.includes("perte restante") &&
@@ -528,7 +544,7 @@ const prodPillEqualType =
 const prodKwC =
   /id="outKw"[^>]*>— kWc</.test(html) &&
   /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app) &&
-  html.includes("avec votre installation solaire d’une puissance de") &&
+  html.includes("avec une installation solaire d’une puissance de") &&
   !html.includes("Puissance estimée");
 const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
@@ -801,6 +817,7 @@ const pass =
   liveFmt &&
   appLive &&
   verOk &&
+  buildShaOk &&
   brandDefi &&
   noMtlHard &&
   noBadge &&
