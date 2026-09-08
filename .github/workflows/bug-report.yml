@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       bug:
-        description: Bug / erreur
+        description: Description du bug
         required: true
         type: string
-      correction:
-        description: Correction souhaitée
-        required: true
+      name:
+        description: Nom (optionnel)
+        required: false
         type: string
       context_json:
         description: Contexte JSON (url, mode, version, userAgent, timestamp, calc)
@@ -33,19 +33,19 @@ jobs:
             const eventName = context.eventName;
             const event = context.payload || {};
             let bug = "";
-            let correction = "";
+            let reporter = "";
             let honeypot = "";
             let ctx = {};
 
             if (eventName === "workflow_dispatch") {
               const inputs = event.inputs || {};
               bug = String(inputs.bug || "").trim();
-              correction = String(inputs.correction || "").trim();
+              reporter = String(inputs.name || "").trim();
               try { ctx = JSON.parse(inputs.context_json || "{}"); } catch (_) { ctx = {}; }
             } else {
               const p = event.client_payload || {};
               bug = String(p.bug || "").trim();
-              correction = String(p.correction || "").trim();
+              reporter = String(p.name || "").trim();
               honeypot = String(p.honeypot || p.hp || "").trim();
               ctx = p.context && typeof p.context === "object" ? p.context : {};
             }
@@ -56,9 +56,6 @@ jobs:
             }
             if (bug.length < 10) {
               throw new Error("bug-min");
-            }
-            if (!correction) {
-              throw new Error("correction-required");
             }
 
             const titleBug = bug.replace(/\s+/g, " ").slice(0, 72);
@@ -75,9 +72,9 @@ jobs:
               "",
               bug,
               "",
-              "## Correction souhaitée",
+              "## Nom",
               "",
-              correction,
+              reporter || "—",
               "",
               "## Contexte (auto)",
               "",

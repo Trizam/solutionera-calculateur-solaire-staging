@@ -5,7 +5,7 @@ Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le footer ouvre une m
 ## Review Fred
 
 1. Filtrer : [Issues `label:user-report`](https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report)
-2. Lire **Bug** + **Correction souhaitée** + **Contexte (auto)**
+2. Lire **Bug** + **Nom** + **Contexte (auto)**
 3. Prioriser **toi-même** avec `P0` / `P1` / `P2`
 4. Labels auto : `user-report` + `bug`
 
@@ -28,8 +28,8 @@ Sans token : **« Signalement temporairement indisponible »** (pas de mailto).
 
 CORS vérifié (2026-09-08) : preflight `OPTIONS` → `access-control-allow-origin: *` + `access-control-allow-headers: Authorization, Content-Type` + `POST`. Un POST navigateur depuis Pages est OK.
 
-Si le POST Issues échoue, le client tente `repository_dispatch` type `calculateur-bug` (le PAT doit alors aussi pouvoir déclencher des workflows / `contents:write`). Voir `.github/workflows/bug-report.yml` (`workflow_dispatch` pour tests Cash).
+Si le POST Issues échoue, le client tente `repository_dispatch` type `calculateur-bug`. Action : `workflow_dispatch` (`bug`, `name` optionnel, `context_json`).
 
 ## Anti-spam L1
 
-Honeypot (pas d’appel API), délai ≥ 2 s, bug ≥ 10 caractères, pas de double-envoi.
+Honeypot (pas d’appel API), délai ≥ 2 s, description ≥ 10 caractères, nom optionnel, pas de double-envoi.

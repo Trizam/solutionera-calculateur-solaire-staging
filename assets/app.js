@@ -373,7 +373,7 @@
     return bugConfigToken;
   }
 
-  function buildGithubIssue(bug, correction, ctx) {
+  function buildGithubIssue(bug, name, ctx) {
     const c = ctx && typeof ctx === "object" ? ctx : {};
     const title = "[user-report] " + String(bug).replace(/\s+/g, " ").trim().slice(0, 72);
     let calcSnapshot = "{}";
@@ -382,12 +382,13 @@
     } catch (_) {
       calcSnapshot = "{}";
     }
+    const who = String(name || "").trim() || "—";
     const body = [
       "## Bug",
       String(bug),
       "",
-      "## Correction souhaitée",
-      String(correction),
+      "## Nom",
+      who,
       "",
       "## Contexte (auto)",
       "- URL: " + (c.url || "—"),
@@ -421,14 +422,13 @@
     const data = payload && typeof payload === "object" ? payload : {};
     if (String(data.honeypot || data.hp || "").trim() !== "") return { ok: false, reason: "honeypot" };
     const bug = String(data.bug || "").trim();
-    const correction = String(data.correction || "").trim();
+    const name = String(data.name || "").trim();
     if (bug.length < BUG_MIN_LEN) return { ok: false, reason: "bug-min" };
-    if (!correction) return { ok: false, reason: "correction-required" };
     const openedAt = Number(data.openedAt);
     if (!isFinite(openedAt) || now - openedAt < BUG_MIN_FORM_MS) {
       return { ok: false, reason: "too-fast" };
     }
-    return { ok: true, bug, correction };
+    return { ok: true, bug: bug, name: name };
   }
 
   let bugOpenedAt = 0;
@@ -495,7 +495,7 @@
     } catch (_) {}
     return {
       bug: $("bugText") ? $("bugText").value : "",
-      correction: $("bugFix") ? $("bugFix").value : "",
+      name: $("bugName") ? $("bugName").value : "",
       honeypot: $("bugHp") ? $("bugHp").value : "",
       openedAt: bugOpenedAt,
       context: {
@@ -521,12 +521,10 @@
     if (!checked.ok) {
       if (checked.reason === "bug-min") {
         setBugStatus("Décris le bug en au moins 10 caractères.");
-      } else if (checked.reason === "correction-required") {
-        setBugStatus("Indique la correction souhaitée.");
       } else if (checked.reason === "too-fast") {
         setBugStatus("Un instant — réessaie dans une seconde.");
       } else {
-        setBugStatus("Vérifie les deux champs, puis réessaie.");
+        setBugStatus("Vérifie la description, puis réessaie.");
       }
       return;
     }
@@ -538,7 +536,7 @@
     bugSubmitting = true;
     if ($("btnBugSubmit")) $("btnBugSubmit").disabled = true;
     setBugStatus("");
-    const issue = buildGithubIssue(checked.bug, checked.correction, payload.context);
+    const issue = buildGithubIssue(checked.bug, checked.name, payload.context);
     const ghHeaders = {
       Accept: "application/vnd.github+json",
       Authorization: "Bearer " + token,
