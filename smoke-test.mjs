@@ -304,8 +304,13 @@ const defaultRateTtc =
 const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
+  html.includes("9,53") &&
+  html.includes("Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois") &&
+  html.includes("8,29") &&
+  html.includes("comparaison-prix-electricite-2025.pdf") &&
   html.includes("7,065") &&
   html.includes("11,142") &&
+  html.includes("46,154") &&
   html.includes("8,123") &&
   html.includes("12,811") &&
   html.includes("0,12811") &&
@@ -313,6 +318,8 @@ const hasRateInfoUi =
   html.includes("Taxes comprises (TTC)") &&
   html.includes("tarif de 2") &&
   html.includes("tranche TTC") &&
+  !html.includes("9,82") &&
+  !html.includes("9,81") &&
   css.includes(".rate-info-btn") &&
   app.includes("openRateInfo") &&
   app.includes("rateModal");
@@ -337,7 +344,7 @@ console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
-console.log(`  Tarif D ⓘ bubble 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
+console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
 
 
 const pass =
