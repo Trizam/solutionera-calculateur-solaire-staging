@@ -61,6 +61,33 @@
     if (!isFinite(n)) return "—";
     return n.toLocaleString("fr-CA", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
+
+  /** Magnitude-round to 2 significant figures (display only). 14230 → 14000, 874 → 870, 12.53 → 13. */
+  function sig2Round(n) {
+    const x = Number(n);
+    if (!isFinite(x)) return NaN;
+    if (x === 0) return 0;
+    const sign = x < 0 ? -1 : 1;
+    const abs = Math.abs(x);
+    const exp = Math.floor(Math.log10(abs));
+    const factor = Math.pow(10, exp - 1);
+    return sign * Math.round(abs / factor) * factor;
+  }
+
+  /** Poster-style 2 sig figs, FR grouping. Integers drop decimals (13%, 14 000); 6.4 → « 6,4 ». */
+  function fmtSig2(n) {
+    if (!isFinite(n)) return "—";
+    const rounded = sig2Round(n);
+    if (!isFinite(rounded)) return "—";
+    const abs = Math.abs(rounded);
+    const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+    const exp = abs === 0 ? 0 : Math.floor(Math.log10(abs));
+    const decimals = whole ? 0 : Math.max(0, 1 - exp);
+    return rounded.toLocaleString("fr-CA", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
   function fmtYears(n) {
     if (!isFinite(n) || n <= 0) return "—";
     if (n > 100) return "> 100 ans";
@@ -239,21 +266,20 @@
       $("deneigeVal").textContent = Math.round(r.deneige * 100) + " %";
     }
     if ($("deneigeLive")) {
-      // Integer % (W-by-tilt model is whole percents; live loss rounded)
-      const lossPct = Math.round((1 - r.deneige) * r.W * 100);
-      $("deneigeLive").innerHTML = "−" + lossPct + "&nbsp;% annuel";
+      const lossPct = (1 - r.deneige) * r.W * 100;
+      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;% annuel";
     }
     updateTiltViz(r.tilt);
     if ($("tiltWLabel")) {
-      $("tiltWLabel").innerHTML = Math.round(r.W * 100) + "&nbsp;%";
+      $("tiltWLabel").innerHTML = fmtSig2(r.W * 100) + "&nbsp;%";
     }
     updateGridStatusUi();
 
     if ($("outKwhDay")) {
-      $("outKwhDay").textContent = fmtNum(r.kWhDay, 0) + " kWh / jour";
+      $("outKwhDay").textContent = fmtSig2(r.kWhDay) + " kWh / jour";
     }
-    $("outKwh").textContent = fmtNum(r.kWh, 0) + " kWh / an";
-    $("outKw").textContent = fmtNum(r.kW, 2) + " kW";
+    $("outKwh").textContent = fmtSig2(r.kWh) + " kWh / an";
+    $("outKw").textContent = fmtSig2(r.kW) + " kW";
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
 
@@ -746,6 +772,8 @@
     consoAnnuelleKwh,
     lookupCell,
     winterWFromTilt,
+    sig2Round,
+    fmtSig2,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
     applyDisplayMode: displayModeApi && displayModeApi.applyDisplayMode,
     get displayMode() {
