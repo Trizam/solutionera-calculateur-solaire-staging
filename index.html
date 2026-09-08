@@ -38,7 +38,7 @@
 
     <!-- 1 · Production — visible in both modes; webi = this block only -->
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
-      <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie&nbsp;?</h2>
+      <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie électrique avec ma toiture&nbsp;?</h2>
       <div class="field">
         <div class="label-row field-info-wrap">
           <label for="orient">Orientation de la toiture</label>
@@ -158,7 +158,19 @@
         <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
       </div>
       <div class="field" id="field-deneige">
-        <label for="deneige">Fréquence de déneigement</label>
+        <div class="label-row field-info-wrap">
+          <label for="deneige">Fréquence de déneigement</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            aria-describedby="tip-deneige"
+            aria-label="Aide : Fréquence de déneigement"
+            title="Ajustez le curseur de 0 % (aucun déneigement) à 100 % (déneigement systématique après chaque chute). Puisque la neige bloque complètement la captation solaire, votre assiduité a un impact majeur sur le rendement hivernal. Choisissez un niveau d’effort réaliste et observez les calculs s’actualiser juste en dessous pour constater l’influence directe de votre déneigement sur la production annuelle."
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+          <span id="tip-deneige" class="field-info-tip" role="tooltip">Ajustez le curseur de 0 % (aucun déneigement) à 100 % (déneigement systématique après chaque chute). Puisque la neige bloque complètement la captation solaire, votre assiduité a un impact majeur sur le rendement hivernal. Choisissez un niveau d’effort réaliste et observez les calculs s’actualiser juste en dessous pour constater l’influence directe de votre déneigement sur la production annuelle.</span>
+        </div>
         <div class="slider-row">
           <div class="slider-val-left slider-val-left-stack" aria-live="polite">
             <span id="deneigeVal">20 %</span>
