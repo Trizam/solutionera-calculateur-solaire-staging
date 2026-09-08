@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1b4332" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="description" content="Calculateur solaire v0.2 — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
-  <title>Calculateur solaire · v0.2 · Solution ERA</title>
+  <meta name="description" content="Calculateur solaire — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
+  <title>Calculateur solaire · Solution ERA</title>
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,7 +27,7 @@
       <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="44" height="44" decoding="async" />
       <div class="brand-text">
         <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
-        <div class="brand-sub">Calculateur solaire · v0.2 <span class="mode-badge mode-webi-only">Mode webi</span></div>
+        <div class="brand-sub">Calculateur solaire <span class="mode-badge mode-webi-only">Mode webi</span></div>
       </div>
     </div>
 
@@ -306,7 +306,7 @@
         </button>
       </div>
       <ul>
-        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis. v0.2.</li>
+        <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -320,7 +320,7 @@
       <a href="#bugModal" id="bugLink" class="bug-report" title="Signaler un bug">!</a>
       &nbsp;Un chiffre te semble off&nbsp;? <a href="#bugModal" id="bugLink2" class="bug-report">Signale un bug ou une erreur de calcul</a>
       — on apprend ensemble.<br />
-      <span class="bug-ver">© Solution ERA | DÉFI Autonomie Énergétique · Calculateur solaire · v0.2 staging</span>
+      <span class="bug-ver">© Solution ERA | DÉFI Autonomie Énergétique · Calculateur solaire · <span id="buildId">v0.2+3f2a41c</span></span>
     </footer>
     </main>
   </div>
@@ -349,7 +349,7 @@
         </div>
         <div class="info-block">
           <h4>Efficacité du déneigement</h4>
-          <p>Idée simplifiée pour la v0.2, à partir de la part déc+jan+fév / annuel (NREL).</p>
+          <p>Idée simplifiée, à partir de la part déc+jan+fév / annuel (NREL).</p>
           <p>Le chiffre à gauche du curseur (ex.&nbsp;−14&nbsp;%) est la perte restante, pas l’effort de déneigement.</p>
           <p>Formule&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
         </div>

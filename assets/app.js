@@ -353,6 +353,25 @@
     return meta ? String(meta.getAttribute("content") || "").trim() : "";
   }
 
+  function formatBuildId(version, sha) {
+    const ver = String(version || "0.2").replace(/^v/i, "");
+    const shortSha = String(sha || "").replace(/^#/, "").slice(0, 7);
+    return shortSha ? ("v" + ver + "+" + shortSha) : ("v" + ver);
+  }
+
+  function applyBuildId(data) {
+    const el = $("buildId");
+    if (!el || !data) return;
+    el.textContent = formatBuildId(data.version, data.sha);
+  }
+
+  function loadBuildId() {
+    fetch("assets/build.json", { cache: "no-cache" })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) { applyBuildId(data); })
+      .catch(function () {});
+  }
+
   function appVersionString() {
     const el = document.querySelector(".bug-ver") || document.querySelector(".brand-sub");
     const t = el ? el.textContent.replace(/\s+/g, " ") : "";
@@ -999,6 +1018,7 @@
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");
     });
+    loadBuildId();
     wireUi();
     render();
     await loadGrid();
