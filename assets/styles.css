@@ -233,6 +233,17 @@ section.block h2 .num {
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
+.tilt-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.tilt-select-row select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
 .tilt-viz {
   color: var(--green-dark);
   flex-shrink: 0;

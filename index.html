@@ -107,20 +107,20 @@
         <p class="hint">→ Plus de surface = plus de panneaux (indiquez la superficie de votre toiture qui est le plus orientée au sud)</p>
       </div>
       <div class="field">
-        <div class="label-row">
-          <div class="field-info-wrap">
-            <label for="tilt">Inclinaison de la toiture</label>
-            <button
-              type="button"
-              class="field-info-btn"
-              data-info="tilt"
-              aria-haspopup="dialog"
-              aria-controls="fieldInfoModal"
-              aria-label="Aide : Inclinaison de la toiture"
-            >
-              <span aria-hidden="true">ⓘ</span>
-            </button>
-          </div>
+        <div class="label-row field-info-wrap">
+          <label for="tilt">Inclinaison de la toiture</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="tilt"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Inclinaison de la toiture"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="tilt-select-row">
           <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
             <svg viewBox="0 0 64 48" width="56" height="42" role="img">
               <!-- ground — stronger contrast vs soft green card -->
@@ -134,17 +134,16 @@
               <text id="tiltDegLabel" x="38" y="16" font-size="12" font-weight="700" fill="#1b4332" font-family="Lato,sans-serif">30°</text>
             </svg>
           </div>
+          <select id="tilt">
+            <option value="0">0° (plat)</option>
+            <option value="15">15°</option>
+            <option value="30" selected>30°</option>
+            <option value="45">45°</option>
+            <option value="60">60°</option>
+            <option value="75">75°</option>
+            <option value="90">90° (vertical)</option>
+          </select>
         </div>
-        <select id="tilt">
-          <option value="0">0° (plat)</option>
-          <option value="15">15°</option>
-          <option value="30" selected>30°</option>
-          <option value="45">45°</option>
-          <option value="60">60°</option>
-          <option value="75">75°</option>
-          <option value="90">90° (vertical)</option>
-        </select>
-        <p class="hint" id="tiltHint">→ Toiture fixe à l’année : 40° à 45° est un bon compromis.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -206,7 +205,7 @@
             <span class="prod-period">an</span>
           </div>
         </div>
-        <div class="label prod-power">avec votre installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
+        <div class="label prod-power">avec une installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
       </div>
     </section>
 
@@ -320,7 +319,7 @@
       <a href="#bugModal" id="bugLink" class="bug-report" title="Signaler un bug">!</a>
       &nbsp;Un chiffre te semble off&nbsp;? <a href="#bugModal" id="bugLink2" class="bug-report">Signale un bug ou une erreur de calcul</a>
       — on apprend ensemble.<br />
-      <span class="bug-ver">© Solution ERA | DÉFI Autonomie Énergétique · Calculateur solaire · <span id="buildId">v0.2+3f2a41c</span></span>
+      <span class="bug-ver">© Solution ERA | DÉFI Autonomie Énergétique · Calculateur solaire · <span id="buildId">v0.2+20fa4b3</span></span>
     </footer>
     </main>
   </div>
@@ -454,29 +453,21 @@
   <template id="tpl-info-tilt">
     <span data-info-title>Inclinaison de la toiture</span>
     <div class="info-block">
-      <h4>Angle idéal au Québec</h4>
-      <p>Au Québec, pour une toiture fixe à l’année, vise ~40–45° plein sud (notre grille NREL).</p>
+      <h4>Maximum de production</h4>
+      <p>Au Québec, l’idéal pour maximiser la production est ~35–40° plein sud.</p>
     </div>
     <div class="info-block">
-      <h4>En saisonnier</h4>
-      <p>Été plus plat (~15–30°), hiver plus pentu (~60–75°).</p>
-      <p>Le 90° aide au glissement de neige mais n’est pas l’idéal énergétique.</p>
-    </div>
-    <div class="info-block">
-      <h4>Déneigement</h4>
-      <p>Le déneigement est traité à part.</p>
+      <h4>Autonomie et neige</h4>
+      <p>Pour la majorité des projets en autonomie, on pose les panneaux à 90° (vertical) pour zéro neige.</p>
     </div>
   </template>
   <template id="tpl-info-util">
     <span data-info-title>Densité d’installation</span>
     <div class="info-block">
-      <h4>Combien de toit utiliser</h4>
-      <p>Le curseur fixe le pourcentage de toiture occupé par les panneaux.</p>
-      <p>Il est fortement recommandé de ne pas dépasser 80&nbsp;%.</p>
-    </div>
-    <div class="info-block">
-      <h4>Pourquoi laisser de l’espace</h4>
-      <p>Gardez au moins 20&nbsp;% de libre : accès d’entretien, dégagements au vent, neige et glisse en hiver.</p>
+      <h4>Ce que le curseur veut dire</h4>
+      <p><strong>100&nbsp;%</strong> = la superficie exacte des panneaux.</p>
+      <p><strong>80&nbsp;%</strong> = superficie de toit dégagée, sans obstacles.</p>
+      <p><strong>60&nbsp;%</strong> = quelques obstacles (cheminées, puits de ventilation).</p>
     </div>
   </template>
   <template id="tpl-info-deneige">
