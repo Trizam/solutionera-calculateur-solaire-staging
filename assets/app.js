@@ -880,7 +880,7 @@
         openFieldInfo(btn.getAttribute("data-info"));
       });
     });
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugCancel", "btnBugOk"].forEach(function (id) {
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugOk"].forEach(function (id) {
       if ($(id)) $(id).addEventListener("click", closeInfo);
     });
     ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {

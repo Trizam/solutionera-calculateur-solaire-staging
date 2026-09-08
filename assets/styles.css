@@ -964,13 +964,6 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   margin-top: 0.35rem;
 }
 .modal-actions .btn { margin-top: 0.35rem; flex: 1; }
-.btn-ghost {
-  background: #fff;
-  color: var(--green-dark);
-  border: 1px solid var(--border);
-  box-shadow: none;
-}
-.btn-ghost:hover { background: var(--green-soft); }
 .hp-field {
   position: absolute;
   left: -9999px;

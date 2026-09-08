@@ -663,7 +663,11 @@ const footerOpen =
   bugModalTag.includes("modal-backdrop") &&
   !bugModalTag.includes("mode-full-only") &&
   !html.includes("Un champ suffit") &&
-  !html.includes("pas besoin de compte GitHub");
+  !html.includes("pas besoin de compte GitHub") &&
+  html.includes("btnBugSubmit") &&
+  html.includes("Envoyer") &&
+  !html.includes("Annuler") &&
+  !html.includes("btnBugCancel");
 const bugJsWired =
   app.includes("function openBugReport") &&
   app.includes("function validateBugReport") &&
@@ -678,7 +682,8 @@ const bugJsWired =
   !app.includes("bug-report-token") &&
   !app.includes("Authorization") &&
   !app.includes("function buildGithubIssue") &&
-  !app.includes("## Correction souhaitée");
+  !app.includes("## Correction souhaitée") &&
+  !app.includes("btnBugCancel");
 const bugMobileCss =
   css.includes(".bug-modal") &&
   /min-height:\s*48px/.test(css) &&
