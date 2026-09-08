@@ -436,6 +436,14 @@ const htmlAllowlist =
   html.includes('id="sec-value"');
 const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / jour");
 const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an");
+const prodPillEqualType =
+  html.includes('class="big" id="outKwhDay"') &&
+  html.includes('class="big" id="outKwh">') &&
+  !html.includes("big-annual") &&
+  !css.includes(".big-annual");
+const prodKwC =
+  /id="outKw"[^>]*>— kWc</.test(html) &&
+  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app);
 const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
   !/id="outKwh"[^>]*>≈/.test(html) &&
@@ -452,6 +460,8 @@ console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull &&
 console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
 console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
+console.log(`  prod pill jour+an same .big type: ${prodPillEqualType ? "PASS" : "FAIL"}`);
+console.log(`  prod pill puissance unit kWc: ${prodKwC ? "PASS" : "FAIL"}`);
 console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
 
 /** Same 2-sig-fig display helper as app.js (sec-prod only) */
@@ -764,6 +774,8 @@ const pass =
   appWiresMode &&
   prodPillDay &&
   prodPillAnnual &&
+  prodPillEqualType &&
+  prodKwC &&
   prodNoWave &&
   dayOk &&
   sig2RoundOk &&
