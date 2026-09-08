@@ -105,7 +105,7 @@ const hasPasteArea = app.includes('addEventListener("paste"') || app.includes("a
 const hasBlurArea = app.includes('addEventListener("blur"') || app.includes("addEventListener('blur'");
 const hasRoundArea = app.includes("roundAreaInput") && app.includes("Math.round");
 const hasModalScroll = app.includes("modal-open") && app.includes("Escape");
-const hasIntegerLive = app.includes("Math.round((1 - r.deneige) * r.W * 100)");
+const hasIntegerLive = app.includes("fmtSig2") && app.includes("deneigeLive") && app.includes("function sig2Round");
 console.log(`  app.js loads quebec-full-grid.json: ${hasFetch ? "PASS" : "FAIL"}`);
 console.log(`  app.js S/30 annual fallback: ${hasFallback ? "PASS" : "FAIL"}`);
 console.log(`  app.js applyDeneigement + winterWFromTilt: ${hasFormula && hasTiltW && usesTiltWInCalc ? "PASS" : "FAIL"}`);
@@ -113,7 +113,7 @@ console.log(`  app.js AZ_LABELS 15° steps: ${has24az ? "PASS" : "FAIL"}`);
 console.log(`  app.js grid loading/error + any-cell fallback: ${hasGridLoading && hasFallbackAny ? "PASS" : "FAIL"}`);
 console.log(`  app.js area integer paste+blur+round: ${hasPasteArea && hasBlurArea && hasRoundArea ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal Escape + scroll lock: ${hasModalScroll ? "PASS" : "FAIL"}`);
-console.log(`  app.js live W% integers (Math.round): ${hasIntegerLive ? "PASS" : "FAIL"}`);
+console.log(`  app.js live W% via fmtSig2 (2 sig figs): ${hasIntegerLive ? "PASS" : "FAIL"}`);
 
 const W = wTable[30];
 const kWhAn = sAnnual * kW;
@@ -216,7 +216,7 @@ const discTiltW =
 
 console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : "FAIL"}`);
 console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
-console.log(`  app.js live format « −X % annuel » integer: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
+console.log(`  app.js live format « −X % annuel » + fmtSig2: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
 console.log(`  version 0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
 console.log(`  badge removed + no Québec in hero/results: ${noBadge && noQcHero ? "PASS" : "FAIL"}`);
 console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orient24 && has195 ? "PASS" : "FAIL"}`);
@@ -448,6 +448,54 @@ console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FA
 console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
 console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
 
+/** Same 2-sig-fig display helper as app.js (sec-prod only) */
+function sig2Round(n) {
+  const x = Number(n);
+  if (!isFinite(x)) return NaN;
+  if (x === 0) return 0;
+  const sign = x < 0 ? -1 : 1;
+  const abs = Math.abs(x);
+  const exp = Math.floor(Math.log10(abs));
+  const factor = Math.pow(10, exp - 1);
+  return sign * Math.round(abs / factor) * factor;
+}
+function fmtSig2(n) {
+  if (!isFinite(n)) return "—";
+  const rounded = sig2Round(n);
+  if (!isFinite(rounded)) return "—";
+  const abs = Math.abs(rounded);
+  const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+  const exp = abs === 0 ? 0 : Math.floor(Math.log10(abs));
+  const decimals = whole ? 0 : Math.max(0, 1 - exp);
+  return rounded.toLocaleString("fr-CA", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+const sigCases = [
+  [14230, 14000],
+  [874, 870],
+  [19, 19],
+  [12.53, 13],
+  [6.4, 6.4],
+  [180.23, 180],
+  [6874, 6900]
+];
+const sig2RoundOk = sigCases.every(([raw, expect]) => Math.abs(sig2Round(raw) - expect) < 1e-9);
+const fmt14230 = fmtSig2(14230);
+const fmt14230Compact = fmt14230.replace(/\s/g, "");
+const fmt14230Ok = Math.abs(sig2Round(14230) - 14000) < 1e-9 && (fmt14230Compact === "14000" || /14\s*000/.test(fmt14230));
+const prodUsesSig2 =
+  app.includes("fmtSig2(r.kWhDay)") &&
+  app.includes("fmtSig2(r.kWh)") &&
+  app.includes("fmtSig2(r.kW)") &&
+  app.includes("fmtSig2(lossPct)") &&
+  app.includes("fmtSig2(r.W * 100)") &&
+  !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
+console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
+console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
+console.log(`  sec-prod render uses fmtSig2 only: ${prodUsesSig2 ? "PASS" : "FAIL"}`);
+
 
 const pass =
   ok &&
@@ -549,7 +597,10 @@ const pass =
   prodPillDay &&
   prodPillAnnual &&
   prodNoWave &&
-  dayOk;
+  dayOk &&
+  sig2RoundOk &&
+  fmt14230Ok &&
+  prodUsesSig2;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
