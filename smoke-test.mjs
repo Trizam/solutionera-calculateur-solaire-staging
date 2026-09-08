@@ -168,7 +168,7 @@ const css = readFileSync(join(__dirname, "assets/styles.css"), "utf8");
 const labelOk = html.includes("Efficacité du déneigement") && !/perte\s+neige/i.test(html);
 const liveBeside = html.includes("deneigeLive") && (html.includes("% annuel") || html.includes("%&nbsp;annuel") || html.includes("&nbsp;% annuel"));
 const liveFmt = (html.includes("−14&nbsp;%") || html.includes("−14 %")) && html.includes("annuel") && !html.includes("−14,4");
-const verOk = /version 0\.2/i.test(html) && !/V0\.2/.test(html) && !html.includes("V0.1");
+const verOk = /\bv0\.2\b/.test(html) && !/V0\.2/.test(html) && !html.includes("V0.1") && !/version 0\.2/i.test(html);
 const noBadge = !html.includes("Pédagogique · FR · Québec fixe") && !html.includes("Québec fixe");
 const noMtlHard = !html.includes("1314,1") && !html.includes("0,1768") && !/Montréal/i.test(html);
 const heroSlice = html.slice(html.indexOf('class="hero"'), html.indexOf("</header>") + 10);
@@ -202,7 +202,14 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const noBattery = !/batteries|autonomie/i.test(html);
+const htmlSansBrand = html.replace(/DÉFI Autonomie Énergétique/g, "");
+const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
+const brandDefi =
+  html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
+  /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
+  html.includes("bug-ver") &&
+  html.includes("v0.2 staging") &&
+  !html.includes("Solution Era");
 const infoBtn = html.includes("En apprendre plus") && html.includes("infoModal");
 const tiltViz = html.includes("tiltViz") || html.includes("tiltLine");
 const gridStatusUi = html.includes('id="gridStatus"');
@@ -223,7 +230,8 @@ const discTiltW =
 console.log(`  UI label « Efficacité du déneigement »: ${labelOk ? "PASS" : "FAIL"}`);
 console.log(`  live loss beside slider (deneigeLive · % annuel): ${liveBeside && liveFmt ? "PASS" : "FAIL"}`);
 console.log(`  app.js live format « −X % annuel » + fmtSig2: ${appLive && hasIntegerLive ? "PASS" : "FAIL"}`);
-console.log(`  version 0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
+console.log(`  v0.2 branding (no V0.2 / V0.1 / Montréal): ${verOk && noMtlHard ? "PASS" : "FAIL"}`);
+console.log(`  brand Solution ERA | DÉFI Autonomie Énergétique: ${brandDefi ? "PASS" : "FAIL"}`);
 console.log(`  badge removed + no Québec in hero/results: ${noBadge && noQcHero ? "PASS" : "FAIL"}`);
 console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orient24 && has195 ? "PASS" : "FAIL"}`);
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
@@ -267,7 +275,7 @@ console.log(`  thumb 44px webkit: ${thumb44 ? "PASS" : "FAIL"}`);
 console.log(`  slider-row overscroll contain: ${overscrollRow ? "PASS" : "FAIL"}`);
 console.log(`  viewport-fit=cover: ${viewportFit ? "PASS" : "FAIL"}`);
 
-const tiltWLabel = html.includes('id="tiltWLabel"') && app.includes("tiltWLabel");
+const tiltWLabel = app.includes("tiltWLabel") && app.includes("fmtSig2(r.W * 100)");
 const touchFallback = app.includes("touchstart") && app.includes("PointerEvent");
 const dualTouchPointer = app.includes("viaTouch") && app.includes("touchstart") && app.includes("setPointerCapture");
 const gridRetryBtn = app.includes("btnGridRetry") && css.includes(".grid-retry");
@@ -352,7 +360,30 @@ console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+const infoSheetUi =
+  css.includes(".info-sheet") &&
+  /max-height:\s*100dvh/.test(css) &&
+  css.includes(".info-block") &&
+  html.includes('id="infoModal"') &&
+  html.includes('id="rateModal"') &&
+  html.includes('id="fieldInfoModal"') &&
+  html.includes('class="modal-backdrop info-sheet mode-full-only" id="infoModal"') &&
+  html.includes('class="modal-backdrop info-sheet mode-full-only" id="rateModal"') &&
+  html.includes('class="modal-backdrop info-sheet" id="fieldInfoModal"') &&
+  app.includes("openFieldInfo") &&
+  app.includes("fieldInfoModal") &&
+  html.includes('data-info="orient"') &&
+  html.includes('data-info="area"') &&
+  html.includes('data-info="util"') &&
+  html.includes('data-info="deneige"') &&
+  html.includes('data-info="tilt"') &&
+  html.includes("tpl-info-tilt") &&
+  html.includes("30° l’été") &&
+  html.includes("90° l’hiver") &&
+  html.includes("40° et 45°") &&
+  !html.includes("field-info-tip");
 console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ? "PASS" : "FAIL"}`);
+console.log(`  ⓘ full-page sheets + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -434,11 +465,14 @@ const htmlAllowlist =
   html.includes('id="sec-prod"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
-const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / jour");
-const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an");
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh /") && html.includes(">jour<");
+const prodPillAnnual = html.includes('id="outKwh"') && html.includes(">an<");
 const prodPillEqualType =
-  html.includes('class="big" id="outKwhDay"') &&
-  html.includes('class="big" id="outKwh">') &&
+  html.includes('class="big prod-line" id="outKwhDay"') &&
+  html.includes('class="big prod-line" id="outKwh"') &&
+  html.includes("prod-num") &&
+  css.includes("prod-lines") &&
+  /grid-template-columns:\s*max-content\s+auto\s+auto/.test(css) &&
   !html.includes("big-annual") &&
   !css.includes(".big-annual");
 const prodKwC =
@@ -448,7 +482,7 @@ const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
   !/id="outKwh"[^>]*>≈/.test(html) &&
   !app.includes('"≈ " + fmtNum(r.kWh') &&
-  app.includes("kWh / jour") &&
+  app.includes("prod-num") &&
   app.includes("kWhDay");
 const dayFromAnnual = Math.round(6874 / 365);
 const dayOk = dayFromAnnual === 19;
@@ -703,6 +737,7 @@ const pass =
   liveFmt &&
   appLive &&
   verOk &&
+  brandDefi &&
   noMtlHard &&
   noBadge &&
   noQcHero &&
@@ -762,6 +797,7 @@ const pass =
   hasConsoWired &&
   defaultRateTtc &&
   hasRateInfoUi &&
+  infoSheetUi &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
