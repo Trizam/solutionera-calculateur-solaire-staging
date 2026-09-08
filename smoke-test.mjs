@@ -410,9 +410,15 @@ const infoSheetUi =
   html.includes('data-info="deneige"') &&
   html.includes('data-info="tilt"') &&
   html.includes("tpl-info-tilt") &&
-  html.includes("30° l’été") &&
-  html.includes("90° l’hiver") &&
-  html.includes("40° et 45°") &&
+  html.includes("Angle idéal au Québec") &&
+  html.includes("40–45°") &&
+  html.includes("plein sud") &&
+  html.includes("grille NREL") &&
+  html.includes("15–30°") &&
+  html.includes("60–75°") &&
+  html.includes("n’est pas l’idéal énergétique") &&
+  !html.includes("90° l’hiver") &&
+  !html.includes("30° l’été et 90°") &&
   html.includes("perte de production") &&
   html.includes("chiffre à gauche") &&
   html.includes("perte restante") &&
