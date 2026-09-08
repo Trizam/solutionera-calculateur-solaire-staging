@@ -343,13 +343,64 @@
   const BUG_MIN_FORM_MS = 2000;
   const BUG_ISSUES_URL =
     "https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report";
+  const BUG_REPO_API =
+    "https://api.github.com/repos/Trizam/solutionera-calculateur-solaire-staging";
 
-  function bugReportEndpoint() {
-    if (typeof window !== "undefined" && window.__BUG_REPORT_ENDPOINT__) {
-      return String(window.__BUG_REPORT_ENDPOINT__).trim();
+  let bugConfigToken = "";
+  let bugConfigTried = false;
+
+  function bugReportTokenSync() {
+    if (typeof window !== "undefined" && window.__BUG_REPORT_TOKEN__) {
+      return String(window.__BUG_REPORT_TOKEN__).trim();
     }
-    const meta = document.querySelector('meta[name="bug-report-endpoint"]');
+    const meta = document.querySelector('meta[name="bug-report-token"]');
     return meta ? String(meta.getAttribute("content") || "").trim() : "";
+  }
+
+  async function bugReportToken() {
+    const quick = bugReportTokenSync();
+    if (quick) return quick;
+    if (!bugConfigTried) {
+      bugConfigTried = true;
+      try {
+        const res = await fetch("assets/bug-config.json", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          bugConfigToken = String((data && data.token) || "").trim();
+        }
+      } catch (_) {}
+    }
+    return bugConfigToken;
+  }
+
+  function buildGithubIssue(bug, correction, ctx) {
+    const c = ctx && typeof ctx === "object" ? ctx : {};
+    const title = "[user-report] " + String(bug).replace(/\s+/g, " ").trim().slice(0, 72);
+    let calcSnapshot = "{}";
+    try {
+      calcSnapshot = JSON.stringify(c.calc != null ? c.calc : {}, null, 2);
+    } catch (_) {
+      calcSnapshot = "{}";
+    }
+    const body = [
+      "## Bug",
+      String(bug),
+      "",
+      "## Correction souhaitée",
+      String(correction),
+      "",
+      "## Contexte (auto)",
+      "- URL: " + (c.url || "—"),
+      "- mode: " + (c.mode || "full"),
+      "- version: " + (c.version || "—"),
+      "- UA: " + (c.userAgent || c.ua || "—"),
+      "- timestamp: " + (c.timestamp || c.ts || "—"),
+      "",
+      "```json",
+      calcSnapshot,
+      "```"
+    ].join("\n");
+    return { title: title, body: body, labels: ["user-report", "bug"] };
   }
 
   function appVersionString() {
@@ -479,23 +530,42 @@
       }
       return;
     }
-    const endpoint = bugReportEndpoint();
-    if (!endpoint) {
+    const token = await bugReportToken();
+    if (!token) {
       setBugStatus("Signalement temporairement indisponible");
       return;
     }
     bugSubmitting = true;
     if ($("btnBugSubmit")) $("btnBugSubmit").disabled = true;
     setBugStatus("");
+    const issue = buildGithubIssue(checked.bug, checked.correction, payload.context);
+    const ghHeaders = {
+      Accept: "application/vnd.github+json",
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch(BUG_REPO_API + "/issues", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: ghHeaders,
+        body: JSON.stringify(issue)
       });
       const data = await res.json().catch(function () { return {}; });
-      if (data && data.ok) {
-        showBugSuccess(data.html_url || BUG_ISSUES_URL);
+      if (res.ok && data && data.html_url) {
+        showBugSuccess(data.html_url);
+        return;
+      }
+      const dispatch = await fetch(BUG_REPO_API + "/dispatches", {
+        method: "POST",
+        headers: ghHeaders,
+        body: JSON.stringify({
+          event_type: "calculateur-bug",
+          client_payload: payload
+        })
+      });
+      if (dispatch.ok || dispatch.status === 204) {
+        showBugSuccess(BUG_ISSUES_URL);
         return;
       }
       throw new Error("api");
@@ -945,7 +1015,8 @@
     sig2Round,
     fmtSig2,
     validateBugReport,
-    bugReportEndpoint,
+    bugReportTokenSync,
+    buildGithubIssue,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
     applyDisplayMode: displayModeApi && displayModeApi.applyDisplayMode,
     get displayMode() {
