@@ -525,7 +525,8 @@ const areaInstallLabel =
   html.includes("<span data-info-title>Superficie de l’installation</span>") &&
   !html.includes("Superficie de la toiture") &&
   !html.includes("superficie de votre toiture") &&
-  html.includes("superficie de l’installation sur le versant le plus orienté au sud") &&
+  !html.includes("Plus de surface = plus de panneaux") &&
+  html.includes("Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.") &&
   html.includes("<label for=\"tilt\">Inclinaison de la toiture</label>");
 console.log(`  area label = superficie de l’installation (inclinaison toiture kept): ${areaInstallLabel ? "PASS" : "FAIL"}`);
 const deneigeTpl = (html.match(/id="tpl-info-deneige"[\s\S]*?<\/template>/) || [""])[0];
