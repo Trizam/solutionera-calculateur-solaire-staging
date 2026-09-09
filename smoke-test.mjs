@@ -734,7 +734,13 @@ const footerOpen =
   html.includes("btnBugSubmit") &&
   html.includes("Envoyer") &&
   !html.includes("Annuler") &&
-  !html.includes("btnBugCancel");
+  !html.includes("btnBugCancel") &&
+  html.includes("Signale un bug, une erreur de calcul ou une amélioration") &&
+  html.includes('id="bugLink"') &&
+  !html.includes('id="bugLink2"') &&
+  !html.includes("Un chiffre te semble off") &&
+  !html.includes("on apprend ensemble") &&
+  !html.includes('title="Signaler un bug"');
 const bugJsWired =
   app.includes("function openBugReport") &&
   app.includes("function validateBugReport") &&
