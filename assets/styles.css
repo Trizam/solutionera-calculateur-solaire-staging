@@ -14,6 +14,9 @@
   --shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
   --radius: 14px;
   --font: "Lato", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Shared prod-field split: left gutter (toggle / viz / %) | right control */
+  --prod-gutter: 7.5rem;
+  --prod-gap: 0.75rem;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -233,16 +236,43 @@ section.block h2 .num {
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
-.tilt-select-row {
-  display: flex;
+.prod-control-row {
+  display: grid;
+  grid-template-columns: var(--prod-gutter) minmax(0, 1fr);
+  column-gap: var(--prod-gap);
   align-items: center;
-  gap: 0.5rem;
+  min-width: 0;
+}
+.prod-control-main {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+.prod-control-main input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+.prod-control-row .unit-toggle {
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+.prod-control-row .unit-toggle button {
+  flex: 1;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+.prod-control-row .tilt-viz {
+  justify-self: center;
+  align-self: center;
+}
+.tilt-select-row {
   min-width: 0;
 }
 .tilt-select-row select {
-  flex: 1 1 auto;
   min-width: 0;
-  width: auto;
+  width: 100%;
 }
 .tilt-viz {
   color: var(--green-dark);
@@ -257,13 +287,6 @@ section.block h2 .num {
 .tilt-viz svg { display: block; width: 56px; height: 42px; }
 .tilt-viz #tiltLine,
 .tilt-viz #tiltHinge { color: var(--green-dark); }
-.row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-}
-.row input[type="number"],
-.row select,
 .field input[type="number"],
 .field select {
   flex: 1;
@@ -302,7 +325,7 @@ section.block h2 .num {
 
 /* Sliders: large green value LEFT of track (+ legends) */
 .slider-row {
-  display: flex;
+  display: grid;
   align-items: flex-start;
   gap: 0.75rem;
   margin-top: 0.35rem;
@@ -313,13 +336,13 @@ section.block h2 .num {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   --slider-hit: 44px; /* range hit area; visual track is centered in it */
-  --slider-val-col: 5.75rem; /* shared gutter before the light-green track */
+  grid-template-columns: var(--prod-gutter) minmax(0, 1fr);
+  column-gap: var(--prod-gap);
 }
 .slider-val-left {
-  /* Fixed left column: value centered in the gutter, mid-aligned with the piste */
-  flex: 0 0 var(--slider-val-col);
-  width: var(--slider-val-col);
-  min-width: var(--slider-val-col);
+  /* Fill shared left gutter; value centered, mid-aligned with the piste */
+  width: 100%;
+  min-width: 0;
   height: var(--slider-hit);
   min-height: var(--slider-hit);
   display: flex;
@@ -1009,7 +1032,10 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     color: #000;
     align-self: center;
   }
+  .prod-control-row,
+  .tilt-select-row,
   .slider-row { display: block; margin-top: 0.15rem; }
+  .prod-control-main { display: block; }
   .slider-val-left {
     justify-content: flex-start;
     align-items: flex-start;
@@ -1036,7 +1062,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   /* Compact inputs for PDF */
   .field input[type="number"],
   .field select,
-  .row input[type="number"] {
+  .prod-control-main input[type="number"] {
     border-color: #bbb;
     background: #fff;
   }
@@ -1100,6 +1126,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   header.hero h1 { font-size: 1.28rem; }
   header.hero p { font-size: 0.9rem; }
   section.block { padding: 1rem 0.95rem 1.15rem; }
+  :root, .slider-row, .prod-control-row { --prod-gap: 0.5rem; }
   .slider-row { gap: 0.5rem; }
   .slider-val-left {
     font-size: 1.02rem;
