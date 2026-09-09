@@ -17,6 +17,8 @@
   /* Shared prod-field split: left gutter (toggle / viz / %) | right control */
   --prod-gutter: 7.5rem;
   --prod-gap: 0.75rem;
+  /* Modest air above section / field-group titles (sous-titres) */
+  --subtitle-pad-top: 0.45rem;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -198,6 +200,17 @@ section.block h2 .num {
   margin-bottom: 0.35rem;
 }
 .label-row label { margin-bottom: 0; }
+
+/* Shared: a bit of air above every sous-titre — not one-off per section */
+section.block > h2,
+.field > .label-row,
+.field > label,
+.field > .field-label,
+.disc-head,
+.modal-head,
+.info-sheet .info-block > h4 {
+  padding-top: var(--subtitle-pad-top);
+}
 
 /* field-info : ⓘ à droite du titre → full-page sheet */
 .field-info-wrap {

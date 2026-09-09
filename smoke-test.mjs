@@ -270,6 +270,16 @@ const prodControlGrid =
   sliderScreen.includes("--prod-gutter") &&
   /\.prod-control-row[\s\S]{0,280}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen) &&
   /\.slider-row[\s\S]{0,700}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen);
+const subtitlePad =
+  /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
+  /section\.block\s*>\s*h2/.test(sliderScreen) &&
+  /\.field\s*>\s*\.label-row/.test(sliderScreen) &&
+  /\.field\s*>\s*label/.test(sliderScreen) &&
+  /\.field\s*>\s*\.field-label/.test(sliderScreen) &&
+  /\.disc-head/.test(sliderScreen) &&
+  /\.modal-head/.test(sliderScreen) &&
+  /\.info-sheet\s+\.info-block\s*>\s*h4/.test(sliderScreen) &&
+  /padding-top:\s*var\(--subtitle-pad-top\)/.test(sliderScreen);
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
 const modalCss = css.includes("modal-open") && css.includes("overflow: hidden");
 const noMtlAssets =
@@ -301,6 +311,7 @@ console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && i
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
+console.log(`  shared subtitle top padding (--subtitle-pad-top): ${subtitlePad ? "PASS" : "FAIL"}`);
 console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
 console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
@@ -895,6 +906,7 @@ const pass =
   gridStatusUi &&
   sliderLeft &&
   prodControlGrid &&
+  subtitlePad &&
   safariFix &&
   modalCss &&
   noMtlAssets &&
