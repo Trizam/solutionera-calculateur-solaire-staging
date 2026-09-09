@@ -464,6 +464,10 @@ const orientVersantTip =
   html.includes("additionnez les résultats") &&
   !html.includes("Ne répartissez pas le calcul");
 console.log(`  ⓘ orientation un seul versant + addition: ${orientVersantTip ? "PASS" : "FAIL"}`);
+const orientAzimuthHint =
+  html.includes("Indiquez l’orientation au 15° près.<br>180° = Sud<br>0° = Nord.") &&
+  !html.includes("Indiquez l’orientation au 15° près. 180° = Sud, 0° = Nord.");
+console.log(`  ⓘ orientation 15° / Sud / Nord line breaks: ${orientAzimuthHint ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -900,6 +904,7 @@ const pass =
   hasRateInfoUi &&
   infoSheetUi &&
   orientVersantTip &&
+  orientAzimuthHint &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
