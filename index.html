@@ -122,29 +122,25 @@
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        <div class="prod-control-row tilt-select-row">
-          <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
-            <svg viewBox="0 0 64 48" width="56" height="42" role="img">
-              <!-- ground — stronger contrast vs soft green card -->
-              <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
-              <!-- roof/panel line (updated by JS) -->
-              <g id="tiltPanel">
-                <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
-                <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
-              </g>
-              <!-- angle label -->
-              <text id="tiltDegLabel" x="38" y="16" font-size="12" font-weight="700" fill="#1b4332" font-family="Lato,sans-serif">30°</text>
-            </svg>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left tilt-gutter">
+            <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
+              <svg viewBox="0 0 64 48" width="40" height="30" role="img">
+                <!-- ground — stronger contrast vs soft green card -->
+                <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
+                <!-- roof/panel line (updated by JS) -->
+                <g id="tiltPanel">
+                  <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
+                  <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
+                </g>
+              </svg>
+            </div>
+            <span id="tiltVal">30°</span>
           </div>
-          <select id="tilt">
-            <option value="0">0° (plat)</option>
-            <option value="15">15°</option>
-            <option value="30" selected>30°</option>
-            <option value="45">45°</option>
-            <option value="60">60°</option>
-            <option value="75">75°</option>
-            <option value="90">90° (vertical)</option>
-          </select>
+          <div class="slider-track">
+            <input id="tilt" type="range" min="0" max="90" step="15" value="30" />
+            <div class="slider-meta"><span>0&nbsp;°</span><span>90&nbsp;°</span></div>
+          </div>
         </div>
       </div>
       <div class="field">
