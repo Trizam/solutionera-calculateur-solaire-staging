@@ -468,6 +468,21 @@ const orientAzimuthHint =
   html.includes("Indiquez l’orientation au 15° près.<br>180° = Sud<br>0° = Nord.") &&
   !html.includes("Indiquez l’orientation au 15° près. 180° = Sud, 0° = Nord.");
 console.log(`  ⓘ orientation 15° / Sud / Nord line breaks: ${orientAzimuthHint ? "PASS" : "FAIL"}`);
+const deneigeTpl = (html.match(/id="tpl-info-deneige"[\s\S]*?<\/template>/) || [""])[0];
+const deneigeTip =
+  deneigeTpl.includes("Zéro pour cent = aucun déneigement.") &&
+  deneigeTpl.includes("Cent pour cent = déneigement rapide après chaque chute.") &&
+  deneigeTpl.includes("L’inclinaison influence aussi l’accumulation") &&
+  deneigeTpl.includes("un toit plat (zéro degré) accumule très bien la neige") &&
+  deneigeTpl.includes("un toit 12/12 (quarante-cinq degrés) accumule la neige") &&
+  deneigeTpl.includes("une installation verticale (quatre-vingt-dix degrés) n’accumule aucune neige") &&
+  !deneigeTpl.includes("0°") &&
+  !deneigeTpl.includes("45°") &&
+  !deneigeTpl.includes("90°") &&
+  !deneigeTpl.includes("0&nbsp;% = aucun déneigement") &&
+  !deneigeTpl.includes("100&nbsp;% = déneigement après chaque chute") &&
+  !deneigeTpl.includes("L’inclinaison fixe aussi le risque");
+console.log(`  ⓘ déneigement mots + accumulation 12/12: ${deneigeTip ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -905,6 +920,7 @@ const pass =
   infoSheetUi &&
   orientVersantTip &&
   orientAzimuthHint &&
+  deneigeTip &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
