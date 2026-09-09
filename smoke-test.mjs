@@ -252,7 +252,15 @@ const brandDefi =
 const infoBtn = html.includes("En apprendre plus") && html.includes("infoModal");
 const tiltViz = html.includes("tiltViz") || html.includes("tiltLine");
 const gridStatusUi = html.includes('id="gridStatus"');
-const sliderLeft = css.includes("slider-val-left") && css.includes("slider-row");
+const sliderScreen = css.split("@media print")[0];
+const sliderLeft =
+  sliderScreen.includes("slider-val-left") &&
+  sliderScreen.includes("slider-row") &&
+  /\.slider-row[\s\S]{0,500}align-items:\s*flex-start/.test(sliderScreen) &&
+  /\.slider-val-left[\s\S]{0,500}justify-content:\s*center/.test(sliderScreen) &&
+  /\.slider-val-left[\s\S]{0,500}text-align:\s*center/.test(sliderScreen) &&
+  /\.slider-val-left[\s\S]{0,500}height:\s*var\(--slider-hit\)/.test(sliderScreen) &&
+  !/\.slider-val-left[\s\S]{0,400}justify-content:\s*flex-end/.test(sliderScreen);
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
 const modalCss = css.includes("modal-open") && css.includes("overflow: hidden");
 const noMtlAssets =
@@ -282,6 +290,7 @@ console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && l
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
 console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
+console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
 console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
