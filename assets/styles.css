@@ -303,7 +303,7 @@ section.block h2 .num {
 /* Sliders: large green value LEFT of track (+ legends) */
 .slider-row {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 0.75rem;
   margin-top: 0.35rem;
   touch-action: none; /* Safari: keep page from stealing range drag */
@@ -312,22 +312,26 @@ section.block h2 .num {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  --slider-hit: 44px; /* range hit area; visual track is centered in it */
+  --slider-val-col: 5.75rem; /* shared gutter before the light-green track */
 }
 .slider-val-left {
-  /* auto width + min so « 3,00 $/W » / « −14 % » never collide */
-  flex: 0 0 auto;
-  min-width: 5.25rem;
+  /* Fixed left column: value centered in the gutter, mid-aligned with the piste */
+  flex: 0 0 var(--slider-val-col);
+  width: var(--slider-val-col);
+  min-width: var(--slider-val-col);
+  height: var(--slider-hit);
+  min-height: var(--slider-hit);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: center;
+  text-align: center;
   font-weight: 700;
   color: var(--green);
   font-size: 1.12rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
-  padding: 0.1rem 0;
-  min-height: 2.75rem;
+  padding: 0;
   white-space: nowrap;
 }
 .slider-track {
@@ -1010,6 +1014,9 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     justify-content: flex-start;
     align-items: flex-start;
     text-align: left;
+    flex: none;
+    width: auto;
+    height: auto;
     min-height: 0;
     min-width: 0;
   }
@@ -1095,7 +1102,6 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   section.block { padding: 1rem 0.95rem 1.15rem; }
   .slider-row { gap: 0.5rem; }
   .slider-val-left {
-    min-width: 5rem;
     font-size: 1.02rem;
   }
   .slider-meta {
