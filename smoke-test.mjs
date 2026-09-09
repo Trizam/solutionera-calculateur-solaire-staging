@@ -261,6 +261,15 @@ const sliderLeft =
   /\.slider-val-left[\s\S]{0,500}text-align:\s*center/.test(sliderScreen) &&
   /\.slider-val-left[\s\S]{0,500}height:\s*var\(--slider-hit\)/.test(sliderScreen) &&
   !/\.slider-val-left[\s\S]{0,400}justify-content:\s*flex-end/.test(sliderScreen);
+const areaBlock = html.slice(html.indexOf('for="area"'), html.indexOf('for="tilt"'));
+const prodControlGrid =
+  (html.match(/class="prod-control-row/g) || []).length >= 4 &&
+  /unit-toggle[\s\S]+id="area"/.test(areaBlock) &&
+  !/id="area"[\s\S]+unit-toggle/.test(areaBlock) &&
+  html.includes('class="prod-control-row tilt-select-row"') &&
+  sliderScreen.includes("--prod-gutter") &&
+  /\.prod-control-row[\s\S]{0,280}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen) &&
+  /\.slider-row[\s\S]{0,700}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen);
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
 const modalCss = css.includes("modal-open") && css.includes("overflow: hidden");
 const noMtlAssets =
@@ -291,6 +300,7 @@ console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PA
 console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
+console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
 console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
 console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
@@ -455,7 +465,7 @@ const infoSheetUi =
   html.includes("quelques obstacles") &&
   html.includes("puits de ventilation") &&
   !html.includes("superficie exacte des panneaux") &&
-  html.includes("class=\"tilt-select-row\"") &&
+  /class="[^"]*tilt-select-row/.test(html) &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
   html.includes("avec une installation solaire d’une puissance de") &&
   !html.includes("avec votre installation solaire") &&
@@ -884,6 +894,7 @@ const pass =
   tiltViz &&
   gridStatusUi &&
   sliderLeft &&
+  prodControlGrid &&
   safariFix &&
   modalCss &&
   noMtlAssets &&
