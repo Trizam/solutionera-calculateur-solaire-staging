@@ -217,7 +217,7 @@ const orientLabel =
   html.includes("135° (Sud-Est)") &&
   html.includes("225° (Sud-Ouest)") &&
   html.includes("315° (Nord-Ouest)");
-const orient24 = (html.match(/option value="/g) || []).length >= 24 + 7;
+const orient24 = (html.match(/option value="/g) || []).length >= 24;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
 const logoOk =
@@ -266,10 +266,22 @@ const prodControlGrid =
   (html.match(/class="prod-control-row/g) || []).length >= 4 &&
   /unit-toggle[\s\S]+id="area"/.test(areaBlock) &&
   !/id="area"[\s\S]+unit-toggle/.test(areaBlock) &&
-  html.includes('class="prod-control-row tilt-select-row"') &&
+  /class="prod-control-row slider-row"/.test(html) &&
   sliderScreen.includes("--prod-gutter") &&
   /\.prod-control-row[\s\S]{0,280}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen) &&
   /\.slider-row[\s\S]{0,700}grid-template-columns:\s*var\(--prod-gutter\)/.test(sliderScreen);
+const tiltSlider =
+  /id="tilt"[^>]*type="range"/.test(html) &&
+  /id="tilt"[^>]*min="0"/.test(html) &&
+  /id="tilt"[^>]*max="90"/.test(html) &&
+  /id="tilt"[^>]*step="15"/.test(html) &&
+  html.includes('id="tiltVal"') &&
+  html.includes("tilt-gutter") &&
+  html.includes("tiltViz") &&
+  !/<select\s+id="tilt"/.test(html) &&
+  !html.includes("tilt-select-row") &&
+  /\$\("tiltVal"\)\.textContent/.test(app) &&
+  /\["util", "deneige", "priceW", "tilt"\]/.test(app);
 const subtitlePad =
   /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
   /section\.block\s*>\s*h2/.test(sliderScreen) &&
@@ -311,6 +323,7 @@ console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && i
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
+console.log(`  inclinaison slider 0–90 step 15 (grille QC): ${tiltSlider ? "PASS" : "FAIL"}`);
 console.log(`  shared subtitle top padding (--subtitle-pad-top): ${subtitlePad ? "PASS" : "FAIL"}`);
 console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
 console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
@@ -476,7 +489,6 @@ const infoSheetUi =
   html.includes("quelques obstacles") &&
   html.includes("puits de ventilation") &&
   !html.includes("superficie exacte des panneaux") &&
-  /class="[^"]*tilt-select-row/.test(html) &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
   html.includes("avec une installation solaire d’une puissance de") &&
   !html.includes("avec votre installation solaire") &&
@@ -906,6 +918,7 @@ const pass =
   gridStatusUi &&
   sliderLeft &&
   prodControlGrid &&
+  tiltSlider &&
   subtitlePad &&
   safariFix &&
   modalCss &&

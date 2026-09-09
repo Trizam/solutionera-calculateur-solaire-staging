@@ -266,6 +266,7 @@
       const lossPct = (1 - r.deneige) * r.W * 100;
       $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;%";
     }
+    if ($("tiltVal")) $("tiltVal").textContent = Math.round(Number(r.tilt)) + "°";
     updateTiltViz(r.tilt);
     if ($("tiltWLabel")) {
       $("tiltWLabel").innerHTML = fmtSig2(r.W * 100) + "&nbsp;%";
@@ -868,7 +869,7 @@
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
-    ["util", "deneige", "priceW"].forEach((id) => {
+    ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
