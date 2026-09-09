@@ -616,7 +616,7 @@
     if (!m || m.hidden) return;
     let fallback = $("btnInfo");
     if (activeModalId === "rateModal") fallback = $("btnRateInfo");
-    else if (activeModalId === "bugModal") fallback = $("bugLink2");
+    else if (activeModalId === "bugModal") fallback = $("bugLink");
     else if (activeModalId === "fieldInfoModal") fallback = document.querySelector(".field-info-btn");
     hideModalEl(m);
     document.body.classList.remove("modal-open");
