@@ -243,6 +243,9 @@ const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
   html.includes("bug-ver") &&
+  html.includes("© Solution ERA | DÉFI Autonomie Énergétique | Calculateur solaire |") &&
+  !html.includes("Énergétique · Calculateur") &&
+  !html.includes("solaire · <span id=\"buildId\"") &&
   html.includes('id="buildId"') &&
   !html.includes("v0.2 staging") &&
   !html.includes("Solution Era");
