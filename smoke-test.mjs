@@ -300,6 +300,8 @@ const fieldHairline =
   /border-top:\s*1px\s+solid\s+var\(--section-hairline\)/.test(sliderScreen) &&
   /padding-top:\s*var\(--section-hairline-pad\)/.test(sliderScreen) &&
   /margin-bottom:\s*var\(--section-hairline-pad\)/.test(sliderScreen) &&
+  /section\.block\s*>\s*\.field:has\(\+\s*\.field\)\s*>\s*:last-child/.test(sliderScreen) &&
+  /section\.block\s*>\s*\.field\s*\+\s*\.field\s*>\s*:first-child/.test(sliderScreen) &&
   !/\.field\s*\+\s*\.field[\s\S]{0,220}box-shadow/.test(sliderScreen) &&
   !/\.field\s*\+\s*\.field[\s\S]{0,220}border-radius/.test(sliderScreen);
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
