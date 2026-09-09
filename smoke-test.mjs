@@ -510,6 +510,15 @@ const orientAzimuthHint =
   html.includes("Indiquez l’orientation au 15° près.<br>180° = Sud<br>0° = Nord.") &&
   !html.includes("Indiquez l’orientation au 15° près. 180° = Sud, 0° = Nord.");
 console.log(`  ⓘ orientation 15° / Sud / Nord line breaks: ${orientAzimuthHint ? "PASS" : "FAIL"}`);
+const orientPanelsLabel =
+  html.includes("<label for=\"orient\">Orientation des panneaux solaires</label>") &&
+  html.includes("aria-label=\"Aide : Orientation des panneaux solaires\"") &&
+  html.includes("title=\"Aide : Orientation des panneaux solaires\"") &&
+  html.includes("<span data-info-title>Orientation des panneaux solaires</span>") &&
+  !html.includes("Orientation de la toiture") &&
+  html.includes("<label for=\"area\">Superficie de la toiture</label>") &&
+  html.includes("<label for=\"tilt\">Inclinaison de la toiture</label>");
+console.log(`  orient label = panneaux solaires (toiture fields kept): ${orientPanelsLabel ? "PASS" : "FAIL"}`);
 const deneigeTpl = (html.match(/id="tpl-info-deneige"[\s\S]*?<\/template>/) || [""])[0];
 const deneigeTip =
   deneigeTpl.includes("Zéro pour cent = aucun déneigement.") &&
@@ -965,6 +974,7 @@ const pass =
   infoSheetUi &&
   orientVersantTip &&
   orientAzimuthHint &&
+  orientPanelsLabel &&
   deneigeTip &&
   modeDefaultFull &&
   modeWebiOk &&
