@@ -292,6 +292,16 @@ const subtitlePad =
   /\.modal-head/.test(sliderScreen) &&
   /\.info-sheet\s+\.info-block\s*>\s*h4/.test(sliderScreen) &&
   /padding-top:\s*var\(--subtitle-pad-top\)/.test(sliderScreen);
+const fieldHairline =
+  /--section-hairline:\s*rgba\(\s*47,\s*62,\s*54,\s*0\.12\s*\)/.test(sliderScreen) &&
+  /--section-hairline-pad:\s*0\.7rem/.test(sliderScreen) &&
+  /section\.block\s*>\s*\.field:has\(\+\s*\.field\)/.test(sliderScreen) &&
+  /section\.block\s*>\s*\.field\s*\+\s*\.field/.test(sliderScreen) &&
+  /border-top:\s*1px\s+solid\s+var\(--section-hairline\)/.test(sliderScreen) &&
+  /padding-top:\s*var\(--section-hairline-pad\)/.test(sliderScreen) &&
+  /margin-bottom:\s*var\(--section-hairline-pad\)/.test(sliderScreen) &&
+  !/\.field\s*\+\s*\.field[\s\S]{0,220}box-shadow/.test(sliderScreen) &&
+  !/\.field\s*\+\s*\.field[\s\S]{0,220}border-radius/.test(sliderScreen);
 const safariFix = css.includes("touch-action: none") && css.includes("-webkit-appearance") && /Safari/i.test(css);
 const modalCss = css.includes("modal-open") && css.includes("overflow: hidden");
 const noMtlAssets =
@@ -325,6 +335,7 @@ console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PAS
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
 console.log(`  inclinaison slider 0–90 step 15 (grille QC): ${tiltSlider ? "PASS" : "FAIL"}`);
 console.log(`  shared subtitle top padding (--subtitle-pad-top): ${subtitlePad ? "PASS" : "FAIL"}`);
+console.log(`  field-section hairlines (--section-hairline 1px @ 12%): ${fieldHairline ? "PASS" : "FAIL"}`);
 console.log(`  modal scroll-lock CSS: ${modalCss ? "PASS" : "FAIL"}`);
 console.log(`  no dead MTL assets in staging: ${noMtlAssets ? "PASS" : "FAIL"}`);
 console.log(`  disclaimer W-by-tilt: ${discTiltW ? "PASS" : "FAIL"}`);
@@ -939,6 +950,7 @@ const pass =
   prodControlGrid &&
   tiltSlider &&
   subtitlePad &&
+  fieldHairline &&
   safariFix &&
   modalCss &&
   noMtlAssets &&

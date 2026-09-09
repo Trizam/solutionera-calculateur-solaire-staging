@@ -19,6 +19,9 @@
   --prod-gap: 0.75rem;
   /* Modest air above section / field-group titles (sous-titres) */
   --subtitle-pad-top: 0.45rem;
+  /* Hairline between stacked field sections — desaturated ERA green @ ~12% */
+  --section-hairline: rgba(47, 62, 54, 0.12);
+  --section-hairline-pad: 0.7rem;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -184,6 +187,20 @@ section.block h2 .num {
   margin: 0.2rem 0 0.75rem;
 }
 .field { margin-bottom: 1rem; }
+
+/*
+ * Thin hairlines between stacked field sections in the same card.
+ * Fred lock: do not restyle controls, fonts, colors, grid, or sliders —
+ * only the 1px rule and its modest pad. Modal .field stacks stay untouched.
+ */
+section.block > .field:has(+ .field) {
+  margin-bottom: var(--section-hairline-pad);
+}
+section.block > .field + .field {
+  border-top: 1px solid var(--section-hairline);
+  padding-top: var(--section-hairline-pad);
+}
+
 .field label,
 .field-label {
   display: block;
