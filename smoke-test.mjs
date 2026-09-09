@@ -516,9 +516,19 @@ const orientPanelsLabel =
   html.includes("title=\"Aide : Orientation des panneaux solaires\"") &&
   html.includes("<span data-info-title>Orientation des panneaux solaires</span>") &&
   !html.includes("Orientation de la toiture") &&
-  html.includes("<label for=\"area\">Superficie de la toiture</label>") &&
   html.includes("<label for=\"tilt\">Inclinaison de la toiture</label>");
-console.log(`  orient label = panneaux solaires (toiture fields kept): ${orientPanelsLabel ? "PASS" : "FAIL"}`);
+console.log(`  orient label = panneaux solaires (inclinaison toiture kept): ${orientPanelsLabel ? "PASS" : "FAIL"}`);
+const areaInstallLabel =
+  html.includes("<label for=\"area\">Superficie de l’installation</label>") &&
+  html.includes("aria-label=\"Aide : Superficie de l’installation\"") &&
+  html.includes("title=\"Aide : Superficie de l’installation\"") &&
+  html.includes("<span data-info-title>Superficie de l’installation</span>") &&
+  !html.includes("Superficie de la toiture") &&
+  !html.includes("superficie de votre toiture") &&
+  !html.includes("Plus de surface = plus de panneaux") &&
+  html.includes("Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.") &&
+  html.includes("<label for=\"tilt\">Inclinaison de la toiture</label>");
+console.log(`  area label = superficie de l’installation (inclinaison toiture kept): ${areaInstallLabel ? "PASS" : "FAIL"}`);
 const deneigeTpl = (html.match(/id="tpl-info-deneige"[\s\S]*?<\/template>/) || [""])[0];
 const deneigeTip =
   deneigeTpl.includes("Zéro pour cent = aucun déneigement.") &&
@@ -975,6 +985,7 @@ const pass =
   orientVersantTip &&
   orientAzimuthHint &&
   orientPanelsLabel &&
+  areaInstallLabel &&
   deneigeTip &&
   modeDefaultFull &&
   modeWebiOk &&

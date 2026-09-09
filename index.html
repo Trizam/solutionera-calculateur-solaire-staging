@@ -85,14 +85,15 @@
       <div class="field">
         <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
         <div class="label-row field-info-wrap">
-          <label for="area">Superficie de la toiture</label>
+          <label for="area">Superficie de l’installation</label>
           <button
             type="button"
             class="field-info-btn"
             data-info="area"
             aria-haspopup="dialog"
             aria-controls="fieldInfoModal"
-            aria-label="Aide : Superficie de la toiture"
+            aria-label="Aide : Superficie de l’installation"
+            title="Aide : Superficie de l’installation"
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
@@ -107,7 +108,7 @@
             <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
           </div>
         </div>
-        <p class="hint">→ Plus de surface = plus de panneaux (indiquez la superficie de votre toiture qui est le plus orientée au sud)</p>
+        <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -437,7 +438,7 @@
     </div>
   </template>
   <template id="tpl-info-area">
-    <span data-info-title>Superficie de la toiture</span>
+    <span data-info-title>Superficie de l’installation</span>
     <div class="info-block">
       <h4>Quelle surface compter</h4>
       <p>La superficie détermine le nombre de panneaux et le potentiel de production.</p>
