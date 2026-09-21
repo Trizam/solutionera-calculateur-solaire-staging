@@ -133,37 +133,36 @@ body.is-range-dragging {
   padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px));
   padding-left: max(1rem, env(safe-area-inset-left, 0px));
 }
-.topbar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin: 0 0 0.55rem;
-}
 .theme-toggle {
   display: inline-flex;
+  align-self: center;
+  flex-shrink: 0;
+  height: 44px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
   background: var(--card);
   box-shadow: var(--shadow);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .theme-toggle button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.28rem;
+  width: 2.5rem;
+  height: 100%;
+  margin: 0;
   border: 0;
   border-right: 1px solid var(--border);
   background: var(--input-bg);
-  padding: 0.38rem 0.55rem;
+  padding: 0;
   font-family: inherit;
-  font-weight: 700;
-  font-size: 0.72rem;
-  line-height: 1;
   color: var(--muted);
   cursor: pointer;
-  touch-action: manipulation;
-  white-space: nowrap;
+  touch-action: none;
 }
 .theme-toggle button:last-child { border-right: 0; }
 .theme-toggle button.active,
@@ -1136,7 +1135,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, footer.bug, .unit-toggle, .topbar, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge { display: none !important; }
   html[data-theme="dark"] {
     color-scheme: light;
@@ -1257,8 +1256,8 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 0px));
     padding-left: max(0.85rem, env(safe-area-inset-left, 0px));
   }
-  .topbar { margin-bottom: 0.4rem; }
-  .theme-toggle button { padding: 0.34rem 0.42rem; font-size: 0.68rem; }
+  .theme-toggle { height: 40px; }
+  .theme-toggle button { width: 2.25rem; }
   .brand { margin-bottom: 0.55rem; gap: 0.55rem; }
   .brand-logo { width: 44px; height: 44px; }
   .brand-name { font-size: 0.9rem; }

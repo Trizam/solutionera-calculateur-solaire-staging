@@ -751,17 +751,26 @@ const htmlThemeToggle =
   /<html[^>]*data-theme-pref="sys"/.test(html) &&
   html.includes('role="radiogroup"') &&
   html.includes("aria-label=\"Thème\"") &&
-  html.includes(">Clair<") &&
-  html.includes(">Sys<") &&
-  html.includes(">Sombre<");
+  /class="brand"[\s\S]*id="themeToggle"/.test(html) &&
+  !html.includes("<span>Clair</span>") &&
+  !html.includes("<span>Sys</span>") &&
+  !html.includes("<span>Sombre</span>") &&
+  !html.includes('class="topbar"');
+const themeSwipe =
+  themeSrc.includes("wireSwipe") &&
+  themeSrc.includes("prefFromClientX") &&
+  themeSrc.includes("pointerdown") &&
+  themeSrc.includes("touchstart") &&
+  /touch-action:\s*none/.test(css);
 const cssThemeDark =
   /html\[data-theme="dark"\]/.test(css) &&
   css.includes(".theme-toggle") &&
-  css.includes(".topbar") &&
+  !css.includes(".topbar") &&
   /html\[data-theme="dark"\]\s*\.theme-toggle button\.active/.test(css) &&
   /@media print[\s\S]*\.theme-toggle/.test(css);
 console.log(`  theme pref light/sys/dark + persist + OS resolve: ${themeLogicOk ? "PASS" : "FAIL"}`);
-console.log(`  theme toggle top 3-pos (Clair/Sys/Sombre) + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
+console.log(`  theme icons-only in brand row + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
+console.log(`  theme swipe (pointer + touch) + touch-action none: ${themeSwipe ? "PASS" : "FAIL"}`);
 console.log(`  CSS data-theme=dark tokens + print hides toggle: ${cssThemeDark ? "PASS" : "FAIL"}`);
 
 /** Same 2-sig-fig display helper as app.js (sec-prod only) */
@@ -1110,6 +1119,7 @@ const pass =
   dayOk &&
   themeLogicOk &&
   htmlThemeToggle &&
+  themeSwipe &&
   cssThemeDark &&
   sig2RoundOk &&
   fmt14230Ok &&

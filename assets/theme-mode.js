@@ -125,6 +125,84 @@
     focusActive();
   }
 
+  function prefFromClientX(rootEl, clientX) {
+    var rect = rootEl.getBoundingClientRect();
+    var w = rect.width || 1;
+    var t = (clientX - rect.left) / w;
+    if (t < 1 / 3) return PREF_LIGHT;
+    if (t < 2 / 3) return PREF_SYS;
+    return PREF_DARK;
+  }
+
+  function wireSwipe(rootEl) {
+    var tracking = false;
+    var moved = false;
+    var startX = 0;
+    var pointerId = null;
+    var SWIPE_PX = 12;
+
+    function onMove(clientX) {
+      if (!tracking) return;
+      if (Math.abs(clientX - startX) >= SWIPE_PX) moved = true;
+      if (moved) applyTheme(prefFromClientX(rootEl, clientX), false);
+    }
+
+    function onEnd(clientX) {
+      if (!tracking) return;
+      tracking = false;
+      if (moved) {
+        applyTheme(prefFromClientX(rootEl, clientX), true);
+        rootEl.setAttribute("data-swiped", "1");
+      } else {
+        rootEl.removeAttribute("data-swiped");
+      }
+    }
+
+    if (root.addEventListener && root.PointerEvent) {
+      rootEl.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        tracking = true;
+        moved = false;
+        startX = e.clientX;
+        pointerId = e.pointerId;
+        if (rootEl.setPointerCapture) {
+          try { rootEl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        }
+      });
+      rootEl.addEventListener("pointermove", function (e) {
+        if (!tracking || (pointerId != null && e.pointerId !== pointerId)) return;
+        onMove(e.clientX);
+      });
+      rootEl.addEventListener("pointerup", function (e) {
+        if (pointerId != null && e.pointerId !== pointerId) return;
+        onEnd(e.clientX);
+        pointerId = null;
+      });
+      rootEl.addEventListener("pointercancel", function () {
+        tracking = false;
+        moved = false;
+        pointerId = null;
+        rootEl.removeAttribute("data-swiped");
+      });
+    } else {
+      rootEl.addEventListener("touchstart", function (e) {
+        if (!e.touches || !e.touches[0]) return;
+        tracking = true;
+        moved = false;
+        startX = e.touches[0].clientX;
+      }, { passive: true });
+      rootEl.addEventListener("touchmove", function (e) {
+        if (!tracking || !e.touches || !e.touches[0]) return;
+        onMove(e.touches[0].clientX);
+        if (moved && e.cancelable) e.preventDefault();
+      }, { passive: false });
+      rootEl.addEventListener("touchend", function (e) {
+        var t = e.changedTouches && e.changedTouches[0];
+        onEnd(t ? t.clientX : startX);
+      });
+    }
+  }
+
   function wireToggle() {
     var doc = typeof document !== "undefined" ? document : null;
     if (!doc || !doc.getElementById) return;
@@ -132,6 +210,11 @@
     if (!rootEl || rootEl.getAttribute("data-wired") === "1") return;
     rootEl.setAttribute("data-wired", "1");
     rootEl.addEventListener("click", function (e) {
+      if (rootEl.getAttribute("data-swiped") === "1") {
+        rootEl.removeAttribute("data-swiped");
+        e.preventDefault();
+        return;
+      }
       var target = e.target;
       var btn = target && target.closest ? target.closest("[data-theme-pref-btn]") : null;
       if (!btn) return;
@@ -155,6 +238,7 @@
         focusActive();
       }
     });
+    wireSwipe(rootEl);
     syncToggleUi();
   }
 
