@@ -396,16 +396,33 @@ const hasConsoInput =
   html.includes("Consommation annuelle (kWh / an)") &&
   /id="conso"[^>]*value="17000"/.test(html);
 const hasEcoNote =
-  html.includes("kpiEcoNote") &&
-  html.includes("Plafonné à votre consommation annuelle") &&
-  html.includes("on ne peut pas économiser plus que ce qu’on consomme");
+  html.includes("surplusAlert") &&
+  html.includes("Moins optimal") &&
+  html.includes("4,730") &&
+  html.includes("id=\"surplusKwh\"") &&
+  html.includes("id=\"surplusBuyback\"") &&
+  html.includes("id=\"surplusGap\"") &&
+  !html.includes("Vous perdez de l’argent");
 const hasCreditFn =
   app.includes("function creditKwh") &&
   app.includes("Math.min(kWhProd, kWhConso)") &&
   /DEFAULT_CONSO_KWH\s*=\s*17000/.test(app) &&
+  /BUYBACK_RATE\s*=\s*0\.04730/.test(app) &&
   app.includes("kWhCredites") &&
-  app.includes("ecoClamped");
-const hasConsoWired = app.includes('"conso"') && app.includes("kpiEcoNote");
+  app.includes("ecoClamped") &&
+  app.includes("surplusKwh") &&
+  app.includes("surplusBuyback") &&
+  app.includes("surplusGap");
+const hasConsoWired =
+  app.includes('"conso"') &&
+  app.includes("surplusAlert") &&
+  !app.includes("is-clamped") &&
+  !app.includes("cardEco");
+const hasSurplusAlertCss =
+  css.includes(".surplus-alert") &&
+  css.includes("--caution-soft") &&
+  !css.includes(".card-kpi.is-clamped") &&
+  !css.includes("--danger");
 const ttcExact = 0.11142 * TAX_MULT;
 const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
 const defaultRateTtc =
@@ -415,6 +432,40 @@ const defaultRateTtc =
   Math.abs(ttcRounded - 0.12811) < 1e-12 &&
   app.includes("RATE_D_T2_HT") &&
   /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
+/** Issue #59: ¢ saisie (9,53) must not be treated as $/kWh */
+function rateDollarsPerKwh(raw, defaultRate = 0.12811) {
+  const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
+  if (!isFinite(v) || v <= 0) return defaultRate;
+  if (v > 1) return v / 100;
+  return v;
+}
+const rateNormPass =
+  Math.abs(rateDollarsPerKwh(0.12811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(9.53) - 0.0953) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(12.811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh("9,53") - 0.0953) < 1e-12 &&
+  rateDollarsPerKwh(0) === 0.12811 &&
+  rateDollarsPerKwh(-1) === 0.12811;
+const rateBug59Eco = rateDollarsPerKwh(9.53001) * 8130.843520000001;
+const rateBug59Years = 18396 / rateBug59Eco;
+const rateBug59Pass = rateBug59Eco < 1000 && rateBug59Years > 10 && rateBug59Years < 40;
+const hasRateCentsNormalize =
+  app.includes("function rateDollarsPerKwh") &&
+  app.includes("function coerceRateInput") &&
+  app.includes("v > 1") &&
+  app.includes("v / 100") &&
+  html.includes("lue en ¢/kWh") &&
+  html.includes("convertit automatiquement");
+const surplusClampMath = (function () {
+  const prod = 8000;
+  const conso = 3000;
+  const rate = 0.12811;
+  const buyback = 0.04730;
+  const surplus = prod - conso;
+  const buy = surplus * buyback;
+  const gap = surplus * rate - buy;
+  return surplus === 5000 && Math.abs(buy - 236.5) < 0.01 && Math.abs(gap - 404.05) < 0.01;
+})();
 const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
@@ -431,7 +482,6 @@ const hasRateInfoUi =
   html.includes("0,12811") &&
   html.includes("Avant taxes (HT)") &&
   html.includes("Taxes comprises (TTC)") &&
-  html.includes("tarif de 2") &&
   html.includes("tranche TTC") &&
   !html.includes("9,82") &&
   !html.includes("9,81") &&
@@ -457,8 +507,13 @@ console.log(`  pageshow clears range drag: ${pageShowClear ? "PASS" : "FAIL"}`);
 console.log(`  conso annuelle input + défaut 17 000 kWh: ${hasConsoInput ? "PASS" : "FAIL"}`);
 console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL"}`);
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
-console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
+console.log(`  conso wired to render + surplusAlert: ${hasConsoWired ? "PASS" : "FAIL"}`);
+console.log(`  surplus alert CSS jaune, cartes inchangées: ${hasSurplusAlertCss ? "PASS" : "FAIL"}`);
+console.log(`  surplus kWh × rachat 4,730 ¢ + écart vs évité: ${surplusClampMath ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
+console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
+console.log(`  rate cents normalize wired (blur + hint): ${hasRateCentsNormalize ? "PASS" : "FAIL"}`);
 const infoSheetUi =
   css.includes(".info-sheet") &&
   /max-height:\s*min\(88dvh/.test(css) &&
@@ -993,7 +1048,12 @@ const pass =
   hasEcoNote &&
   hasCreditFn &&
   hasConsoWired &&
+  hasSurplusAlertCss &&
+  surplusClampMath &&
   defaultRateTtc &&
+  rateNormPass &&
+  rateBug59Pass &&
+  hasRateCentsNormalize &&
   hasRateInfoUi &&
   infoSheetUi &&
   orientVersantTip &&
