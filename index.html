@@ -80,9 +80,98 @@
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
-    <!-- 1 · Production — visible in both modes; webi = this block only -->
+    <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
     <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
-      <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie électrique avec ma toiture&nbsp;?</h2>
+      <h2 id="h-prod"><span class="num">1A</span> Combien de panneaux puis-je installer sur ma toiture&nbsp;?</h2>
+      <div class="field">
+        <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
+        <div class="label-row field-info-wrap">
+          <label for="area">Superficie de l’installation</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="area"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Superficie de l’installation"
+            title="Aide : Superficie de l’installation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="prod-control-row">
+          <div class="unit-toggle" role="group" aria-label="Unité de surface">
+            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
+            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
+          </div>
+          <div class="prod-control-main">
+            <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
+            <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
+          </div>
+        </div>
+        <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
+      </div>
+      <div class="field">
+        <div class="label-row field-info-wrap">
+          <label for="util">Densité d’installation (utilisation du toit)</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="util"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Densité d’installation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="utilVal">80 %</div>
+          <div class="slider-track">
+            <input id="util" type="range" min="60" max="100" step="1" value="80" />
+            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
+        </div>
+        <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
+      </div>
+      <div class="result-pill">
+        <div class="label">Vous pourrez alors installer</div>
+        <div class="size-metrics">
+          <div class="size-metric">
+            <div class="big"><span class="prod-num" id="outPv">—</span></div>
+            <div class="label">PV</div>
+          </div>
+          <div class="size-metric">
+            <div class="big"><span class="prod-num" id="outKw">—</span></div>
+            <div class="label">kWc</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1B · Production — visible in both modes; webi = 1A + 1B -->
+    <section class="block" id="sec-prod-b" aria-labelledby="h-prod-b">
+      <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
+      <div class="field" id="field-loc">
+        <div class="label-row field-info-wrap">
+          <span class="field-label" id="locLabel">Localisation</span>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="loc"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Localisation"
+            title="Aide : Localisation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="loc-fixed" role="group" aria-labelledby="locLabel">
+          <span class="loc-value">Ville de Québec</span>
+        </div>
+        <p class="hint">→ Irradiation ancrée sur Québec (ville) · le reste du QC : ±&nbsp;4&nbsp;%.</p>
+      </div>
       <div class="field">
         <div class="label-row field-info-wrap">
           <label for="orient">Orientation des panneaux solaires</label>
@@ -147,34 +236,6 @@
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
       </div>
       <div class="field">
-        <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
-        <div class="label-row field-info-wrap">
-          <label for="area">Superficie de l’installation</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="area"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Superficie de l’installation"
-            title="Aide : Superficie de l’installation"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row">
-          <div class="unit-toggle" role="group" aria-label="Unité de surface">
-            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
-            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
-          </div>
-          <div class="prod-control-main">
-            <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
-            <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
-          </div>
-        </div>
-        <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
-      </div>
-      <div class="field">
         <div class="label-row field-info-wrap">
           <label for="tilt">Inclinaison de la toiture</label>
           <button
@@ -209,29 +270,6 @@
           </div>
         </div>
       </div>
-      <div class="field">
-        <div class="label-row field-info-wrap">
-          <label for="util">Densité d’installation (utilisation du toit)</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="util"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Densité d’installation"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="utilVal">80 %</div>
-          <div class="slider-track">
-            <input id="util" type="range" min="60" max="100" step="1" value="80" />
-            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
-          </div>
-        </div>
-        <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
-      </div>
       <div class="field" id="field-deneige">
         <div class="label-row field-info-wrap">
           <label for="deneige">Fréquence de déneigement</label>
@@ -253,22 +291,23 @@
             <div class="slider-meta"><span>jamais</span><span>toujours</span></div>
           </div>
         </div>
-      </div><div class="result-pill">
-        <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
-        <div class="label">Vous pourrez alors produire</div>
-        <div class="prod-lines">
-          <div class="big prod-line" id="outKwhDay">
-            <span class="prod-num">—</span>
-            <span class="prod-unit">kWh /</span>
-            <span class="prod-period">jour</span>
-          </div>
+      </div>
+      <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
+      <div class="result-pair">
+        <div class="result-pill">
+          <div class="label">Mesurage Net</div>
           <div class="big prod-line" id="outKwh">
             <span class="prod-num">—</span>
-            <span class="prod-unit">kWh /</span>
-            <span class="prod-period">an</span>
+            <span class="prod-unit">kWh / an</span>
           </div>
         </div>
-        <div class="label prod-power">avec une installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
+        <div class="result-pill">
+          <div class="label">Autonomie</div>
+          <div class="big prod-line" id="outKwhDay">
+            <span class="prod-num">—</span>
+            <span class="prod-unit">kWh / j déc</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -499,6 +538,14 @@
     </div>
   </div>
 
+  <template id="tpl-info-loc">
+    <span data-info-title>Localisation</span>
+    <div class="info-block">
+      <h4>Ville de Québec</h4>
+      <p>La grille d’irradiation est fixe, ancrée sur Québec (ville), NREL/PVWatts.</p>
+      <p>Ailleurs au Québec, la productivité peut varier d’environ ±&nbsp;4&nbsp;%.</p>
+    </div>
+  </template>
   <template id="tpl-info-orient">
     <span data-info-title>Orientation des panneaux solaires</span>
     <div class="info-block">

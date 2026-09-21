@@ -237,7 +237,8 @@ const logisCopy =
 const htmlSansBrand = html
   .replace(/DÉFI Autonomie Énergétique/g, "")
   .replace(/Autonomie et neige/g, "")
-  .replace(/en autonomie/gi, "");
+  .replace(/en autonomie/gi, "")
+  .replace(/<div class="label">Autonomie<\/div>/g, "");
 const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -557,7 +558,8 @@ const infoSheetUi =
   html.includes('class="modal-backdrop info-sheet" id="bugModal"') &&
   app.includes("openFieldInfo") &&
   app.includes("fieldInfoModal") &&
-  html.includes('data-info="orient"') &&
+  html.includes('data-info="loc"') &&
+  html.includes("tpl-info-loc") &&
   html.includes('data-info="area"') &&
   html.includes('data-info="util"') &&
   html.includes('data-info="deneige"') &&
@@ -587,7 +589,8 @@ const infoSheetUi =
   html.includes("puits de ventilation") &&
   !html.includes("superficie exacte des panneaux") &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
-  html.includes("avec une installation solaire d’une puissance de") &&
+  html.includes("Mesurage Net") &&
+  html.includes("Vous pourrez alors installer") &&
   !html.includes("avec votre installation solaire") &&
   html.includes("perte de production") &&
   html.includes("chiffre à gauche") &&
@@ -732,6 +735,28 @@ const modeWebiOk =
 const htmlModeDefault = /<html[^>]*data-mode="full"/.test(html);
 const htmlModeScript = html.includes('src="assets/display-mode.js"');
 const htmlProdVisible = html.includes('id="sec-prod"') && !/id="sec-prod"[^>]*mode-full-only/.test(html);
+const htmlProdBVisible = html.includes('id="sec-prod-b"') && !/id="sec-prod-b"[^>]*mode-full-only/.test(html);
+const htmlSplit1A =
+  html.includes('<span class="num">1A</span>') &&
+  html.includes("Combien de panneaux puis-je installer") &&
+  html.includes('id="outPv"') &&
+  html.includes(">PV<") &&
+  /id="outKw"/.test(html) &&
+  html.includes(">kWc<") &&
+  html.indexOf('id="area"') < html.indexOf('id="util"') &&
+  html.indexOf('id="util"') < html.indexOf('id="outPv"');
+const htmlSplit1B =
+  html.includes('<span class="num">1B</span>') &&
+  html.includes("Combien d'énergie électrique vais-je produire") &&
+  html.includes("Ville de Québec") &&
+  html.includes("Mesurage Net") &&
+  html.includes("Autonomie") &&
+  html.includes("kWh / an") &&
+  html.includes("kWh / j déc") &&
+  html.includes("±&nbsp;4") &&
+  html.indexOf("field-loc") < html.indexOf('id="orient"') &&
+  html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
+  html.indexOf('id="tilt"') < html.indexOf("field-deneige");
 const secCostIdx = html.indexOf('id="sec-cost"');
 const secValueIdx = html.indexOf('id="sec-value"');
 const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
@@ -756,43 +781,60 @@ const htmlAllowlist =
   htmlHidesDisc &&
   htmlHidesHero &&
   htmlProdVisible &&
+  htmlProdBVisible &&
   html.includes('id="sec-prod"') &&
+  html.includes('id="sec-prod-b"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
-const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh /") && html.includes(">jour<");
-const prodPillAnnual = html.includes('id="outKwh"') && html.includes(">an<");
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j déc");
+const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an") && html.includes("Mesurage Net");
 const prodPillEqualType =
   html.includes('class="big prod-line" id="outKwhDay"') &&
   html.includes('class="big prod-line" id="outKwh"') &&
   html.includes("prod-num") &&
-  css.includes("prod-lines") &&
-  /grid-template-columns:\s*max-content\s+auto\s+auto/.test(css) &&
+  css.includes("result-pair") &&
+  /grid-template-columns:\s*1fr\s+1fr/.test(css) &&
   !html.includes("big-annual") &&
   !css.includes(".big-annual");
 const prodKwC =
-  /id="outKw"[^>]*>— kWc</.test(html) &&
-  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app) &&
-  html.includes("avec une installation solaire d’une puissance de") &&
-  !html.includes("Puissance estimée");
+  html.includes('id="outKw"') &&
+  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
+  html.includes(">kWc<") &&
+  html.includes('id="outPv"') &&
+  app.includes("PANEL_W") &&
+  !html.includes("Puissance estimée") &&
+  !html.includes("avec une installation solaire d’une puissance de");
 const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
   !/id="outKwh"[^>]*>≈/.test(html) &&
   !app.includes('"≈ " + fmtNum(r.kWh') &&
   app.includes("prod-num") &&
   app.includes("kWhDay");
-const dayFromAnnual = Math.round(6874 / 365);
-const dayOk = dayFromAnnual === 19;
+const s30Dec = s30.ac_monthly && s30.ac_monthly.dec;
+const snowFactor = 1 - (1 - 0.20) * winterWFromTilt(30);
+const kWDefault = 40 * 0.80 * 0.20;
+const nPvDefault = Math.round((kWDefault * 1000) / 400);
+const kWhDecDay = (s30Dec * kWDefault * snowFactor) / 31;
+const dayOk =
+  Math.abs(s30Dec - 53.274) < 0.01 &&
+  nPvDefault === 16 &&
+  Math.abs(kWDefault - 6.4) < 1e-9 &&
+  app.includes("DAYS_IN_DEC") &&
+  app.includes("kWhDec") &&
+  kWhDecDay > 8 && kWhDecDay < 11;
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
-console.log(`  webi hides non-#sec-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  webi hides non-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  step 1 split 1A superficie/densité → PV+kWc: ${htmlSplit1A ? "PASS" : "FAIL"}`);
+console.log(`  step 1B localisation QC / orient / tilt / déneige: ${htmlSplit1B ? "PASS" : "FAIL"}`);
 console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
 console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
-console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
-console.log(`  prod pill jour+an same .big type: ${prodPillEqualType ? "PASS" : "FAIL"}`);
-console.log(`  prod pill puissance unit kWc: ${prodKwC ? "PASS" : "FAIL"}`);
-console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
+console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
+console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
+console.log(`  1A réponse qté PV + kWc (400 W): ${prodKwC ? "PASS" : "FAIL"}`);
+console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -1287,6 +1329,9 @@ const pass =
   htmlModeDefault &&
   htmlModeScript &&
   htmlAllowlist &&
+  htmlSplit1A &&
+  htmlSplit1B &&
+  htmlProdBVisible &&
   cssHidesFull &&
   cssHidesWebiOnly &&
   htmlWebiBadge &&

@@ -261,11 +261,15 @@ section.block h2 {
 section.block h2 .num {
   display: inline-grid;
   place-items: center;
-  width: 1.55rem; height: 1.55rem;
-  border-radius: 50%;
+  width: auto;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  padding: 0 0.38rem;
+  border-radius: 999px;
   background: var(--green);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
 }
 .hint {
@@ -312,7 +316,8 @@ section.block > .field + .field > :first-child {
   gap: 0.5rem;
   margin-bottom: 0.35rem;
 }
-.label-row label { margin-bottom: 0; }
+.label-row label,
+.label-row .field-label { margin-bottom: 0; }
 
 /* Shared: a bit of air above every sous-titre — not one-off per section */
 section.block > h2,
@@ -699,6 +704,18 @@ section.block > h2,
 }
 .check input { margin-top: 0.2rem; accent-color: var(--accent); }
 .check .sub { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+.loc-fixed {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
 .result-pill {
   background: linear-gradient(135deg, var(--green-soft), var(--pill-end));
   border: 1px solid var(--border);
@@ -713,42 +730,52 @@ section.block > h2,
   color: var(--green-dark);
   line-height: 1.2;
 }
-.result-pill .prod-lines {
+.size-metrics {
   display: grid;
-  grid-template-columns: max-content auto auto;
-  justify-content: center;
-  align-items: baseline;
-  column-gap: 0.35em;
-  row-gap: 0.15rem;
-  width: max-content;
-  max-width: 100%;
-  margin-inline: auto;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--green-dark);
-  line-height: 1.2;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
 }
-.result-pill .prod-line { display: contents; }
-.result-pill .prod-num {
-  justify-self: end;
-  text-align: right;
+.size-metric .label {
+  margin-top: 0.1rem;
+}
+.result-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+.result-pair .result-pill {
+  margin-top: 0;
+  padding: 0.85rem 0.65rem;
+  min-width: 0;
+}
+.result-pair .result-pill .big {
+  font-size: 1.45rem;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.1rem;
+  margin-top: 0.2rem;
+}
+.result-pair .prod-line { display: flex; }
+.result-pair .prod-num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.result-pill .prod-unit,
-.result-pill .prod-period {
-  justify-self: start;
+.result-pair .prod-unit {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.result-pill .prod-num {
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .result-pill .label { font-size: 0.85rem; color: var(--muted); }
-.result-pill .prod-power {
-  margin-top: 0.35rem;
-  line-height: 1.45;
-}
-.result-pill .prod-power strong {
-  color: var(--green-dark);
-  font-variant-numeric: tabular-nums;
-}
 .calc-line {
   font-size: 0.88rem;
   color: var(--muted);
@@ -1353,13 +1380,14 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   .brand { margin-bottom: 0.5rem; }
   .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   section.block, header.hero, .disclaimers,
-  .result-pill, .breakdown, .cards, .card-kpi {
+  .result-pill, .result-pair, .breakdown, .cards, .card-kpi {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none;
     border-color: #ccc;
   }
-  .result-pill, .card-kpi { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .result-pill, .card-kpi, .loc-fixed { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .result-pair { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: repeat(3, 1fr); }
   a { color: inherit; text-decoration: none; }
   /* Compact inputs for PDF */
@@ -1462,7 +1490,8 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 /* Skip target: allow programmatic focus without ugly ring flash, keep :focus-visible */
 #main:focus { outline: none; }
 #main:focus-visible { outline: 2px solid var(--green, #1b4332); outline-offset: 4px; }
-#sec-prod:focus { outline: none; }
+#sec-prod:focus,
+#sec-prod-b:focus { outline: none; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
