@@ -431,6 +431,13 @@ const hasRateInfoUi =
   html.includes("Maison moyenne") &&
   html.includes("coût du kWh moyen") &&
   html.includes("rate-avg-row") &&
+  html.includes("Rachat HQ") &&
+  html.includes("surplus après 24 mois") &&
+  html.includes("4,730") &&
+  html.includes("5,438") &&
+  html.includes("rate-buyback-row") &&
+  html.includes("art.&nbsp;2.51") &&
+  html.includes("tarifs-electricite.pdf") &&
   html.includes("rate-table-source") &&
   html.includes("0,12811") &&
   html.includes("Avant taxes (HT)") &&
