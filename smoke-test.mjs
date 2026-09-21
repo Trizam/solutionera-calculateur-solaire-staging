@@ -434,7 +434,8 @@ const hasRateInfoUi =
   html.includes("Rachat HQ") &&
   html.includes("surplus après 24 mois") &&
   html.includes("4,730") &&
-  html.includes("sans taxes") &&
+  /Rachat HQ[\s\S]{0,280}4,730[\s\S]{0,80}4,730/.test(html) &&
+  html.includes("HT = TTC") &&
   !html.includes("5,438") &&
   html.includes("HQ ne rajoute pas TPS/TVQ") &&
   html.includes("4,730&nbsp;¢ est le chiffre réel") &&
