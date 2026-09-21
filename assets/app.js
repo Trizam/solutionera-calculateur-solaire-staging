@@ -94,6 +94,55 @@
     return "~ " + fmtNum(n, 1) + " ans";
   }
 
+  /** Grouping spaces used by FR locales (regular, NBSP, NNBSP, thin). */
+  const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
+
+  function digitsOnly(raw) {
+    return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
+  }
+
+  /** Parse a grouped FR integer ("17 000", "17000") → number or NaN. */
+  function parseGroupedInt(raw) {
+    const digits = digitsOnly(raw);
+    if (digits === "") return NaN;
+    const v = parseInt(digits, 10);
+    return isFinite(v) ? v : NaN;
+  }
+
+  /** Integer with a visible thousand space, same grouping as page copy (17 000). */
+  function fmtGroupedInt(n) {
+    if (!isFinite(n)) return "";
+    const digits = String(Math.max(0, Math.round(n)));
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  function formatConsoInput(keepCursor) {
+    const el = $("conso");
+    if (!el) return;
+    const old = String(el.value);
+    const digits = digitsOnly(old);
+    if (digits === "") {
+      if (old !== "") el.value = "";
+      return;
+    }
+    const next = fmtGroupedInt(parseInt(digits, 10));
+    if (next === old) return;
+    let sel = 0;
+    if (keepCursor && typeof el.selectionStart === "number") {
+      sel = old.slice(0, el.selectionStart).replace(/\D/g, "").length;
+    }
+    el.value = next;
+    if (keepCursor) {
+      let pos = 0;
+      let seen = 0;
+      while (pos < next.length && seen < sel) {
+        if (/\d/.test(next.charAt(pos))) seen += 1;
+        pos += 1;
+      }
+      try { el.setSelectionRange(pos, pos); } catch (_) {}
+    }
+  }
+
   /**
    * Winter-loss fraction W from tilt (whole percent → fraction).
    * ≤45° → 18%; 90° → 0%; else round(18 * (90 - tilt) / 45) / 100
@@ -150,9 +199,7 @@
   function consoAnnuelleKwh() {
     const el = $("conso");
     if (!el) return null;
-    const raw = String(el.value).trim().replace(",", ".");
-    if (raw === "" || raw === "-" || raw === ".") return null;
-    const v = parseFloat(raw);
+    const v = parseGroupedInt(el.value);
     if (!isFinite(v) || v <= 0) return null;
     return v;
   }
@@ -886,12 +933,21 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "conso"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
+    const conso = $("conso");
+    if (conso) {
+      conso.addEventListener("input", function () { formatConsoInput(true); render(); });
+      conso.addEventListener("change", function () { formatConsoInput(false); render(); });
+      conso.addEventListener("blur", function () { formatConsoInput(false); render(); });
+      conso.addEventListener("paste", function () {
+        requestAnimationFrame(function () { formatConsoInput(true); render(); });
+      });
+    }
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
@@ -951,7 +1007,7 @@
     $("taxes").checked = true;
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
-    if ($("conso")) $("conso").value = String(DEFAULT_CONSO_KWH);
+    if ($("conso")) $("conso").value = fmtGroupedInt(DEFAULT_CONSO_KWH);
     if ($("unitM2")) $("unitM2").setAttribute("aria-pressed", "true");
     if ($("unitSqft")) $("unitSqft").setAttribute("aria-pressed", "false");
   }
@@ -1001,6 +1057,9 @@
     applyDeneigement,
     creditKwh,
     consoAnnuelleKwh,
+    parseGroupedInt,
+    fmtGroupedInt,
+    formatConsoInput,
     rateDollarsPerKwh,
     coerceRateInput,
     lookupCell,
