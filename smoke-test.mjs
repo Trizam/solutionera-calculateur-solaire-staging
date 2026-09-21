@@ -673,6 +673,11 @@ const deneigeTip =
   !deneigeTpl.includes("100&nbsp;% = déneigement après chaque chute") &&
   !deneigeTpl.includes("L’inclinaison fixe aussi le risque");
 console.log(`  ⓘ déneigement mots + accumulation 12/12: ${deneigeTip ? "PASS" : "FAIL"}`);
+const deneigeEnds =
+  /id="deneige"[\s\S]*?<div class="slider-meta"><span>jamais<\/span><span>toujours<\/span><\/div>/.test(html) &&
+  !html.includes("je ne déneige pas") &&
+  !html.includes("je déneige dès qu");
+console.log(`  déneigement ends jamais/toujours, no 0%/100% hint: ${deneigeEnds ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -1276,6 +1281,7 @@ const pass =
   orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
+  deneigeEnds &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
