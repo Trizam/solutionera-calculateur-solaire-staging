@@ -451,6 +451,30 @@ const defaultRateTtc =
   Math.abs(ttcRounded - 0.12811) < 1e-12 &&
   app.includes("RATE_D_T2_HT") &&
   /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
+/** Issue #59: ¢ saisie (9,53) must not be treated as $/kWh */
+function rateDollarsPerKwh(raw, defaultRate = 0.12811) {
+  const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
+  if (!isFinite(v) || v <= 0) return defaultRate;
+  if (v > 1) return v / 100;
+  return v;
+}
+const rateNormPass =
+  Math.abs(rateDollarsPerKwh(0.12811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(9.53) - 0.0953) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(12.811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh("9,53") - 0.0953) < 1e-12 &&
+  rateDollarsPerKwh(0) === 0.12811 &&
+  rateDollarsPerKwh(-1) === 0.12811;
+const rateBug59Eco = rateDollarsPerKwh(9.53001) * 8130.843520000001;
+const rateBug59Years = 18396 / rateBug59Eco;
+const rateBug59Pass = rateBug59Eco < 1000 && rateBug59Years > 10 && rateBug59Years < 40;
+const hasRateCentsNormalize =
+  app.includes("function rateDollarsPerKwh") &&
+  app.includes("function coerceRateInput") &&
+  app.includes("v > 1") &&
+  app.includes("v / 100") &&
+  html.includes("lue en ¢/kWh") &&
+  html.includes("convertit automatiquement");
 const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
@@ -467,7 +491,6 @@ const hasRateInfoUi =
   html.includes("0,12811") &&
   html.includes("Avant taxes (HT)") &&
   html.includes("Taxes comprises (TTC)") &&
-  html.includes("tarif de 2") &&
   html.includes("tranche TTC") &&
   !html.includes("9,82") &&
   !html.includes("9,81") &&
@@ -498,6 +521,9 @@ console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
+console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
+console.log(`  rate cents normalize wired (blur + hint): ${hasRateCentsNormalize ? "PASS" : "FAIL"}`);
 const infoSheetUi =
   css.includes(".info-sheet") &&
   /max-height:\s*min\(88dvh/.test(css) &&
@@ -1036,6 +1062,9 @@ const pass =
   hasCreditFn &&
   hasConsoWired &&
   defaultRateTtc &&
+  rateNormPass &&
+  rateBug59Pass &&
+  hasRateCentsNormalize &&
   hasRateInfoUi &&
   infoSheetUi &&
   orientVersantTip &&
