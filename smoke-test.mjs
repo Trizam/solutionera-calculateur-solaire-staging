@@ -419,7 +419,7 @@ const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
   html.includes("9,53") &&
-  html.includes("Moyenne Québec TTC") &&
+  html.includes("Coût du kWh moyen — maison moyenne") &&
   html.includes("Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois") &&
   html.includes("8,29") &&
   html.includes("comparaison-prix-electricite-2025.pdf") &&
@@ -428,6 +428,10 @@ const hasRateInfoUi =
   html.includes("46,154") &&
   html.includes("8,123") &&
   html.includes("12,811") &&
+  html.includes("Maison moyenne") &&
+  html.includes("coût du kWh moyen") &&
+  html.includes("rate-avg-row") &&
+  html.includes("rate-table-source") &&
   html.includes("0,12811") &&
   html.includes("Avant taxes (HT)") &&
   html.includes("Taxes comprises (TTC)") &&
