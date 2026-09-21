@@ -11,7 +11,8 @@
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
   // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
-  const DEFAULT_RATE = 0.12811; // Tarif D 2e tranche TTC, 1 avr 2026
+  const DEFAULT_RATE_CENTS = 12.811; // champ tarif: ¢/kWh (2e tranche TTC)
+  const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
   const SQFT_PER_M2 = 10.76391041671;
@@ -233,27 +234,13 @@
   }
 
   /**
-   * Tarif in $/kWh. Values > 1 are treated as ¢/kWh (ex. 9,53 from ⓘ moyenne)
-   * and converted — otherwise payback collapses to ~0 an (issue #59).
+   * Field is ¢/kWh. Convert to $/kWh for money math.
+   * Empty / invalid → default 2e tranche TTC (issue #59: 9,53 stays 9,53 ¢).
    */
   function rateDollarsPerKwh(raw) {
     const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
     if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
-    if (v > 1) return v / 100;
-    return v;
-  }
-
-  /** On blur: rewrite ¢ entries (9.53 → 0.0953) so the field matches $/kWh. */
-  function coerceRateInput() {
-    const el = $("rate");
-    if (!el) return;
-    const raw = String(el.value).trim().replace(",", ".");
-    if (raw === "" || raw === "-" || raw === ".") return;
-    const v = parseFloat(raw);
-    if (!isFinite(v) || v <= 0) return;
-    if (v > 1) {
-      el.value = String(Math.round((v / 100) * 1e5) / 1e5);
-    }
+    return v / 100;
   }
 
   /** kWh_credites = min(production, consommation) when conso is provided */
@@ -1156,10 +1143,6 @@
       wireSliderRowDrag(row);
     });
     wireOrientDial();
-    const rateEl = $("rate");
-    if (rateEl) {
-      rateEl.addEventListener("blur", () => { coerceRateInput(); render(); });
-    }
     const area = $("area");
     if (area) {
       area.addEventListener("input", () => { roundAreaInput(); render(); });
@@ -1204,7 +1187,7 @@
     if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
     $("tilt").value = "30";
     $("orient").value = "180";
-    $("rate").value = String(DEFAULT_RATE);
+    $("rate").value = String(DEFAULT_RATE_CENTS);
     $("taxes").checked = true;
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
@@ -1262,7 +1245,6 @@
     fmtGroupedInt,
     formatConsoInput,
     rateDollarsPerKwh,
-    coerceRateInput,
     lookupCell,
     winterWFromTilt,
     sig2Round,
@@ -1283,6 +1265,7 @@
       PANEL_KW_PER_M2,
       TAX_MULT,
       RATE_D_T2_HT,
+      DEFAULT_RATE_CENTS,
       DEFAULT_RATE,
       DEFAULT_DENEIGEMENT,
       DEFAULT_CONSO_KWH,
