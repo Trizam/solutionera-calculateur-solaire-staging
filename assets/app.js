@@ -117,6 +117,21 @@
       maximumFractionDigits: decimals
     });
   }
+
+  /** Currency with the same 2-sig-fig scheme as production (display only). 15675 → 16 000 $. */
+  function fmtMoneySig2(n) {
+    if (!isFinite(n)) return "—";
+    const rounded = sig2Round(n);
+    if (!isFinite(rounded)) return "—";
+    const abs = Math.abs(rounded);
+    const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+    return rounded.toLocaleString("fr-CA", {
+      style: "currency",
+      currency: "CAD",
+      minimumFractionDigits: whole ? 0 : 2,
+      maximumFractionDigits: whole ? 0 : 2
+    });
+  }
   function fmtYears(n) {
     if (!isFinite(n) || n <= 0) return "—";
     if (n > 100) return "> 100 ans";
@@ -545,7 +560,7 @@
     $("lineHT").textContent = fmtMoney(r.HT);
     $("lineTaxes").textContent = r.taxesOn ? fmtMoney(r.taxes) : "—";
     $("lineSubv").textContent = r.subvOn ? ("− " + fmtMoney(r.subv)) : "—";
-    $("lineTotal").textContent = fmtMoney(r.reel);
+    $("lineTotal").textContent = fmtMoneySig2(r.reel);
 
     $("outEcoYear").textContent = "≈ " + fmtMoney(r.eco) + " / an";
     if ($("outEcoFormula")) {
@@ -553,7 +568,7 @@
         ? "Crédit (plafonné à la conso) × tarif"
         : "Production × tarif";
     }
-    $("kpiReel").textContent = fmtMoney(r.reel);
+    $("kpiReel").textContent = fmtMoneySig2(r.reel);
     $("kpiEco").textContent = fmtMoney(r.eco);
     const note = $("kpiEcoNote");
     if (note) note.hidden = !r.ecoClamped;
@@ -1249,6 +1264,7 @@
     winterWFromTilt,
     sig2Round,
     fmtSig2,
+    fmtMoneySig2,
     validateBugReport,
     bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
