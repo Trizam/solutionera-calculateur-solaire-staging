@@ -590,7 +590,8 @@ const infoSheetUi =
   !html.includes("superficie exacte des panneaux") &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
   html.includes("Mesurage Net") &&
-  html.includes("Vous pourrez alors installer") &&
+  html.includes("Panneaux solaires installés") &&
+  !html.includes("Vous pourrez alors installer") &&
   !html.includes("avec votre installation solaire") &&
   html.includes("perte de production") &&
   html.includes("chiffre à gauche") &&
@@ -647,6 +648,9 @@ const orientDialMobile =
   !/focusSelectQuiet/.test(app) &&
   html.includes("orient-thumb-hit") &&
   css.includes(".orient-thumb-hit") &&
+  html.includes('viewBox="-24 -24 248 248"') &&
+  /\.orient-dial-svg[\s\S]{0,80}overflow:\s*visible/.test(sliderScreenCss) &&
+  /\.orient-dial[\s\S]{0,80}overflow:\s*visible/.test(sliderScreenCss) &&
   /\.orient-dial-svg[\s\S]{0,80}pointer-events:\s*none/.test(sliderScreenCss) &&
   /\.orient-dial[\s\S]{0,280}padding:\s*18px/.test(sliderScreenCss);
 console.log(`  orient dial mobile drag (window touch + fat-finger hit): ${orientDialMobile ? "PASS" : "FAIL"}`);
@@ -740,7 +744,7 @@ const htmlSplit1A =
   html.includes('<span class="num">1A</span>') &&
   html.includes("Combien de panneaux puis-je installer") &&
   html.includes('id="outPv"') &&
-  html.includes(">PV<") &&
+  html.includes("Panneaux solaires installés") &&
   /id="outKw"/.test(html) &&
   html.includes(">kWc<") &&
   html.indexOf('id="area"') < html.indexOf('id="util"') &&
@@ -798,10 +802,15 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
+  /kwNum\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
   html.includes(">kWc<") &&
   html.includes('id="outPv"') &&
+  html.includes("Panneaux solaires installés") &&
+  app.includes("PANEL_M2") &&
   app.includes("PANEL_W") &&
+  /usedM2 \/ PANEL_M2/.test(app) &&
+  /usedM2 \* PANEL_KW_PER_M2/.test(app) &&
+  !/\(kW \* 1000\) \/ PANEL_W/.test(app) &&
   !html.includes("Puissance estimée") &&
   !html.includes("avec une installation solaire d’une puissance de");
 const prodNoWave =
@@ -813,7 +822,7 @@ const prodNoWave =
 const s30Dec = s30.ac_monthly && s30.ac_monthly.dec;
 const snowFactor = 1 - (1 - 0.20) * winterWFromTilt(30);
 const kWDefault = 40 * 0.80 * 0.20;
-const nPvDefault = Math.round((kWDefault * 1000) / 400);
+const nPvDefault = Math.round((40 * 0.80) / 2);
 const kWhDecDay = (s30Dec * kWDefault * snowFactor) / 31;
 const dayOk =
   Math.abs(s30Dec - 53.274) < 0.01 &&
@@ -833,7 +842,7 @@ console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PAS
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
 console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
 console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
-console.log(`  1A réponse qté PV + kWc (400 W): ${prodKwC ? "PASS" : "FAIL"}`);
+console.log(`  1A deux boîtes PV (2 m²) + kWc (indépendant): ${prodKwC ? "PASS" : "FAIL"}`);
 console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
