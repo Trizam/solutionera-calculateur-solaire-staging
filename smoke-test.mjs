@@ -435,6 +435,7 @@ const hasRateInfoUi =
   html.includes("surplus après 24 mois") &&
   html.includes("4,730") &&
   html.includes("5,438") &&
+  Math.abs(Math.round(0.0473 * TAX_MULT * 1e5) / 1e5 - 0.05438) < 1e-12 &&
   html.includes("rate-buyback-row") &&
   html.includes("art.&nbsp;2.51") &&
   html.includes("tarifs-electricite.pdf") &&
