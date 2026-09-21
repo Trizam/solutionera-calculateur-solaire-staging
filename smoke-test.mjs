@@ -391,10 +391,14 @@ const docDragGuard = app.includes("onDocTouchMoveWhileDragging") && app.includes
 const gridUiStable = app.includes("lastGridUiStatus");
 const noTelDetect = html.includes('name="format-detection"') && html.includes("telephone=no");
 const pageShowClear = app.includes('pageshow') && app.includes("clearRangeDragging");
+const consoTag = (html.match(/<input[^>]*id="conso"[^>]*>/) || [""])[0];
 const hasConsoInput =
-  html.includes('id="conso"') &&
   html.includes("Consommation annuelle (kWh / an)") &&
-  /id="conso"[^>]*value="17000"/.test(html);
+  /id="conso"/.test(consoTag) &&
+  /type="text"/.test(consoTag) &&
+  /grouped-int/.test(consoTag) &&
+  /inputmode="numeric"/.test(consoTag) &&
+  /value="17 000"/.test(consoTag);
 const hasEcoNote =
   html.includes("kpiEcoNote") &&
   html.includes("Plafonné à votre consommation annuelle") &&
@@ -406,6 +410,40 @@ const hasCreditFn =
   app.includes("kWhCredites") &&
   app.includes("ecoClamped");
 const hasConsoWired = app.includes('"conso"') && app.includes("kpiEcoNote");
+const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
+function digitsOnly(raw) {
+  return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
+}
+function parseGroupedInt(raw) {
+  const digits = digitsOnly(raw);
+  if (digits === "") return NaN;
+  const v = parseInt(digits, 10);
+  return isFinite(v) ? v : NaN;
+}
+function fmtGroupedInt(n) {
+  if (!isFinite(n)) return "";
+  return Math.max(0, Math.round(n)).toLocaleString("fr-CA", {
+    maximumFractionDigits: 0,
+    useGrouping: true
+  });
+}
+const groupedParseOk =
+  parseGroupedInt("17000") === 17000 &&
+  parseGroupedInt("17 000") === 17000 &&
+  parseGroupedInt("17\u00A0000") === 17000 &&
+  parseGroupedInt("17\u202F000") === 17000 &&
+  parseGroupedInt("170 000") === 170000 &&
+  parseGroupedInt("") !== parseGroupedInt("") &&
+  parseGroupedInt("abc") !== parseGroupedInt("abc");
+const groupedFmt = fmtGroupedInt(17000);
+const groupedFmtOk = groupedFmt.replace(GROUP_SEP_RE, "") === "17000" && /17\s*000/.test(groupedFmt);
+const hasConsoGrouping =
+  app.includes("function parseGroupedInt") &&
+  app.includes("function fmtGroupedInt") &&
+  app.includes("function formatConsoInput") &&
+  app.includes("fmtGroupedInt(DEFAULT_CONSO_KWH)") &&
+  app.includes("parseGroupedInt(el.value)") &&
+  css.includes("input.grouped-int");
 const ttcExact = 0.11142 * TAX_MULT;
 const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
 const defaultRateTtc =
@@ -455,6 +493,9 @@ console.log(`  grid status UI stable (lastGridUiStatus): ${gridUiStable ? "PASS"
 console.log(`  format-detection telephone=no: ${noTelDetect ? "PASS" : "FAIL"}`);
 console.log(`  pageshow clears range drag: ${pageShowClear ? "PASS" : "FAIL"}`);
 console.log(`  conso annuelle input + défaut 17 000 kWh: ${hasConsoInput ? "PASS" : "FAIL"}`);
+console.log(`  conso parse grouped FR ("17 000" → 17000): ${groupedParseOk ? "PASS" : "FAIL"}`);
+console.log(`  conso fmtGroupedInt(17000) → ${JSON.stringify(groupedFmt)}: ${groupedFmtOk ? "PASS" : "FAIL"}`);
+console.log(`  conso live grouping wired (text + parse/format): ${hasConsoGrouping ? "PASS" : "FAIL"}`);
 console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL"}`);
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
@@ -990,6 +1031,9 @@ const pass =
   noTelDetect &&
   pageShowClear &&
   hasConsoInput &&
+  groupedParseOk &&
+  groupedFmtOk &&
+  hasConsoGrouping &&
   hasEcoNote &&
   hasCreditFn &&
   hasConsoWired &&
