@@ -8,6 +8,7 @@
   const DEFAULT_DENEIGEMENT = 0.20;
 
   const PANEL_KW_PER_M2 = 0.20;
+  const PANEL_WATT = 400; // pedagogical typical module for takeoff count
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
   // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
@@ -256,6 +257,13 @@
     const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
     if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
     return v / 100;
+  }
+
+  /** Estimated module count from kWc, rounded to nearest 400 W panel. */
+  function panelCountFromKw(kW) {
+    const p = Number(kW);
+    if (!isFinite(p) || p <= 0) return 0;
+    return Math.round((p * 1000) / PANEL_WATT);
   }
 
   /** kWh_credites = min(production, consommation) when conso is provided */
@@ -575,6 +583,40 @@
     $("kpiYears").textContent = fmtYears(r.years);
     $("outPayback").textContent =
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
+    fillTakeoff(r);
+  }
+
+  function setTakeoffText(id, text) {
+    const el = $(id);
+    if (el) el.textContent = text;
+  }
+
+  function fillTakeoff(r) {
+    if (!$("takeoffModal")) return;
+    const unitLabel = areaUnit === "sqft" ? "pi²" : "m²";
+    const areaEl = $("area");
+    const bruteRaw = areaEl ? parseFloat(String(areaEl.value).replace(",", ".")) : NaN;
+    const bruteTxt = isFinite(bruteRaw)
+      ? fmtNum(Math.max(0, Math.round(bruteRaw)), 0) + " " + unitLabel
+      : "—";
+    const utile = r.m2 * r.util;
+    const panels = panelCountFromKw(r.kW);
+    const lossPct = (1 - r.deneige) * r.W * 100;
+    setTakeoffText("takeoffArea", bruteTxt);
+    setTakeoffText("takeoffUtil", Math.round(r.util * 100) + " %");
+    setTakeoffText("takeoffUtile", isFinite(utile) ? fmtSig2(utile) + " m²" : "—");
+    setTakeoffText("takeoffPanels", panels > 0 ? String(panels) + " × ~" + PANEL_WATT + " W" : "—");
+    setTakeoffText("takeoffKw", fmtSig2(r.kW) + " kWc");
+    setTakeoffText("takeoffOrient", orientLabelFor(r.az));
+    setTakeoffText("takeoffTilt", Math.round(Number(r.tilt)) + "°");
+    setTakeoffText("takeoffDeneige", Math.round(r.deneige * 100) + " %");
+    setTakeoffText("takeoffLoss", "−" + fmtSig2(lossPct) + " %");
+    setTakeoffText("takeoffKwhDay", fmtSig2(r.kWhDay) + " kWh");
+    setTakeoffText("takeoffKwhYear", fmtSig2(r.kWh) + " kWh");
+    setTakeoffText("takeoffHT", fmtMoney(r.HT));
+    setTakeoffText("takeoffTaxes", r.taxesOn ? fmtMoney(r.taxes) : "—");
+    setTakeoffText("takeoffSubv", r.subvOn ? ("− " + fmtMoney(r.subv)) : "—");
+    setTakeoffText("takeoffTotal", fmtMoney(r.reel));
   }
 
   /** Integer-only area: paste/blur/change/input */
@@ -804,7 +846,7 @@
 
   function currentModal() {
     if (activeModalId && $(activeModalId)) return $(activeModalId);
-    const ids = ["bugModal", "infoModal", "rateModal", "fieldInfoModal"];
+    const ids = ["bugModal", "infoModal", "rateModal", "fieldInfoModal", "takeoffModal"];
     for (let i = 0; i < ids.length; i++) {
       const el = $(ids[i]);
       if (el && !el.hidden) return el;
@@ -891,6 +933,7 @@
     if (activeModalId === "rateModal") fallback = $("btnRateInfo");
     else if (activeModalId === "bugModal") fallback = $("bugLink");
     else if (activeModalId === "fieldInfoModal") fallback = document.querySelector(".field-info-btn");
+    else if (activeModalId === "takeoffModal") fallback = $("btnTakeoff");
     hideModalEl(m);
     document.body.classList.remove("modal-open");
     const wrap = document.querySelector(".wrap");
@@ -1176,16 +1219,22 @@
     });
     if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
+    if ($("btnTakeoff")) {
+      $("btnTakeoff").addEventListener("click", function () {
+        fillTakeoff(calc());
+        openModal("takeoffModal");
+      });
+    }
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
     document.querySelectorAll(".field-info-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
         openFieldInfo(btn.getAttribute("data-info"));
       });
     });
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugOk"].forEach(function (id) {
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugOk", "btnTakeoffClose", "btnTakeoffOk"].forEach(function (id) {
       if ($(id)) $(id).addEventListener("click", closeInfo);
     });
-    ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "fieldInfoModal", "bugModal", "takeoffModal"].forEach(function (id) {
       const el = $(id);
       if (!el) return;
       el.addEventListener("click", function (e) {
@@ -1262,6 +1311,8 @@
     rateDollarsPerKwh,
     lookupCell,
     winterWFromTilt,
+    panelCountFromKw,
+    fillTakeoff,
     sig2Round,
     fmtSig2,
     fmtMoneySig2,
@@ -1279,6 +1330,7 @@
     roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
+      PANEL_WATT,
       TAX_MULT,
       RATE_D_T2_HT,
       DEFAULT_RATE_CENTS,
@@ -1306,7 +1358,7 @@
     if (displayModeApi && typeof displayModeApi.applyDisplayMode === "function") {
       displayModeApi.applyDisplayMode(displayModeApi.current);
     }
-    ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
+    ["infoModal", "rateModal", "fieldInfoModal", "bugModal", "takeoffModal"].forEach(function (id) {
       const m0 = $(id);
       if (m0) m0.setAttribute("aria-hidden", "true");
     });

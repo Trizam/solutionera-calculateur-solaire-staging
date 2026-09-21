@@ -674,6 +674,46 @@ const deneigeTip =
   !deneigeTpl.includes("L’inclinaison fixe aussi le risque");
 console.log(`  ⓘ déneigement mots + accumulation 12/12: ${deneigeTip ? "PASS" : "FAIL"}`);
 
+const takeoffBtnTag = (html.match(/<button[^>]*id="btnTakeoff"[^>]*>[\s\S]*?<\/button>/) || [""])[0];
+const takeoffModalTag = (html.match(/id="takeoffModal"[^>]*>/) || [""])[0];
+const takeoffUi =
+  html.includes('id="btnTakeoff"') &&
+  html.includes('id="takeoffModal"') &&
+  html.includes(">Relevé<") &&
+  html.includes("Relevé de l’installation") &&
+  takeoffBtnTag.includes("takeoff-btn") &&
+  takeoffBtnTag.includes("aria-haspopup=\"dialog\"") &&
+  takeoffBtnTag.includes("aria-controls=\"takeoffModal\"") &&
+  !takeoffBtnTag.includes("mode-full-only") &&
+  !takeoffModalTag.includes("mode-full-only") &&
+  html.includes('<div class="info-block mode-full-only">') &&
+  html.includes("<h4>Coût estimé</h4>") &&
+  html.includes("takeoff-row total") &&
+  html.includes("<h4>Installation</h4>") &&
+  html.includes("<h4>Pose</h4>") &&
+  html.includes("Hypothèse : modules ~400") &&
+  css.includes(".takeoff-btn") &&
+  /border-radius:\s*999px/.test(css.slice(css.indexOf(".takeoff-btn"), css.indexOf(".takeoff-btn") + 700)) &&
+  css.includes(".takeoff-row") &&
+  printCss.includes(".takeoff-btn") &&
+  app.includes("function fillTakeoff") &&
+  app.includes("function panelCountFromKw") &&
+  app.includes("openModal(\"takeoffModal\")") &&
+  app.includes("btnTakeoffClose") &&
+  /PANEL_WATT\s*=\s*400/.test(app);
+function panelCountFromKwSmoke(kW) {
+  const p = Number(kW);
+  if (!isFinite(p) || p <= 0) return 0;
+  return Math.round((p * 1000) / 400);
+}
+const takeoffCountOk =
+  panelCountFromKwSmoke(6.4) === 16 &&
+  panelCountFromKwSmoke(6.5) === 16 &&
+  panelCountFromKwSmoke(0) === 0 &&
+  panelCountFromKwSmoke(-1) === 0;
+console.log(`  takeoff Relevé pill + sheet (webi+full): ${takeoffUi ? "PASS" : "FAIL"}`);
+console.log(`  takeoff 400 W count (6,4 kWc → 16): ${takeoffCountOk ? "PASS" : "FAIL"}`);
+
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
   const htmlEl = {
@@ -1276,6 +1316,8 @@ const pass =
   orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
+  takeoffUi &&
+  takeoffCountOk &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&

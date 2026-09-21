@@ -749,6 +749,74 @@ section.block > h2,
   color: var(--green-dark);
   font-variant-numeric: tabular-nums;
 }
+.takeoff-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.85rem auto 0;
+  padding: 0.42rem 0.9rem;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--green-dark);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.takeoff-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+.takeoff-btn:hover,
+.takeoff-btn:focus-visible {
+  background: var(--hover-soft);
+}
+.takeoff-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.takeoff-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.takeoff-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid var(--section-hairline);
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.takeoff-row:last-child { border-bottom: 0; }
+.takeoff-row span { color: var(--muted); }
+.takeoff-row strong {
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 700;
+}
+.takeoff-row.total {
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+.takeoff-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
 .calc-line {
   font-size: 0.88rem;
   color: var(--muted);
@@ -1275,7 +1343,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz, .takeoff-btn,
   .modal-backdrop, .hint, .mode-badge { display: none !important; }
   html[data-theme="dark"] {
     color-scheme: light;
