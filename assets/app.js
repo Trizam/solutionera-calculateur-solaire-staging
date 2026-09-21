@@ -43,6 +43,34 @@
     "330": "330°",
     "345": "345°"
   };
+  const AZ_STEP = 15;
+
+  /** Snap compass degrees to the 15° grid (0…345). Invalid → 180 (Sud). */
+  function snapAzimuth(deg) {
+    const n = Number(deg);
+    if (!isFinite(n)) return 180;
+    let x = ((n % 360) + 360) % 360;
+    x = Math.round(x / AZ_STEP) * AZ_STEP;
+    if (x === 360) x = 0;
+    return x;
+  }
+
+  /**
+   * Compass azimuth from offsets relative to dial centre.
+   * 0° = Nord (up), clockwise. Tiny/zero vector → 180 (Sud).
+   */
+  function azimuthFromOffsets(dx, dy) {
+    if (!isFinite(dx) || !isFinite(dy)) return 180;
+    if (dx === 0 && dy === 0) return 180;
+    let deg = Math.atan2(dx, -dy) * (180 / Math.PI);
+    if (deg < 0) deg += 360;
+    return snapAzimuth(deg);
+  }
+
+  function orientLabelFor(az) {
+    const key = String(snapAzimuth(az));
+    return AZ_LABELS[key] || (key + "°");
+  }
 
   /** Runtime grid: cells[tilt][az] = { ac_annual, ... } — annual kWh only from grid */
   let gridCells = null;
@@ -207,6 +235,151 @@
     };
   }
 
+  function ensureOrientTicks() {
+    const g = $("orientTicks");
+    if (!g || g.childElementCount) return;
+    const ns = "http://www.w3.org/2000/svg";
+    const cx = 100;
+    const cy = 100;
+    for (let i = 0; i < 24; i++) {
+      const az = i * AZ_STEP;
+      const major = az % 90 === 0;
+      const rad = (az * Math.PI) / 180;
+      const r1 = major ? 76 : 82;
+      const r2 = 90;
+      const line = document.createElementNS(ns, "line");
+      line.setAttribute("class", major ? "orient-tick is-major" : "orient-tick");
+      line.setAttribute("x1", String(cx + r1 * Math.sin(rad)));
+      line.setAttribute("y1", String(cy - r1 * Math.cos(rad)));
+      line.setAttribute("x2", String(cx + r2 * Math.sin(rad)));
+      line.setAttribute("y2", String(cy - r2 * Math.cos(rad)));
+      g.appendChild(line);
+    }
+  }
+
+  function updateOrientDial(az) {
+    const snapped = snapAzimuth(az);
+    const needle = $("orientNeedle");
+    if (needle) needle.setAttribute("transform", "rotate(" + snapped + " 100 100)");
+    const val = $("orientVal");
+    if (val) val.textContent = orientLabelFor(snapped);
+  }
+
+  /**
+   * Circular compass: map pointer to 15° azimuth and write #orient.
+   * Same iOS dual-path as linear ranges (touch preventDefault + pointer).
+   * Mouse is first-class here — the native <select> is screen-hidden.
+   */
+  function wireOrientDial() {
+    const dial = $("orientDial");
+    const input = $("orient");
+    const wrap = $("orientControl");
+    if (!dial || !input) return;
+    ensureOrientTicks();
+    updateOrientDial(input.value);
+
+    let touching = false;
+    let viaTouch = false;
+    let activeId = null;
+    let mouseDown = false;
+
+    function applyClient(clientX, clientY, fireChange) {
+      const rect = dial.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dx = clientX - (rect.left + rect.width / 2);
+      const dy = clientY - (rect.top + rect.height / 2);
+      if (Math.hypot(dx, dy) < 8) return;
+      const next = String(azimuthFromOffsets(dx, dy));
+      if (input.value !== next) {
+        input.value = next;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function focusSelectQuiet() {
+      try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+    }
+
+    dial.addEventListener("touchstart", function (e) {
+      if (!e.touches || !e.touches[0]) return;
+      touching = true;
+      viaTouch = true;
+      activeId = null;
+      if (wrap) wrap.classList.add("is-orient-dragging");
+      setRangeDragging(true);
+      applyClient(e.touches[0].clientX, e.touches[0].clientY, false);
+      e.preventDefault();
+    }, { passive: false });
+    dial.addEventListener("touchmove", function (e) {
+      if (!touching || !e.touches || !e.touches[0]) return;
+      applyClient(e.touches[0].clientX, e.touches[0].clientY, false);
+      e.preventDefault();
+    }, { passive: false });
+    function endTouch(e) {
+      if (!touching) return;
+      const t = (e.changedTouches && e.changedTouches[0]) || null;
+      if (t) applyClient(t.clientX, t.clientY, true);
+      touching = false;
+      if (wrap) wrap.classList.remove("is-orient-dragging");
+      setRangeDragging(false);
+      focusSelectQuiet();
+      setTimeout(function () { if (!touching) viaTouch = false; }, 0);
+    }
+    dial.addEventListener("touchend", endTouch);
+    dial.addEventListener("touchcancel", endTouch);
+
+    if (typeof window.PointerEvent === "function") {
+      dial.addEventListener("pointerdown", function (e) {
+        if (viaTouch || touching) return;
+        activeId = e.pointerId;
+        if (wrap) wrap.classList.add("is-orient-dragging");
+        if (e.pointerType !== "mouse") setRangeDragging(true);
+        try { dial.setPointerCapture(e.pointerId); } catch (_) {}
+        applyClient(e.clientX, e.clientY, false);
+        e.preventDefault();
+      }, { passive: false });
+      dial.addEventListener("pointermove", function (e) {
+        if (viaTouch || touching) return;
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClient(e.clientX, e.clientY, false);
+        e.preventDefault();
+      }, { passive: false });
+      function endPointer(e) {
+        if (viaTouch || touching) { activeId = null; return; }
+        if (activeId === null || e.pointerId !== activeId) return;
+        applyClient(e.clientX, e.clientY, true);
+        activeId = null;
+        if (wrap) wrap.classList.remove("is-orient-dragging");
+        setRangeDragging(false);
+        focusSelectQuiet();
+        try { dial.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      dial.addEventListener("pointerup", endPointer);
+      dial.addEventListener("pointercancel", endPointer);
+    } else {
+      dial.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        mouseDown = true;
+        if (wrap) wrap.classList.add("is-orient-dragging");
+        applyClient(e.clientX, e.clientY, false);
+        e.preventDefault();
+      });
+      window.addEventListener("mousemove", function (e) {
+        if (!mouseDown) return;
+        applyClient(e.clientX, e.clientY, false);
+      });
+      function endMouse(e) {
+        if (!mouseDown) return;
+        mouseDown = false;
+        if (wrap) wrap.classList.remove("is-orient-dragging");
+        applyClient(e.clientX, e.clientY, true);
+        focusSelectQuiet();
+      }
+      window.addEventListener("mouseup", endMouse);
+    }
+  }
+
   function updateTiltViz(tiltDeg) {
     const line = $("tiltLine");
     const label = $("tiltDegLabel");
@@ -268,6 +441,7 @@
     }
     if ($("tiltVal")) $("tiltVal").textContent = Math.round(Number(r.tilt)) + "°";
     updateTiltViz(r.tilt);
+    updateOrientDial(r.az);
     if ($("tiltWLabel")) {
       $("tiltWLabel").innerHTML = fmtSig2(r.W * 100) + "&nbsp;%";
     }
@@ -876,6 +1050,7 @@
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
     });
+    wireOrientDial();
     const area = $("area");
     if (area) {
       area.addEventListener("input", () => { roundAreaInput(); render(); });
@@ -986,6 +1161,9 @@
       return displayModeApi ? displayModeApi.current : "full";
     },
     AZ_LABELS,
+    snapAzimuth,
+    azimuthFromOffsets,
+    orientLabelFor,
     roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
