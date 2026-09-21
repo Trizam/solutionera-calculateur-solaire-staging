@@ -753,6 +753,106 @@ console.log(`  prod pill jour+an same .big type: ${prodPillEqualType ? "PASS" : 
 console.log(`  prod pill puissance unit kWc: ${prodKwC ? "PASS" : "FAIL"}`);
 console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
 
+const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
+function runThemeMode(opts) {
+  const options = opts || {};
+  const htmlEl = {
+    attrs: {},
+    setAttribute(k, v) { this.attrs[k] = v; },
+    getAttribute(k) { return this.attrs[k]; }
+  };
+  const meta = {
+    content: "#1b4332",
+    setAttribute(k, v) { if (k === "content") this.content = v; },
+    getAttribute(k) { return k === "content" ? this.content : null; }
+  };
+  const storage = Object.assign({}, options.storage || {});
+  const sandbox = {
+    matchMedia(query) {
+      return {
+        matches: !!options.systemDark && String(query).includes("dark"),
+        addEventListener() {},
+        addListener() {}
+      };
+    },
+    localStorage: {
+      getItem(k) { return Object.prototype.hasOwnProperty.call(storage, k) ? storage[k] : null; },
+      setItem(k, v) { storage[k] = String(v); }
+    },
+    document: {
+      documentElement: htmlEl,
+      readyState: "complete",
+      addEventListener() {},
+      querySelector(sel) { return String(sel).includes("theme-color") ? meta : null; },
+      querySelectorAll() { return []; },
+      getElementById() { return null; }
+    }
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  runInNewContext(themeSrc, sandbox, { filename: "theme-mode.js" });
+  return { api: sandbox.SolarThemeMode, htmlEl, meta, storage };
+}
+const themeDefault = runThemeMode({});
+const themeSysDark = runThemeMode({ systemDark: true });
+const themeStoredDark = runThemeMode({ storage: { "era-theme-pref": "dark" } });
+const themeStoredLightOnDarkOs = runThemeMode({
+  systemDark: true,
+  storage: { "era-theme-pref": "light" }
+});
+const themeInvalid = runThemeMode({ storage: { "era-theme-pref": "banana" } });
+const themeApply = runThemeMode({});
+const appliedDark = themeApply.api.applyTheme("dark", true);
+const themeLogicOk =
+  themeDefault.api.currentPref === "sys" &&
+  themeDefault.api.current === "light" &&
+  themeDefault.api.parseThemePref("") === "sys" &&
+  themeDefault.api.parseThemePref("DARK") === "dark" &&
+  themeDefault.htmlEl.getAttribute("data-theme-pref") === "sys" &&
+  themeDefault.htmlEl.getAttribute("data-theme") === "light" &&
+  themeSysDark.api.current === "dark" &&
+  themeSysDark.htmlEl.getAttribute("data-theme") === "dark" &&
+  themeStoredDark.api.currentPref === "dark" &&
+  themeStoredDark.api.current === "dark" &&
+  themeStoredDark.meta.content === "#101814" &&
+  themeStoredLightOnDarkOs.api.currentPref === "light" &&
+  themeStoredLightOnDarkOs.api.current === "light" &&
+  themeStoredLightOnDarkOs.meta.content === "#1b4332" &&
+  themeInvalid.api.currentPref === "sys" &&
+  appliedDark === "dark" &&
+  themeApply.storage["era-theme-pref"] === "dark" &&
+  themeApply.htmlEl.getAttribute("data-theme-pref") === "dark";
+const htmlThemeToggle =
+  html.includes('id="themeToggle"') &&
+  html.includes('data-theme-pref-btn="light"') &&
+  html.includes('data-theme-pref-btn="sys"') &&
+  html.includes('data-theme-pref-btn="dark"') &&
+  html.includes('src="assets/theme-mode.js"') &&
+  /<html[^>]*data-theme-pref="sys"/.test(html) &&
+  html.includes('role="radiogroup"') &&
+  html.includes("aria-label=\"Thème\"") &&
+  /class="brand"[\s\S]*id="themeToggle"/.test(html) &&
+  !html.includes("<span>Clair</span>") &&
+  !html.includes("<span>Sys</span>") &&
+  !html.includes("<span>Sombre</span>") &&
+  !html.includes('class="topbar"');
+const themeSwipe =
+  themeSrc.includes("wireSwipe") &&
+  themeSrc.includes("prefFromClientX") &&
+  themeSrc.includes("pointerdown") &&
+  themeSrc.includes("touchstart") &&
+  /touch-action:\s*none/.test(css);
+const cssThemeDark =
+  /html\[data-theme="dark"\]/.test(css) &&
+  css.includes(".theme-toggle") &&
+  !css.includes(".topbar") &&
+  /html\[data-theme="dark"\]\s*\.theme-toggle button\.active/.test(css) &&
+  /@media print[\s\S]*\.theme-toggle/.test(css);
+console.log(`  theme pref light/sys/dark + persist + OS resolve: ${themeLogicOk ? "PASS" : "FAIL"}`);
+console.log(`  theme icons-only in brand row + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
+console.log(`  theme swipe (pointer + touch) + touch-action none: ${themeSwipe ? "PASS" : "FAIL"}`);
+console.log(`  CSS data-theme=dark tokens + print hides toggle: ${cssThemeDark ? "PASS" : "FAIL"}`);
+
 /** Same 2-sig-fig display helper as app.js (sec-prod only) */
 function sig2Round(n) {
   const x = Number(n);
@@ -1103,6 +1203,10 @@ const pass =
   prodKwC &&
   prodNoWave &&
   dayOk &&
+  themeLogicOk &&
+  htmlThemeToggle &&
+  themeSwipe &&
+  cssThemeDark &&
   sig2RoundOk &&
   fmt14230Ok &&
   prodUsesSig2 &&

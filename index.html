@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-mode="full">
+<html lang="fr" data-mode="full" data-theme-pref="sys">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -16,8 +16,9 @@
   <link rel="stylesheet" href="assets/styles.css" />
   <!-- Public HTTPS proxy (create-only). Token stays server-side — never in this page. -->
   <meta name="bug-report-endpoint" content="https://solutionera-bug-report.fred-435.workers.dev" />
-  <!-- Sync: set data-mode before first paint (webi must not flash full UI) -->
+  <!-- Sync: set data-mode + theme before first paint (webi / dark must not flash) -->
   <script src="assets/display-mode.js"></script>
+  <script src="assets/theme-mode.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au calculateur</a>
@@ -28,6 +29,49 @@
       <div class="brand-text">
         <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
         <div class="brand-sub">Calculateur solaire <span class="mode-badge mode-webi-only">Mode webi</span></div>
+      </div>
+      <div class="theme-toggle" id="themeToggle" role="radiogroup" aria-label="Thème">
+        <button
+          type="button"
+          role="radio"
+          aria-checked="false"
+          tabindex="-1"
+          data-theme-pref-btn="light"
+          title="Clair"
+          aria-label="Clair"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M8 1.75v1.4M8 12.85v1.4M1.75 8h1.4M12.85 8h1.4M3.22 3.22l.99.99M11.79 11.79l.99.99M3.22 12.78l.99-.99M11.79 4.21l.99-.99" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked="true"
+          tabindex="0"
+          data-theme-pref-btn="sys"
+          title="Système"
+          aria-label="Système"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <circle cx="8" cy="8" r="5.15" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M8 2.85v10.3a5.15 5.15 0 0 0 0-10.3z" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked="false"
+          tabindex="-1"
+          data-theme-pref-btn="dark"
+          title="Sombre"
+          aria-label="Sombre"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M12.7 10.15A5.35 5.35 0 0 1 5.85 3.3 5.6 5.6 0 1 0 12.7 10.15z" fill="currentColor" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -129,11 +173,11 @@
             <div class="tilt-viz" id="tiltViz" aria-hidden="true" title="Angle du panneau">
               <svg viewBox="0 0 64 48" width="40" height="30" role="img">
                 <!-- ground — stronger contrast vs soft green card -->
-                <line x1="4" y1="40" x2="60" y2="40" stroke="#1b4332" stroke-width="2" opacity="0.45" />
+                <line x1="4" y1="40" x2="60" y2="40" stroke="currentColor" stroke-width="2" opacity="0.45" />
                 <!-- roof/panel line (updated by JS) -->
                 <g id="tiltPanel">
-                  <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="#1b4332" stroke-width="3.5" stroke-linecap="round" />
-                  <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="#1b4332" />
+                  <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+                  <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="currentColor" />
                 </g>
               </svg>
             </div>
