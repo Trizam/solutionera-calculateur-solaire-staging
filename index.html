@@ -279,18 +279,18 @@
           <div class="kpi" id="kpiReel">—</div>
           <div class="kpi-label">Coût réel<br />taxé − subv.</div>
         </div>
-        <div class="card-kpi" id="cardEco">
+        <div class="card-kpi">
           <div class="kpi" id="kpiEco">—</div>
           <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
         </div>
-        <div class="card-kpi" id="cardYears">
+        <div class="card-kpi">
           <div class="kpi" id="kpiYears">—</div>
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
       <p class="surplus-alert" id="surplusAlert" hidden role="status">
-        <strong>Vous perdez de l’argent.</strong>
-        Vous produisez <strong id="surplusKwh">—</strong> de plus que vous ne consommez. Ce surplus n’est pas crédité (<span id="surplusLost">—</span>&nbsp;/ an). Le retour n’avance plus.
+        <strong>Moins optimal : tu produis plus que tu consommes.</strong>
+        Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
       </p>
       <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
       <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
@@ -312,7 +312,7 @@
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
-        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Si tu produis plus que tu consommes, une alerte rouge indique le surplus non crédité (ça allonge le retour).</li>
+        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Au-delà, une bannière jaune rappelle le rachat HQ du surplus (4,730&nbsp;¢/kWh, art.&nbsp;2.51) — moins payant que le kWh évité.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ $/kWh. Une saisie &gt;&nbsp;1 est interprétée en ¢/kWh (ex. 9,53 → 0,0953).</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>

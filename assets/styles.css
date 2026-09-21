@@ -11,9 +11,9 @@
   --border: #cfe3d4;
   --accent: #40916c;
   --warn: #bc6c25;
-  --danger: #9b2226;
-  --danger-soft: #fde8e8;
-  --danger-border: #e3b4b4;
+  --caution: #8a5a12;
+  --caution-soft: #fff6e0;
+  --caution-border: #e8c98a;
   --shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
   --radius: 14px;
   --font: "Lato", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -652,21 +652,14 @@ section.block > h2,
 .rate-box input#conso {
   max-width: 8.5rem;
 }
-.card-kpi.is-clamped {
-  background: var(--danger-soft);
-  border-color: var(--danger-border);
-}
-.card-kpi.is-clamped .kpi {
-  color: var(--danger);
-}
 .surplus-alert {
   margin: 0.85rem 0 0;
-  padding: 0.7rem 0.85rem;
+  padding: 0.65rem 0.8rem;
   border-radius: 12px;
-  border: 1px solid var(--danger-border);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-size: 0.82rem;
+  border: 1px solid var(--caution-border);
+  background: var(--caution-soft);
+  color: var(--caution);
+  font-size: 0.8rem;
   line-height: 1.4;
   text-align: left;
 }
@@ -1121,11 +1114,10 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     border-color: #ccc;
   }
   .result-pill, .card-kpi { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .card-kpi.is-clamped,
   .surplus-alert {
-    background: #f3e8e8 !important;
-    border-color: #c9a0a0;
-    color: #7a1f22;
+    background: #fff6e0 !important;
+    border-color: #e8c98a;
+    color: #8a5a12;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
