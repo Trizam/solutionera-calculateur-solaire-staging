@@ -196,6 +196,7 @@
    * Winter-loss fraction W from tilt (whole percent → fraction).
    * ≤45° → 18%; 90° → 0%; else round(18 * (90 - tilt) / 45) / 100
    * Table: 0→18, 45→18, 60→12, 75→6, 90→0
+   * Used for mesurage net (annual). December / autonomie uses snowCoverFromTilt.
    */
   function winterWFromTilt(tilt) {
     const t = Number(tilt);
@@ -203,6 +204,26 @@
     if (t <= 45) return 0.18;
     if (t >= 90) return 0;
     return Math.round(18 * (90 - t) / 45) / 100;
+  }
+
+  /**
+   * Share of December production at risk if panels are not cleared.
+   * ≤45° → 1 (décembre entier à zéro si d=0); 90° → 0; same steps as W / 0.18
+   * Table: 0→1, 45→1, 60→2/3, 75→1/3, 90→0
+   */
+  function snowCoverFromTilt(tilt) {
+    const W = winterWFromTilt(tilt);
+    if (W <= 0) return 0;
+    return W / 0.18;
+  }
+
+  /** Recommend vertical panels unless the user already clears 100 % or is at 90°. */
+  function recommendVerticalPanels(deneige, tilt) {
+    const d = Number(deneige);
+    const t = Number(tilt);
+    if (!isFinite(d) || d >= 1) return false;
+    if (!isFinite(t) || t >= 90) return false;
+    return true;
   }
 
   function areaM2() {
@@ -295,7 +316,10 @@
     const kWhAnnuel = table * kW;
     const kWh = applyDeneigement(kWhAnnuel, deneige, W);
     const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
-    const kWhDec = applyDeneigement(kWhDecMonth, deneige, W);
+    // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
+    const snowCover = snowCoverFromTilt(tilt);
+    const kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
+    const showVerticalRec = recommendVerticalPanels(deneige, tilt);
 
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
@@ -312,7 +336,7 @@
     const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W,
+      kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
@@ -572,6 +596,11 @@
     if ($("outKw")) {
       const kwNum = $("outKw").querySelector(".prod-num");
       if (kwNum) kwNum.textContent = fmtSig2(r.kW);
+    }
+    const snowBox = $("autonomySnow");
+    if (snowBox) {
+      snowBox.hidden = !r.showVerticalRec;
+      snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
@@ -1281,6 +1310,8 @@
     rateDollarsPerKwh,
     lookupCell,
     winterWFromTilt,
+    snowCoverFromTilt,
+    recommendVerticalPanels,
     sig2Round,
     fmtSig2,
     fmtMoneySig2,

@@ -311,6 +311,11 @@
           </div>
         </div>
       </div>
+      <aside class="autonomy-snow" id="autonomySnow" hidden>
+        <p class="autonomy-snow-rec" id="autonomySnowRec">
+          Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
+        </p>
+      </aside>
     </section>
 
     <!-- 2 · Coût -->
@@ -412,6 +417,7 @@
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
         <li>Production annuelle&nbsp;: grille d’irradiation fixe ville de Québec, NREL/PVWatts (le reste du Québec peut être +/- 4&nbsp;% de productivité).</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
+        <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
@@ -454,6 +460,12 @@
           <p>Idée simplifiée, à partir de la part déc+jan+fév / annuel (NREL).</p>
           <p>Le chiffre à gauche du curseur (ex.&nbsp;−14&nbsp;%) est la perte restante, pas l’effort de déneigement.</p>
           <p>Formule&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
+        </div>
+        <div class="info-block">
+          <h4>Autonomie (décembre)</h4>
+          <p>Le kWh / jour d’autonomie est la production de décembre ÷ 31.</p>
+          <p>Sans déneigement, décembre est à zéro si les panneaux ne sont pas verticaux (ou très inclinés).</p>
+          <p>Si vous ne déneigez pas à 100&nbsp;%, on recommande les panneaux à la verticale.</p>
         </div>
         <div class="info-block">
           <h4>Rappel</h4>
@@ -610,6 +622,7 @@
       <h4>Pourquoi ça bouge</h4>
       <p>L’inclinaison influence aussi l’accumulation&nbsp;:<br>un toit plat (zéro degré) accumule très bien la neige<br>un toit 12/12 (quarante-cinq degrés) accumule la neige<br>une installation verticale (quatre-vingt-dix degrés) n’accumule aucune neige</p>
       <p>La production sous le curseur se met à jour en même temps.</p>
+      <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
     </div>
   </template>
 
