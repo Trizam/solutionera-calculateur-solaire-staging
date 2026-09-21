@@ -551,6 +551,18 @@ const orientDial =
   printCss.includes(".orient-dial") &&
   printCss.includes(".orient-select");
 console.log(`  orient circular dial (15° compass, select kept): ${orientDial ? "PASS" : "FAIL"}`);
+const sliderScreenCss = css.split("@media print")[0];
+const orientDialMobile =
+  app.includes("function nearFace") &&
+  app.includes("function ensureWinTouch") &&
+  app.includes("onWinTouchMove") &&
+  app.includes("Do not focus the clipped <select>") &&
+  !/focusSelectQuiet/.test(app) &&
+  html.includes("orient-thumb-hit") &&
+  css.includes(".orient-thumb-hit") &&
+  /\.orient-dial-svg[\s\S]{0,80}pointer-events:\s*none/.test(sliderScreenCss) &&
+  /\.orient-dial[\s\S]{0,280}padding:\s*18px/.test(sliderScreenCss);
+console.log(`  orient dial mobile drag (window touch + fat-finger hit): ${orientDialMobile ? "PASS" : "FAIL"}`);
 const areaInstallLabel =
   html.includes("<label for=\"area\">Superficie de l’installation</label>") &&
   html.includes("aria-label=\"Aide : Superficie de l’installation\"") &&
@@ -1020,6 +1032,7 @@ const pass =
   orientAzimuthHint &&
   orientPanelsLabel &&
   orientDial &&
+  orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
   modeDefaultFull &&

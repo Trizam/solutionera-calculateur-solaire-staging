@@ -267,14 +267,15 @@
 
   /**
    * Circular compass: map pointer to 15° azimuth and write #orient.
-   * Same iOS dual-path as linear ranges (touch preventDefault + pointer).
-   * Mouse is first-class here — the native <select> is screen-hidden.
+   * Mobile: start on the padded face, then follow the finger on window
+   * so a drag can swing around (and outside) the gage without dropping.
+   * Do not focus the clipped <select> after touch — iOS would open the picker.
    */
   function wireOrientDial() {
     const dial = $("orientDial");
     const input = $("orient");
     const wrap = $("orientControl");
-    if (!dial || !input) return;
+    if (!dial || !input || !wrap) return;
     ensureOrientTicks();
     updateOrientDial(input.value);
 
@@ -282,13 +283,19 @@
     let viaTouch = false;
     let activeId = null;
     let mouseDown = false;
+    let winTouchWired = false;
+
+    function faceRect() {
+      const svg = dial.querySelector(".orient-dial-svg");
+      return (svg || dial).getBoundingClientRect();
+    }
 
     function applyClient(clientX, clientY, fireChange) {
-      const rect = dial.getBoundingClientRect();
+      const rect = faceRect();
       if (!rect.width || !rect.height) return;
       const dx = clientX - (rect.left + rect.width / 2);
       const dy = clientY - (rect.top + rect.height / 2);
-      if (Math.hypot(dx, dy) < 8) return;
+      if (Math.hypot(dx, dy) < 10) return;
       const next = String(azimuthFromOffsets(dx, dy));
       if (input.value !== next) {
         input.value = next;
@@ -297,49 +304,71 @@
       if (fireChange) input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    function focusSelectQuiet() {
-      try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+    function nearFace(clientX, clientY) {
+      const rect = faceRect();
+      if (!rect.width || !rect.height) return false;
+      const dx = clientX - (rect.left + rect.width / 2);
+      const dy = clientY - (rect.top + rect.height / 2);
+      const r = Math.min(rect.width, rect.height) / 2;
+      return Math.hypot(dx, dy) <= r + 28;
     }
 
-    dial.addEventListener("touchstart", function (e) {
-      if (!e.touches || !e.touches[0]) return;
-      touching = true;
-      viaTouch = true;
-      activeId = null;
-      if (wrap) wrap.classList.add("is-orient-dragging");
+    function startVisual() {
+      wrap.classList.add("is-orient-dragging");
       setRangeDragging(true);
-      applyClient(e.touches[0].clientX, e.touches[0].clientY, false);
-      e.preventDefault();
-    }, { passive: false });
-    dial.addEventListener("touchmove", function (e) {
+    }
+    function stopVisual() {
+      wrap.classList.remove("is-orient-dragging");
+      setRangeDragging(false);
+    }
+
+    function onWinTouchMove(e) {
       if (!touching || !e.touches || !e.touches[0]) return;
       applyClient(e.touches[0].clientX, e.touches[0].clientY, false);
-      e.preventDefault();
-    }, { passive: false });
-    function endTouch(e) {
+      if (e.cancelable) e.preventDefault();
+    }
+    function onWinTouchEnd(e) {
       if (!touching) return;
       const t = (e.changedTouches && e.changedTouches[0]) || null;
       if (t) applyClient(t.clientX, t.clientY, true);
       touching = false;
-      if (wrap) wrap.classList.remove("is-orient-dragging");
-      setRangeDragging(false);
-      focusSelectQuiet();
+      stopVisual();
       setTimeout(function () { if (!touching) viaTouch = false; }, 0);
     }
-    dial.addEventListener("touchend", endTouch);
-    dial.addEventListener("touchcancel", endTouch);
+    function ensureWinTouch() {
+      if (winTouchWired) return;
+      winTouchWired = true;
+      window.addEventListener("touchmove", onWinTouchMove, { passive: false, capture: true });
+      window.addEventListener("touchend", onWinTouchEnd, { capture: true });
+      window.addEventListener("touchcancel", onWinTouchEnd, { capture: true });
+    }
+
+    wrap.addEventListener("touchstart", function (e) {
+      if (!e.touches || !e.touches[0]) return;
+      if (e.target === input) return;
+      const t = e.touches[0];
+      if (!nearFace(t.clientX, t.clientY)) return;
+      touching = true;
+      viaTouch = true;
+      activeId = null;
+      startVisual();
+      ensureWinTouch();
+      applyClient(t.clientX, t.clientY, false);
+      e.preventDefault();
+    }, { passive: false });
 
     if (typeof window.PointerEvent === "function") {
-      dial.addEventListener("pointerdown", function (e) {
+      wrap.addEventListener("pointerdown", function (e) {
         if (viaTouch || touching) return;
+        if (e.target === input) return;
+        if (!nearFace(e.clientX, e.clientY)) return;
         activeId = e.pointerId;
-        if (wrap) wrap.classList.add("is-orient-dragging");
-        if (e.pointerType !== "mouse") setRangeDragging(true);
-        try { dial.setPointerCapture(e.pointerId); } catch (_) {}
+        startVisual();
+        try { wrap.setPointerCapture(e.pointerId); } catch (_) {}
         applyClient(e.clientX, e.clientY, false);
         e.preventDefault();
       }, { passive: false });
-      dial.addEventListener("pointermove", function (e) {
+      wrap.addEventListener("pointermove", function (e) {
         if (viaTouch || touching) return;
         if (activeId === null || e.pointerId !== activeId) return;
         applyClient(e.clientX, e.clientY, false);
@@ -350,18 +379,17 @@
         if (activeId === null || e.pointerId !== activeId) return;
         applyClient(e.clientX, e.clientY, true);
         activeId = null;
-        if (wrap) wrap.classList.remove("is-orient-dragging");
-        setRangeDragging(false);
-        focusSelectQuiet();
-        try { dial.releasePointerCapture(e.pointerId); } catch (_) {}
+        stopVisual();
+        try { wrap.releasePointerCapture(e.pointerId); } catch (_) {}
       }
-      dial.addEventListener("pointerup", endPointer);
-      dial.addEventListener("pointercancel", endPointer);
+      wrap.addEventListener("pointerup", endPointer);
+      wrap.addEventListener("pointercancel", endPointer);
     } else {
-      dial.addEventListener("mousedown", function (e) {
+      wrap.addEventListener("mousedown", function (e) {
         if (e.button !== 0) return;
+        if (!nearFace(e.clientX, e.clientY)) return;
         mouseDown = true;
-        if (wrap) wrap.classList.add("is-orient-dragging");
+        startVisual();
         applyClient(e.clientX, e.clientY, false);
         e.preventDefault();
       });
@@ -369,14 +397,12 @@
         if (!mouseDown) return;
         applyClient(e.clientX, e.clientY, false);
       });
-      function endMouse(e) {
+      window.addEventListener("mouseup", function (e) {
         if (!mouseDown) return;
         mouseDown = false;
-        if (wrap) wrap.classList.remove("is-orient-dragging");
         applyClient(e.clientX, e.clientY, true);
-        focusSelectQuiet();
-      }
-      window.addEventListener("mouseup", endMouse);
+        stopVisual();
+      });
     }
   }
 

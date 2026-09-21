@@ -378,12 +378,16 @@ section.block > h2,
   border-radius: 50%;
 }
 .orient-dial {
+  box-sizing: content-box;
   width: 176px;
   height: 176px;
+  padding: 18px;
+  margin: -8px auto;
   line-height: 0;
   cursor: grab;
   touch-action: none;
   border-radius: 50%;
+  -webkit-touch-callout: none;
 }
 .orient-control.is-orient-dragging .orient-dial {
   cursor: grabbing;
@@ -392,6 +396,8 @@ section.block > h2,
   display: block;
   width: 176px;
   height: 176px;
+  pointer-events: none;
+  touch-action: none;
 }
 .orient-face {
   fill: var(--green-soft);
@@ -423,6 +429,10 @@ section.block > h2,
   stroke: var(--green);
   stroke-width: 3.5;
   stroke-linecap: round;
+}
+.orient-thumb-hit {
+  fill: var(--green);
+  opacity: 0.22;
 }
 .orient-thumb {
   fill: var(--green);
@@ -1308,9 +1318,10 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   }
   .orient-dial,
   .orient-dial-svg {
-    width: 156px;
-    height: 156px;
+    width: 168px;
+    height: 168px;
   }
+  .orient-dial { padding: 22px; }
   .orient-val { font-size: 1.02rem; }
 }
 
