@@ -650,6 +650,8 @@ section.block > h2,
 .rate-box input#conso {
   max-width: 10rem;
   font-variant-numeric: tabular-nums;
+  word-spacing: 0.12em;
+  white-space: nowrap;
 }
 .card-kpi .kpi-note {
   font-size: 0.68rem;

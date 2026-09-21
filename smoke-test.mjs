@@ -423,7 +423,7 @@ function parseGroupedInt(raw) {
 function fmtGroupedInt(n) {
   if (!isFinite(n)) return "";
   const digits = String(Math.max(0, Math.round(n)));
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 const groupedParseOk =
   parseGroupedInt("17000") === 17000 &&

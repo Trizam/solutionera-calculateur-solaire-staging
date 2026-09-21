@@ -109,11 +109,11 @@
     return isFinite(v) ? v : NaN;
   }
 
-  /** Integer with the same thousand space as page copy (17&nbsp;000). */
+  /** Integer with a visible thousand space, same grouping as page copy (17 000). */
   function fmtGroupedInt(n) {
     if (!isFinite(n)) return "";
     const digits = String(Math.max(0, Math.round(n)));
-    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   }
 
   function formatConsoInput(keepCursor) {
