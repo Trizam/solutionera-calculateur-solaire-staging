@@ -605,7 +605,7 @@
     setTakeoffText("takeoffArea", bruteTxt);
     setTakeoffText("takeoffUtil", Math.round(r.util * 100) + " %");
     setTakeoffText("takeoffUtile", isFinite(utile) ? fmtSig2(utile) + " m²" : "—");
-    setTakeoffText("takeoffPanels", panels > 0 ? String(panels) + " × ~" + PANEL_WATT + " W" : "—");
+    setTakeoffText("takeoffPanels", panels > 0 ? String(panels) + " × 400 W" : "—");
     setTakeoffText("takeoffKw", fmtSig2(r.kW) + " kWc");
     setTakeoffText("takeoffOrient", orientLabelFor(r.az));
     setTakeoffText("takeoffTilt", Math.round(Number(r.tilt)) + "°");
