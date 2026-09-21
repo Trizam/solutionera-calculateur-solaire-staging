@@ -15,7 +15,7 @@ Variantes **uniquement** via `?mode=` — **pas** de second repo ni de second si
 |--------|----------------|
 | **absent** (URL nue) | **Mode complet** (défaut) — toutes les sections actuelles : toit/production + coût + valeur/résultats |
 | `full` | Alias du défaut — même UI complète |
-| `webi` | **Uniquement `#sec-prod`** — une boîte : toit → kWh/jour + kWh/an. Coût, valeur/KPI, PDF, hero, mentions masqués |
+| `webi` | **Uniquement `#sec-prod` + `#sec-prod-b`** — 1A taille (PV + kWc) puis 1B production (kWh/an + kWh/j déc). Coût, valeur/KPI, PDF, hero, mentions masqués |
 | `webinar` | Alias de `webi` |
 | autre valeur | Traité comme **full** |
 
@@ -23,9 +23,9 @@ Attribut racine : `data-mode="full"` ou `data-mode="webi"` sur `<html>` / `<body
 Crochets CSS : `.mode-full-only` (masqué en webi) · `.mode-webi-only` (masqué hors webi).  
 En mode webi, un petit badge FR « Mode webi » apparaît près du sous-titre (pour les builders).
 
-**v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webi **ne montre que** la première boîte pédagogique « Combien est-ce que je peux produire ? » :
+**v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webi **ne montre que** les blocs pédagogiques 1A + 1B :
 
-- **visible en `webi` :** marque + `#sec-prod` (superficie, inclinaison, orientation, densité, déneige → kWh/jour puis kWh/an) + pied de bug
+- **visible en `webi` :** marque + `#sec-prod` (1A : superficie, densité → qté PV + kWc) + `#sec-prod-b` (1B : localisation QC, orientation, inclinaison, déneige → Mesurage Net kWh/an + Autonomie kWh/j déc) + pied de bug
 - **masqués en `webi` :** hero, `#sec-cost`, `#sec-value` (KPI + PDF), `aside.disclaimers`, modales info/tarif
 
 ---

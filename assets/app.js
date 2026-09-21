@@ -4,10 +4,13 @@
 
   // Tiny S/30 fallback if fetch fails (file:// or offline without cache)
   // Used for ANY missing cell so calc never stays blank forever
-  const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323 };
+  const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323, ac_dec: 53.274 };
   const DEFAULT_DENEIGEMENT = 0.20;
+  const DAYS_IN_DEC = 31;
 
   const PANEL_KW_PER_M2 = 0.20;
+  /** Pedagogical panel size: 400 W → nPV = kW / 0.4 (40 m² × 80 % → 16 PV / 6,4 kWc). */
+  const PANEL_W = 400;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
   // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
@@ -208,12 +211,15 @@
     const a = String(az);
     if (gridCells && gridCells[t] && gridCells[t][a]) {
       const c = gridCells[t][a];
-      return { ac_annual: c.ac_annual, W_winter: c.W_winter, source: "grid" };
+      const decRaw = c.ac_monthly && c.ac_monthly.dec;
+      const ac_dec = isFinite(Number(decRaw)) ? Number(decRaw) : FALLBACK_S30.ac_dec;
+      return { ac_annual: c.ac_annual, W_winter: c.W_winter, ac_dec: ac_dec, source: "grid" };
     }
     // Never blank forever: S/30 annual as secours for any missing cell
     return {
       ac_annual: FALLBACK_S30.ac_annual,
       W_winter: FALLBACK_S30.W_winter,
+      ac_dec: FALLBACK_S30.ac_dec,
       source: "fallback"
     };
   }
@@ -267,8 +273,11 @@
     const W = winterWFromTilt(tilt);
 
     const kW = m2 * util * PANEL_KW_PER_M2;
+    const nPv = kW > 0 ? Math.round((kW * 1000) / PANEL_W) : NaN;
     const kWhAnnuel = table * kW;
     const kWh = applyDeneigement(kWhAnnuel, deneige, W);
+    const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
+    const kWhDec = applyDeneigement(kWhDecMonth, deneige, W);
 
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
@@ -282,10 +291,10 @@
     const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
-    const kWhDay = isFinite(kWh) ? kWh / 365 : NaN;
+    const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, table, kWhAnnuel, kWh, kWhDay, W,
+      kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
@@ -538,7 +547,8 @@
       const yearNum = $("outKwh").querySelector(".prod-num");
       if (yearNum) yearNum.textContent = fmtSig2(r.kWh);
     }
-    $("outKw").textContent = fmtSig2(r.kW) + " kWc";
+    if ($("outPv")) $("outPv").textContent = isFinite(r.nPv) ? fmtNum(r.nPv, 0) : "—";
+    if ($("outKw")) $("outKw").textContent = fmtSig2(r.kW);
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
 
@@ -1263,6 +1273,8 @@
     roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
+      PANEL_W,
+      DAYS_IN_DEC,
       TAX_MULT,
       RATE_D_T2_HT,
       DEFAULT_RATE_CENTS,
