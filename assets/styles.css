@@ -1007,6 +1007,26 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.modal-body .rate-table tr.rate-avg-row th,
+.modal-body .rate-table tr.rate-avg-row td {
+  background: var(--green-soft);
+}
+.modal-body .rate-table tr.rate-buyback-row th,
+.modal-body .rate-table tr.rate-buyback-row td {
+  background: #f4f7f5;
+}
+.modal-body .rate-table-source {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.modal-body .rate-table-source:last-child {
+  margin-bottom: 0;
+}
+.modal-body .rate-table-source a {
+  color: var(--green);
+  font-weight: 700;
+}
 .modal-card .btn { margin-top: 0.5rem; }
 .modal-card textarea {
   width: 100%;

@@ -369,7 +369,7 @@
       </div>
       <div class="modal-body" id="rateDesc">
         <div class="info-block rate-avg">
-          <h4 class="rate-avg-label">Moyenne Québec TTC</h4>
+          <h4 class="rate-avg-label">Coût du kWh moyen — maison moyenne</h4>
           <span class="amt">9,53&nbsp;¢/kWh</span>
           <p>Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois, 1<sup>er</sup> avr. 2025).</p>
           <p>Même profil HT&nbsp;: 8,29&nbsp;¢/kWh.</p>
@@ -377,13 +377,13 @@
           <p>Pas indexée à avril 2026.</p>
         </div>
         <div class="info-block">
-          <h4>Paliers Tarif D</h4>
+          <h4>Paliers et références</h4>
           <p>Régie, 1<sup>er</sup> avril 2026. Hors frais d’accès au réseau (46,154&nbsp;¢/jour).</p>
           <p>TTC = HT × 1,14975 (TPS 5&nbsp;% + TVQ 9,975&nbsp;%).</p>
           <table class="rate-table">
             <thead>
               <tr>
-                <th scope="col">Palier</th>
+                <th scope="col">Référence</th>
                 <th scope="col">Avant taxes (HT)</th>
                 <th scope="col">Taxes comprises (TTC)</th>
               </tr>
@@ -399,8 +399,20 @@
                 <td class="amt">11,142&nbsp;¢/kWh</td>
                 <td class="amt">12,811&nbsp;¢/kWh</td>
               </tr>
+              <tr class="rate-avg-row">
+                <th scope="row">Maison moyenne<br /><span class="rate-sub">coût du kWh moyen</span></th>
+                <td class="amt">8,29&nbsp;¢/kWh</td>
+                <td class="amt">9,53&nbsp;¢/kWh</td>
+              </tr>
+              <tr class="rate-buyback-row">
+                <th scope="row">Rachat HQ<br /><span class="rate-sub">surplus après 24 mois</span></th>
+                <td class="amt">4,730&nbsp;¢/kWh</td>
+                <td class="amt">4,730&nbsp;¢/kWh</td>
+              </tr>
             </tbody>
           </table>
+          <p class="rate-table-source">Source maison moyenne&nbsp;: <a href="https://hydroquebec.com/data/documents-donnees/pdf/comparaison-prix-electricite-2025.pdf" target="_blank" rel="noopener noreferrer">Comparaison des prix 2025</a> (HQ, 1&nbsp;000 kWh/mois, frais d’accès amortis + TPS/TVQ). Pas indexée à avril 2026.</p>
+          <p class="rate-table-source">Source rachat&nbsp;: <a href="https://www.hydroquebec.com/data/documents-donnees/pdf/tarifs-electricite.pdf" target="_blank" rel="noopener noreferrer">Tarifs d’électricité</a>, 1<sup>er</sup> avr. 2026, art.&nbsp;2.51 — coût moyen de fourniture, 4,730&nbsp;¢/kWh. Tous les prix des Tarifs sont hors taxes. Côté client résidentiel, HQ ne rajoute pas TPS/TVQ sur ce rachat&nbsp;: HT = TTC, <strong>4,730&nbsp;¢ est le chiffre réel</strong>. À l’inverse, l’électricité que tu achètes — ou que tu évites d’acheter via la banque en kWh — se paie taxes comprises. Le rachat ne s’applique qu’au solde restant à la remise à zéro, tous les 24 mois.</p>
         </div>
         <div class="info-block">
           <h4>Défaut du calculateur</h4>

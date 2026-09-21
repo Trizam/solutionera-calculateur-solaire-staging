@@ -479,7 +479,7 @@ const hasRateInfoUi =
   html.includes("btnRateInfo") &&
   html.includes("rateModal") &&
   html.includes("9,53") &&
-  html.includes("Moyenne Québec TTC") &&
+  html.includes("Coût du kWh moyen — maison moyenne") &&
   html.includes("Moyenne rés. QC TTC (HQ Comparaison 2025, 1000 kWh/mois") &&
   html.includes("8,29") &&
   html.includes("comparaison-prix-electricite-2025.pdf") &&
@@ -488,6 +488,21 @@ const hasRateInfoUi =
   html.includes("46,154") &&
   html.includes("8,123") &&
   html.includes("12,811") &&
+  html.includes("Maison moyenne") &&
+  html.includes("coût du kWh moyen") &&
+  html.includes("rate-avg-row") &&
+  html.includes("Rachat HQ") &&
+  html.includes("surplus après 24 mois") &&
+  html.includes("4,730") &&
+  /Rachat HQ[\s\S]{0,280}4,730[\s\S]{0,80}4,730/.test(html) &&
+  html.includes("HT = TTC") &&
+  !html.includes("5,438") &&
+  html.includes("HQ ne rajoute pas TPS/TVQ") &&
+  html.includes("4,730&nbsp;¢ est le chiffre réel") &&
+  html.includes("rate-buyback-row") &&
+  html.includes("art.&nbsp;2.51") &&
+  html.includes("tarifs-electricite.pdf") &&
+  html.includes("rate-table-source") &&
   html.includes("0,12811") &&
   html.includes("Avant taxes (HT)") &&
   html.includes("Taxes comprises (TTC)") &&
