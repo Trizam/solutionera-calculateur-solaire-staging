@@ -134,28 +134,70 @@
     return PREF_DARK;
   }
 
+  function closestPrefBtn(node) {
+    if (!node) return null;
+    if (node.getAttribute && node.getAttribute("data-theme-pref-btn")) return node;
+    if (node.closest) return node.closest("[data-theme-pref-btn]");
+    return null;
+  }
+
+  /** Prefer composedPath: setPointerCapture retargets click onto the capture root. */
+  function prefButtonFromEvent(e, rootEl) {
+    var path = e && e.composedPath && e.composedPath();
+    var i;
+    var node;
+    if (path && path.length) {
+      for (i = 0; i < path.length; i++) {
+        node = closestPrefBtn(path[i]);
+        if (node) return node;
+      }
+    }
+    node = closestPrefBtn(e && e.target);
+    if (node) return node;
+    if (rootEl && typeof document !== "undefined" && document.elementFromPoint && e && isFinite(e.clientX) && isFinite(e.clientY)) {
+      return closestPrefBtn(document.elementFromPoint(e.clientX, e.clientY));
+    }
+    return null;
+  }
+
   function wireSwipe(rootEl) {
     var tracking = false;
     var moved = false;
     var startX = 0;
     var pointerId = null;
+    var startBtn = null;
+    var capturing = false;
     var SWIPE_PX = 12;
 
-    function onMove(clientX) {
+    function captureIfNeeded(el, id) {
+      if (capturing || !el || !el.setPointerCapture) return;
+      try {
+        el.setPointerCapture(id);
+        capturing = true;
+      } catch (err) { /* ignore */ }
+    }
+
+    function onMove(clientX, captureEl, captureId) {
       if (!tracking) return;
-      if (Math.abs(clientX - startX) >= SWIPE_PX) moved = true;
+      if (!moved && Math.abs(clientX - startX) >= SWIPE_PX) {
+        moved = true;
+        if (captureEl && captureId != null) captureIfNeeded(captureEl, captureId);
+      }
       if (moved) applyTheme(prefFromClientX(rootEl, clientX), false);
     }
 
     function onEnd(clientX) {
       if (!tracking) return;
       tracking = false;
+      capturing = false;
       if (moved) {
         applyTheme(prefFromClientX(rootEl, clientX), true);
         rootEl.setAttribute("data-swiped", "1");
       } else {
         rootEl.removeAttribute("data-swiped");
+        if (startBtn) applyTheme(startBtn.getAttribute("data-theme-pref-btn"), true);
       }
+      startBtn = null;
     }
 
     if (root.addEventListener && root.PointerEvent) {
@@ -163,15 +205,15 @@
         if (e.pointerType === "mouse" && e.button !== 0) return;
         tracking = true;
         moved = false;
+        capturing = false;
         startX = e.clientX;
         pointerId = e.pointerId;
-        if (rootEl.setPointerCapture) {
-          try { rootEl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-        }
+        startBtn = prefButtonFromEvent(e, rootEl);
+        /* Capture only after a real swipe — early capture steals the click. */
       });
       rootEl.addEventListener("pointermove", function (e) {
         if (!tracking || (pointerId != null && e.pointerId !== pointerId)) return;
-        onMove(e.clientX);
+        onMove(e.clientX, rootEl, e.pointerId);
       });
       rootEl.addEventListener("pointerup", function (e) {
         if (pointerId != null && e.pointerId !== pointerId) return;
@@ -181,7 +223,9 @@
       rootEl.addEventListener("pointercancel", function () {
         tracking = false;
         moved = false;
+        capturing = false;
         pointerId = null;
+        startBtn = null;
         rootEl.removeAttribute("data-swiped");
       });
     } else {
@@ -190,6 +234,7 @@
         tracking = true;
         moved = false;
         startX = e.touches[0].clientX;
+        startBtn = prefButtonFromEvent(e, rootEl) || closestPrefBtn(e.target);
       }, { passive: true });
       rootEl.addEventListener("touchmove", function (e) {
         if (!tracking || !e.touches || !e.touches[0]) return;
@@ -215,8 +260,7 @@
         e.preventDefault();
         return;
       }
-      var target = e.target;
-      var btn = target && target.closest ? target.closest("[data-theme-pref-btn]") : null;
+      var btn = prefButtonFromEvent(e, rootEl);
       if (!btn) return;
       applyTheme(btn.getAttribute("data-theme-pref-btn"), true);
     });
@@ -262,6 +306,7 @@
     THEME_COLOR_DARK: THEME_COLOR_DARK,
     parseThemePref: normalizePref,
     resolveTheme: resolveTheme,
+    prefButtonFromEvent: prefButtonFromEvent,
     applyTheme: applyTheme,
     initTheme: initTheme,
     get currentPref() {

@@ -676,6 +676,11 @@ const deneigeTip =
   !deneigeTpl.includes("100&nbsp;% = déneigement après chaque chute") &&
   !deneigeTpl.includes("L’inclinaison fixe aussi le risque");
 console.log(`  ⓘ déneigement mots + accumulation 12/12: ${deneigeTip ? "PASS" : "FAIL"}`);
+const deneigeEnds =
+  /id="deneige"[\s\S]*?<div class="slider-meta"><span>jamais<\/span><span>toujours<\/span><\/div>/.test(html) &&
+  !html.includes("je ne déneige pas") &&
+  !html.includes("je déneige dès qu");
+console.log(`  déneigement ends jamais/toujours, no 0%/100% hint: ${deneigeEnds ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -917,9 +922,27 @@ const htmlThemeToggle =
 const themeSwipe =
   themeSrc.includes("wireSwipe") &&
   themeSrc.includes("prefFromClientX") &&
+  themeSrc.includes("prefButtonFromEvent") &&
+  themeSrc.includes("composedPath") &&
+  themeSrc.includes("Capture only after a real swipe") &&
   themeSrc.includes("pointerdown") &&
   themeSrc.includes("touchstart") &&
   /touch-action:\s*none/.test(css);
+const lightPrefBtn = {
+  getAttribute(k) { return k === "data-theme-pref-btn" ? "light" : null; }
+};
+const capturedClick = {
+  composedPath() { return [{ tag: "svg" }, lightPrefBtn]; },
+  target: { closest() { return null; } }
+};
+const themeHitApi = runThemeMode({});
+const themePrefFromCapturedOk = themeHitApi.api.prefButtonFromEvent(capturedClick, {}) === lightPrefBtn;
+const themeClickHit =
+  css.includes("pointer-events: auto") &&
+  /\.theme-toggle\s*\{[\s\S]*?z-index:\s*2/.test(css) &&
+  /\.brand-text\s*\{[\s\S]*?overflow:\s*hidden/.test(css) &&
+  themeSrc.includes("prefButtonFromEvent: prefButtonFromEvent") &&
+  themePrefFromCapturedOk;
 const cssThemeDark =
   /html\[data-theme="dark"\]/.test(css) &&
   css.includes(".theme-toggle") &&
@@ -929,6 +952,7 @@ const cssThemeDark =
 console.log(`  theme pref light/sys/dark + persist + OS resolve: ${themeLogicOk ? "PASS" : "FAIL"}`);
 console.log(`  theme icons-only in brand row + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
 console.log(`  theme swipe (pointer + touch) + touch-action none: ${themeSwipe ? "PASS" : "FAIL"}`);
+console.log(`  theme click survives capture + brand overflow: ${themeClickHit ? "PASS" : "FAIL"}`);
 console.log(`  CSS data-theme=dark tokens + print hides toggle: ${cssThemeDark ? "PASS" : "FAIL"}`);
 
 /** Same 2-sig-fig display helper as app.js (sec-prod only) */
@@ -975,9 +999,41 @@ const prodUsesSig2 =
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
+function fmtMoneySig2(n) {
+  if (!isFinite(n)) return "—";
+  const rounded = sig2Round(n);
+  if (!isFinite(rounded)) return "—";
+  const abs = Math.abs(rounded);
+  const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+  return rounded.toLocaleString("fr-CA", {
+    style: "currency",
+    currency: "CAD",
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2
+  });
+}
+const moneySigCases = [
+  [15675.2, 16000],
+  [14230, 14000],
+  [874.4, 870],
+  [12.53, 13]
+];
+const moneySig2RoundOk = moneySigCases.every(([raw, expect]) => Math.abs(sig2Round(raw) - expect) < 1e-9);
+const fmtMoney15675 = fmtMoneySig2(15675.2);
+const fmtMoney15675Compact = fmtMoney15675.replace(/\s/g, "");
+const fmtMoneySig2Ok =
+  moneySig2RoundOk &&
+  /16\s*000/.test(fmtMoney15675) &&
+  !/15675/.test(fmtMoney15675Compact);
+const totalUsesSig2 =
+  app.includes("function fmtMoneySig2") &&
+  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
 console.log(`  sec-prod render uses fmtSig2 only: ${prodUsesSig2 ? "PASS" : "FAIL"}`);
+console.log(`  Total estimé / coût réel use fmtMoneySig2 (15675→${JSON.stringify(fmtMoney15675)}): ${fmtMoneySig2Ok && totalUsesSig2 ? "PASS" : "FAIL"}`);
 
 const nowBug = 1700000000000;
 const bugGood = {
@@ -1267,6 +1323,7 @@ const pass =
   orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
+  deneigeEnds &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
@@ -1289,10 +1346,13 @@ const pass =
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
+  themeClickHit &&
   cssThemeDark &&
   sig2RoundOk &&
   fmt14230Ok &&
   prodUsesSig2 &&
+  fmtMoneySig2Ok &&
+  totalUsesSig2 &&
   bugValidOk &&
   bugHpReject &&
   bugMinReject &&
