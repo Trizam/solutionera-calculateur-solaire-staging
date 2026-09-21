@@ -270,6 +270,22 @@
           </div>
         </div>
         <div class="label prod-power">avec une installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
+        <button
+          type="button"
+          class="takeoff-btn"
+          id="btnTakeoff"
+          aria-haspopup="dialog"
+          aria-controls="takeoffModal"
+          title="Voir le relevé de l’installation"
+          aria-label="Voir le relevé de l’installation"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="4.2" y="2.6" width="7.6" height="11.3" rx="1.35" fill="none" stroke="currentColor" stroke-width="1.4" />
+            <rect x="6" y="1.4" width="4" height="2.15" rx="0.65" fill="none" stroke="currentColor" stroke-width="1.3" />
+            <path d="M6.25 6.45h3.55M6.25 8.75h3.55M6.25 11.05h2.35" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+          </svg>
+          <span>Relevé</span>
+        </button>
       </div>
     </section>
 
@@ -485,6 +501,56 @@
         </div>
       </div>
       <button type="button" class="btn" id="btnRateOk">Compris</button>
+    </div>
+  </div>
+
+  <!-- Takeoff / relevé sheet (webi + full) -->
+  <div class="modal-backdrop info-sheet" id="takeoffModal" hidden role="dialog" aria-modal="true" aria-labelledby="takeoffTitle" aria-describedby="takeoffDesc">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="takeoffTitle">Relevé de l’installation</h3>
+        <button type="button" class="modal-close" id="btnTakeoffClose" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body" id="takeoffDesc">
+        <div class="info-block">
+          <h4>Installation</h4>
+          <div class="takeoff-rows">
+            <div class="takeoff-row"><span>Superficie brute</span><strong id="takeoffArea">—</strong></div>
+            <div class="takeoff-row"><span>Densité</span><strong id="takeoffUtil">—</strong></div>
+            <div class="takeoff-row"><span>Superficie utile</span><strong id="takeoffUtile">—</strong></div>
+            <div class="takeoff-row"><span>Panneaux (estimé)</span><strong id="takeoffPanels">—</strong></div>
+            <div class="takeoff-row"><span>Puissance</span><strong id="takeoffKw">—</strong></div>
+          </div>
+          <p class="takeoff-note">Hypothèse : modules ~400&nbsp;W — chiffre pédagogique, pas un devis matériel.</p>
+        </div>
+        <div class="info-block">
+          <h4>Pose</h4>
+          <div class="takeoff-rows">
+            <div class="takeoff-row"><span>Orientation</span><strong id="takeoffOrient">—</strong></div>
+            <div class="takeoff-row"><span>Inclinaison</span><strong id="takeoffTilt">—</strong></div>
+            <div class="takeoff-row"><span>Déneigement</span><strong id="takeoffDeneige">—</strong></div>
+            <div class="takeoff-row"><span>Perte restante</span><strong id="takeoffLoss">—</strong></div>
+          </div>
+        </div>
+        <div class="info-block">
+          <h4>Production</h4>
+          <div class="takeoff-rows">
+            <div class="takeoff-row"><span>Par jour</span><strong id="takeoffKwhDay">—</strong></div>
+            <div class="takeoff-row"><span>Par an</span><strong id="takeoffKwhYear">—</strong></div>
+          </div>
+        </div>
+        <div class="info-block mode-full-only">
+          <h4>Coût estimé</h4>
+          <div class="takeoff-rows">
+            <div class="takeoff-row"><span>Sous-total (HT)</span><strong id="takeoffHT">—</strong></div>
+            <div class="takeoff-row"><span>Taxes</span><strong id="takeoffTaxes">—</strong></div>
+            <div class="takeoff-row"><span>Subvention</span><strong id="takeoffSubv">—</strong></div>
+            <div class="takeoff-row total"><span>Total estimé</span><strong id="takeoffTotal">—</strong></div>
+          </div>
+        </div>
+        <p class="takeoff-note">Instantané pédagogique du projet — pas une soumission ni un devis.</p>
+      </div>
+      <button type="button" class="btn" id="btnTakeoffOk">Compris</button>
     </div>
   </div>
 
