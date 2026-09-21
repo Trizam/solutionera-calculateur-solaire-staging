@@ -422,6 +422,116 @@ section.block > h2,
   color: var(--text);
   max-width: 100%;
 }
+
+/*
+ * Circular azimuth dial — 0° Nord at top, clockwise (90° Est, 180° Sud).
+ * New control: do not restyle existing linear sliders.
+ */
+.orient-control {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  touch-action: none;
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.orient-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.orient-control:focus-within .orient-dial {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.orient-dial {
+  box-sizing: content-box;
+  width: 176px;
+  height: 176px;
+  padding: 18px;
+  margin: -8px auto;
+  line-height: 0;
+  cursor: grab;
+  touch-action: none;
+  border-radius: 50%;
+  -webkit-touch-callout: none;
+}
+.orient-control.is-orient-dragging .orient-dial {
+  cursor: grabbing;
+}
+.orient-dial-svg {
+  display: block;
+  width: 176px;
+  height: 176px;
+  pointer-events: none;
+  touch-action: none;
+}
+.orient-face {
+  fill: var(--green-soft);
+  stroke: var(--green-mid);
+  stroke-width: 2.5;
+}
+.orient-face-inner {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.25;
+}
+.orient-tick {
+  stroke: var(--green-dark);
+  stroke-linecap: round;
+  stroke-width: 1.75;
+  opacity: 0.55;
+}
+.orient-tick.is-major {
+  stroke-width: 2.75;
+  opacity: 0.9;
+}
+.orient-cardinal {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--green-dark);
+}
+.orient-needle-line {
+  stroke: var(--green);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.orient-thumb-hit {
+  fill: var(--green);
+  opacity: 0.22;
+}
+.orient-thumb {
+  fill: var(--green);
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+.orient-hub {
+  fill: var(--green-dark);
+}
+.orient-val {
+  font-weight: 700;
+  color: var(--green);
+  font-size: 1.12rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1.15;
+  min-height: 1.3em;
+}
 .unit-toggle {
   display: flex;
   border: 1px solid var(--border);
@@ -1184,6 +1294,28 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   .slider-track,
   .slider-meta,
   .slider-track input[type="range"] { display: none !important; }
+  .orient-dial,
+  .orient-val { display: none !important; }
+  .orient-control {
+    display: block;
+    touch-action: auto;
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+  .orient-select {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0.65rem 0.75rem;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    background: #fff;
+  }
   .grid-status {
     display: none !important;
     visibility: hidden !important;
@@ -1312,6 +1444,13 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     line-height: 1.25;
     max-width: 48%;
   }
+  .orient-dial,
+  .orient-dial-svg {
+    width: 168px;
+    height: 168px;
+  }
+  .orient-dial { padding: 22px; }
+  .orient-val { font-size: 1.02rem; }
 }
 
 /* Skip target: allow programmatic focus without ugly ring flash, keep :focus-visible */

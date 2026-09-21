@@ -611,6 +611,38 @@ const orientPanelsLabel =
   !html.includes("Orientation de la toiture") &&
   html.includes("<label for=\"tilt\">Inclinaison de la toiture</label>");
 console.log(`  orient label = panneaux solaires (inclinaison toiture kept): ${orientPanelsLabel ? "PASS" : "FAIL"}`);
+const printCss = css.includes("@media print") ? css.slice(css.indexOf("@media print")) : "";
+const orientDial =
+  html.includes('id="orientDial"') &&
+  html.includes('id="orientControl"') &&
+  html.includes('id="orientNeedle"') &&
+  html.includes('id="orientVal"') &&
+  html.includes('class="orient-select"') &&
+  /<select id="orient" class="orient-select">/.test(html) &&
+  css.includes(".orient-dial") &&
+  css.includes(".orient-control") &&
+  /0° Nord at top/.test(css) &&
+  app.includes("function snapAzimuth") &&
+  app.includes("function azimuthFromOffsets") &&
+  app.includes("Math.atan2(dx, -dy)") &&
+  app.includes("function wireOrientDial") &&
+  app.includes("updateOrientDial") &&
+  app.includes("wireOrientDial()") &&
+  printCss.includes(".orient-dial") &&
+  printCss.includes(".orient-select");
+console.log(`  orient circular dial (15° compass, select kept): ${orientDial ? "PASS" : "FAIL"}`);
+const sliderScreenCss = css.split("@media print")[0];
+const orientDialMobile =
+  app.includes("function nearFace") &&
+  app.includes("function ensureWinTouch") &&
+  app.includes("onWinTouchMove") &&
+  app.includes("Do not focus the clipped <select>") &&
+  !/focusSelectQuiet/.test(app) &&
+  html.includes("orient-thumb-hit") &&
+  css.includes(".orient-thumb-hit") &&
+  /\.orient-dial-svg[\s\S]{0,80}pointer-events:\s*none/.test(sliderScreenCss) &&
+  /\.orient-dial[\s\S]{0,280}padding:\s*18px/.test(sliderScreenCss);
+console.log(`  orient dial mobile drag (window touch + fat-finger hit): ${orientDialMobile ? "PASS" : "FAIL"}`);
 const areaInstallLabel =
   html.includes("<label for=\"area\">Superficie de l’installation</label>") &&
   html.includes("aria-label=\"Aide : Superficie de l’installation\"") &&
@@ -1185,6 +1217,8 @@ const pass =
   orientVersantTip &&
   orientAzimuthHint &&
   orientPanelsLabel &&
+  orientDial &&
+  orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
   modeDefaultFull &&
