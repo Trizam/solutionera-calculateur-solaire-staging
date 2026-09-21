@@ -11,7 +11,8 @@
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
   // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
-  const DEFAULT_RATE = 0.12811; // Tarif D 2e tranche TTC, 1 avr 2026
+  const DEFAULT_RATE_CENTS = 12.811; // champ tarif: ¢/kWh (2e tranche TTC)
+  const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** HQ art. 2.51 — coût moyen de fourniture, 1 avr 2026. HT = TTC (pas de TPS/TVQ). */
   const BUYBACK_RATE = 0.04730;
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
@@ -116,6 +117,21 @@
     return rounded.toLocaleString("fr-CA", {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
+    });
+  }
+
+  /** Currency with the same 2-sig-fig scheme as production (display only). 15675 → 16 000 $. */
+  function fmtMoneySig2(n) {
+    if (!isFinite(n)) return "—";
+    const rounded = sig2Round(n);
+    if (!isFinite(rounded)) return "—";
+    const abs = Math.abs(rounded);
+    const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+    return rounded.toLocaleString("fr-CA", {
+      style: "currency",
+      currency: "CAD",
+      minimumFractionDigits: whole ? 0 : 2,
+      maximumFractionDigits: whole ? 0 : 2
     });
   }
   function fmtYears(n) {
@@ -235,27 +251,13 @@
   }
 
   /**
-   * Tarif in $/kWh. Values > 1 are treated as ¢/kWh (ex. 9,53 from ⓘ moyenne)
-   * and converted — otherwise payback collapses to ~0 an (issue #59).
+   * Field is ¢/kWh. Convert to $/kWh for money math.
+   * Empty / invalid → default 2e tranche TTC (issue #59: 9,53 stays 9,53 ¢).
    */
   function rateDollarsPerKwh(raw) {
     const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
     if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
-    if (v > 1) return v / 100;
-    return v;
-  }
-
-  /** On blur: rewrite ¢ entries (9.53 → 0.0953) so the field matches $/kWh. */
-  function coerceRateInput() {
-    const el = $("rate");
-    if (!el) return;
-    const raw = String(el.value).trim().replace(",", ".");
-    if (raw === "" || raw === "-" || raw === ".") return;
-    const v = parseFloat(raw);
-    if (!isFinite(v) || v <= 0) return;
-    if (v > 1) {
-      el.value = String(Math.round((v / 100) * 1e5) / 1e5);
-    }
+    return v / 100;
   }
 
   /** kWh_credites = min(production, consommation) when conso is provided */
@@ -564,7 +566,7 @@
     $("lineHT").textContent = fmtMoney(r.HT);
     $("lineTaxes").textContent = r.taxesOn ? fmtMoney(r.taxes) : "—";
     $("lineSubv").textContent = r.subvOn ? ("− " + fmtMoney(r.subv)) : "—";
-    $("lineTotal").textContent = fmtMoney(r.reel);
+    $("lineTotal").textContent = fmtMoneySig2(r.reel);
 
     $("outEcoYear").textContent = "≈ " + fmtMoney(r.eco) + " / an";
     if ($("outEcoFormula")) {
@@ -572,7 +574,7 @@
         ? "Crédit (plafonné à la conso) × tarif"
         : "Production × tarif";
     }
-    $("kpiReel").textContent = fmtMoney(r.reel);
+    $("kpiReel").textContent = fmtMoneySig2(r.reel);
     $("kpiEco").textContent = fmtMoney(r.eco);
     const alert = $("surplusAlert");
     if (alert) {
@@ -1170,10 +1172,6 @@
       wireSliderRowDrag(row);
     });
     wireOrientDial();
-    const rateEl = $("rate");
-    if (rateEl) {
-      rateEl.addEventListener("blur", () => { coerceRateInput(); render(); });
-    }
     const area = $("area");
     if (area) {
       area.addEventListener("input", () => { roundAreaInput(); render(); });
@@ -1218,7 +1216,7 @@
     if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
     $("tilt").value = "30";
     $("orient").value = "180";
-    $("rate").value = String(DEFAULT_RATE);
+    $("rate").value = String(DEFAULT_RATE_CENTS);
     $("taxes").checked = true;
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
@@ -1276,11 +1274,11 @@
     fmtGroupedInt,
     formatConsoInput,
     rateDollarsPerKwh,
-    coerceRateInput,
     lookupCell,
     winterWFromTilt,
     sig2Round,
     fmtSig2,
+    fmtMoneySig2,
     validateBugReport,
     bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
@@ -1297,6 +1295,7 @@
       PANEL_KW_PER_M2,
       TAX_MULT,
       RATE_D_T2_HT,
+      DEFAULT_RATE_CENTS,
       DEFAULT_RATE,
       BUYBACK_RATE,
       DEFAULT_DENEIGEMENT,

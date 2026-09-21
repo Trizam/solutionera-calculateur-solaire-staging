@@ -328,13 +328,13 @@
       <div class="field">
         <label for="rate">Tarif marginal HQ (TTC)</label>
         <div class="rate-box">
-          <input id="rate" type="number" min="0" step="0.00001" value="0.12811" inputmode="decimal" autocomplete="off" />
-          <span>$/kWh</span>
+          <input id="rate" type="number" min="0" step="0.001" value="12.811" inputmode="decimal" autocomplete="off" />
+          <span>¢/kWh</span>
           <button type="button" class="rate-info-btn" id="btnRateInfo" aria-haspopup="dialog" aria-controls="rateModal" title="Moyenne résidentielle et paliers Tarif D" aria-label="Moyenne résidentielle QC et deux paliers Tarif D, avant taxes et taxes comprises">
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        <p class="hint">→ Défaut 0,12811&nbsp;$/kWh (2<sup>e</sup> tranche TTC) · ⓘ paliers en ¢ · une saisie &gt;&nbsp;1 (ex. 9,53) est lue en ¢/kWh</p>
+        <p class="hint">→ Défaut 12,811&nbsp;¢/kWh (2<sup>e</sup> tranche TTC) · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
         <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
       </div>
 
@@ -377,7 +377,7 @@
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Au-delà, une bannière jaune rappelle le rachat HQ du surplus (4,730&nbsp;¢/kWh, art.&nbsp;2.51) — moins payant que le kWh évité.</li>
-        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ $/kWh. Une saisie &gt;&nbsp;1 est interprétée en ¢/kWh (ex. 9,53 → 0,0953).</li>
+        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
     </aside>
@@ -483,7 +483,7 @@
         </div>
         <div class="info-block">
           <h4>Défaut du calculateur</h4>
-          <p>Le champ tarif attend des <strong>$/kWh</strong> (défaut 0,12811 = 2<sup>e</sup> tranche TTC = 0,11142 × 1,14975). Si tu colles une valeur en ¢ (ex. 9,53 ou 12,811), le calculateur la convertit automatiquement.</p>
+          <p>Le champ tarif est en <strong>¢/kWh</strong> (défaut 12,811&nbsp;¢ = 2<sup>e</sup> tranche TTC = 11,142 × 1,14975). Même unité que les paliers ⓘ (ex. 9,53 ou 12,811).</p>
           <p>C’est le tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
         </div>
       </div>

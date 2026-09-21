@@ -462,36 +462,40 @@ const hasSurplusAlertCss =
 const ttcExact = 0.11142 * TAX_MULT;
 const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
 const defaultRateTtc =
+  /DEFAULT_RATE_CENTS\s*=\s*12\.811/.test(app) &&
   /DEFAULT_RATE\s*=\s*0\.12811/.test(app) &&
-  /id="rate"[^>]*value="0\.12811"/.test(html) &&
+  /id="rate"[^>]*value="12\.811"/.test(html) &&
+  /id="rate"[\s\S]{0,180}¢\/kWh/.test(html) &&
+  !/id="rate"[^>]*value="0\.12811"/.test(html) &&
   !/id="rate"[^>]*value="0\.11142"/.test(html) &&
   Math.abs(ttcRounded - 0.12811) < 1e-12 &&
   app.includes("RATE_D_T2_HT") &&
   /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
-/** Issue #59: ¢ saisie (9,53) must not be treated as $/kWh */
+/** Field is ¢/kWh. Always convert to $/kWh (issue #59: 9,53 stays 9,53 ¢). */
 function rateDollarsPerKwh(raw, defaultRate = 0.12811) {
   const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
   if (!isFinite(v) || v <= 0) return defaultRate;
-  if (v > 1) return v / 100;
-  return v;
+  return v / 100;
 }
 const rateNormPass =
-  Math.abs(rateDollarsPerKwh(0.12811) - 0.12811) < 1e-12 &&
-  Math.abs(rateDollarsPerKwh(9.53) - 0.0953) < 1e-12 &&
   Math.abs(rateDollarsPerKwh(12.811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(9.53) - 0.0953) < 1e-12 &&
   Math.abs(rateDollarsPerKwh("9,53") - 0.0953) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(11.142) - 0.11142) < 1e-12 &&
   rateDollarsPerKwh(0) === 0.12811 &&
   rateDollarsPerKwh(-1) === 0.12811;
 const rateBug59Eco = rateDollarsPerKwh(9.53001) * 8130.843520000001;
 const rateBug59Years = 18396 / rateBug59Eco;
 const rateBug59Pass = rateBug59Eco < 1000 && rateBug59Years > 10 && rateBug59Years < 40;
-const hasRateCentsNormalize =
+const hasRateCentsNative =
   app.includes("function rateDollarsPerKwh") &&
-  app.includes("function coerceRateInput") &&
-  app.includes("v > 1") &&
   app.includes("v / 100") &&
-  html.includes("lue en ¢/kWh") &&
-  html.includes("convertit automatiquement");
+  !app.includes("function coerceRateInput") &&
+  !app.includes("v > 1") &&
+  !html.includes("lue en ¢/kWh") &&
+  !html.includes("convertit automatiquement") &&
+  html.includes("12,811&nbsp;¢/kWh") &&
+  html.includes("champ tarif est en");
 const surplusClampMath = (function () {
   const prod = 8000;
   const conso = 3000;
@@ -530,7 +534,7 @@ const hasRateInfoUi =
   html.includes("art.&nbsp;2.51") &&
   html.includes("tarifs-electricite.pdf") &&
   html.includes("rate-table-source") &&
-  html.includes("0,12811") &&
+  html.includes("12,811") &&
   html.includes("Avant taxes (HT)") &&
   html.includes("Taxes comprises (TTC)") &&
   html.includes("tranche TTC") &&
@@ -564,10 +568,10 @@ console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn
 console.log(`  conso wired to render + surplusAlert: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  surplus alert CSS jaune, cartes inchangées: ${hasSurplusAlertCss ? "PASS" : "FAIL"}`);
 console.log(`  surplus kWh × rachat 4,730 ¢ + écart vs évité: ${surplusClampMath ? "PASS" : "FAIL"}`);
-console.log(`  default rate TTC 0.12811 (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
-console.log(`  rate cents normalize wired (blur + hint): ${hasRateCentsNormalize ? "PASS" : "FAIL"}`);
+console.log(`  rate field native ¢/kWh (no dual-unit coerce): ${hasRateCentsNative ? "PASS" : "FAIL"}`);
 const infoSheetUi =
   css.includes(".info-sheet") &&
   /max-height:\s*min\(88dvh/.test(css) &&
@@ -900,9 +904,27 @@ const htmlThemeToggle =
 const themeSwipe =
   themeSrc.includes("wireSwipe") &&
   themeSrc.includes("prefFromClientX") &&
+  themeSrc.includes("prefButtonFromEvent") &&
+  themeSrc.includes("composedPath") &&
+  themeSrc.includes("Capture only after a real swipe") &&
   themeSrc.includes("pointerdown") &&
   themeSrc.includes("touchstart") &&
   /touch-action:\s*none/.test(css);
+const lightPrefBtn = {
+  getAttribute(k) { return k === "data-theme-pref-btn" ? "light" : null; }
+};
+const capturedClick = {
+  composedPath() { return [{ tag: "svg" }, lightPrefBtn]; },
+  target: { closest() { return null; } }
+};
+const themeHitApi = runThemeMode({});
+const themePrefFromCapturedOk = themeHitApi.api.prefButtonFromEvent(capturedClick, {}) === lightPrefBtn;
+const themeClickHit =
+  css.includes("pointer-events: auto") &&
+  /\.theme-toggle\s*\{[\s\S]*?z-index:\s*2/.test(css) &&
+  /\.brand-text\s*\{[\s\S]*?overflow:\s*hidden/.test(css) &&
+  themeSrc.includes("prefButtonFromEvent: prefButtonFromEvent") &&
+  themePrefFromCapturedOk;
 const cssThemeDark =
   /html\[data-theme="dark"\]/.test(css) &&
   css.includes(".theme-toggle") &&
@@ -912,6 +934,7 @@ const cssThemeDark =
 console.log(`  theme pref light/sys/dark + persist + OS resolve: ${themeLogicOk ? "PASS" : "FAIL"}`);
 console.log(`  theme icons-only in brand row + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
 console.log(`  theme swipe (pointer + touch) + touch-action none: ${themeSwipe ? "PASS" : "FAIL"}`);
+console.log(`  theme click survives capture + brand overflow: ${themeClickHit ? "PASS" : "FAIL"}`);
 console.log(`  CSS data-theme=dark tokens + print hides toggle: ${cssThemeDark ? "PASS" : "FAIL"}`);
 
 /** Same 2-sig-fig display helper as app.js (sec-prod only) */
@@ -958,9 +981,41 @@ const prodUsesSig2 =
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
+function fmtMoneySig2(n) {
+  if (!isFinite(n)) return "—";
+  const rounded = sig2Round(n);
+  if (!isFinite(rounded)) return "—";
+  const abs = Math.abs(rounded);
+  const whole = Math.abs(rounded - Math.round(rounded)) <= 1e-9 * Math.max(1, abs);
+  return rounded.toLocaleString("fr-CA", {
+    style: "currency",
+    currency: "CAD",
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2
+  });
+}
+const moneySigCases = [
+  [15675.2, 16000],
+  [14230, 14000],
+  [874.4, 870],
+  [12.53, 13]
+];
+const moneySig2RoundOk = moneySigCases.every(([raw, expect]) => Math.abs(sig2Round(raw) - expect) < 1e-9);
+const fmtMoney15675 = fmtMoneySig2(15675.2);
+const fmtMoney15675Compact = fmtMoney15675.replace(/\s/g, "");
+const fmtMoneySig2Ok =
+  moneySig2RoundOk &&
+  /16\s*000/.test(fmtMoney15675) &&
+  !/15675/.test(fmtMoney15675Compact);
+const totalUsesSig2 =
+  app.includes("function fmtMoneySig2") &&
+  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
 console.log(`  sec-prod render uses fmtSig2 only: ${prodUsesSig2 ? "PASS" : "FAIL"}`);
+console.log(`  Total estimé / coût réel use fmtMoneySig2 (15675→${JSON.stringify(fmtMoney15675)}): ${fmtMoneySig2Ok && totalUsesSig2 ? "PASS" : "FAIL"}`);
 
 const nowBug = 1700000000000;
 const bugGood = {
@@ -1242,7 +1297,7 @@ const pass =
   defaultRateTtc &&
   rateNormPass &&
   rateBug59Pass &&
-  hasRateCentsNormalize &&
+  hasRateCentsNative &&
   hasRateInfoUi &&
   infoSheetUi &&
   orientVersantTip &&
@@ -1271,10 +1326,13 @@ const pass =
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
+  themeClickHit &&
   cssThemeDark &&
   sig2RoundOk &&
   fmt14230Ok &&
   prodUsesSig2 &&
+  fmtMoneySig2Ok &&
+  totalUsesSig2 &&
   bugValidOk &&
   bugHpReject &&
   bugMinReject &&

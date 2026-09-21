@@ -140,6 +140,8 @@ body.is-range-dragging {
   display: inline-flex;
   align-self: center;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
   height: 44px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -155,6 +157,8 @@ body.is-range-dragging {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
   width: 2.5rem;
   height: 100%;
   margin: 0;
@@ -166,6 +170,7 @@ body.is-range-dragging {
   color: var(--muted);
   cursor: pointer;
   touch-action: none;
+  pointer-events: auto;
 }
 .theme-toggle button:last-child { border-right: 0; }
 .theme-toggle button.active,
@@ -196,6 +201,7 @@ html[data-theme="dark"] .theme-toggle button[aria-checked="true"] {
 .brand-text {
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 .brand-logo {
   width: 44px;
