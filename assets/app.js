@@ -157,6 +157,30 @@
     return v;
   }
 
+  /**
+   * Tarif in $/kWh. Values > 1 are treated as ¢/kWh (ex. 9,53 from ⓘ moyenne)
+   * and converted — otherwise payback collapses to ~0 an (issue #59).
+   */
+  function rateDollarsPerKwh(raw) {
+    const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
+    if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
+    if (v > 1) return v / 100;
+    return v;
+  }
+
+  /** On blur: rewrite ¢ entries (9.53 → 0.0953) so the field matches $/kWh. */
+  function coerceRateInput() {
+    const el = $("rate");
+    if (!el) return;
+    const raw = String(el.value).trim().replace(",", ".");
+    if (raw === "" || raw === "-" || raw === ".") return;
+    const v = parseFloat(raw);
+    if (!isFinite(v) || v <= 0) return;
+    if (v > 1) {
+      el.value = String(Math.round((v / 100) * 1e5) / 1e5);
+    }
+  }
+
   /** kWh_credites = min(production, consommation) when conso is provided */
   function creditKwh(kWhProd, kWhConso) {
     if (!isFinite(kWhProd) || kWhProd < 0) return 0;
@@ -173,8 +197,7 @@
     const priceW = parseFloat($("priceW").value);
     const taxesOn = $("taxes").checked;
     const subvOn = $("subv").checked;
-    const rate = parseFloat($("rate").value);
-    const rateOk = isFinite(rate) && rate > 0 ? rate : DEFAULT_RATE;
+    const rateOk = rateDollarsPerKwh($("rate").value);
 
     const cell = lookupCell(tilt, az);
     const table = cell.ac_annual;
@@ -194,6 +217,8 @@
     const conso = consoAnnuelleKwh();
     const kWhCredites = creditKwh(kWh, conso);
     const ecoClamped = conso != null && kWh > conso;
+    const surplusKwh = ecoClamped ? kWh - conso : 0;
+    const lostEco = surplusKwh * rateOk;
     const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
@@ -201,7 +226,7 @@
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, table, kWhAnnuel, kWh, kWhDay, W,
-      conso, kWhCredites, ecoClamped,
+      conso, kWhCredites, ecoClamped, surplusKwh, lostEco,
       HT, TTC, taxes, subv, reel, eco, years,
       gridReady, gridStatus, cellSource: cell.source
     };
@@ -298,8 +323,16 @@
     }
     $("kpiReel").textContent = fmtMoney(r.reel);
     $("kpiEco").textContent = fmtMoney(r.eco);
-    const note = $("kpiEcoNote");
-    if (note) note.hidden = !r.ecoClamped;
+    if ($("cardEco")) $("cardEco").classList.toggle("is-clamped", !!r.ecoClamped);
+    if ($("cardYears")) $("cardYears").classList.toggle("is-clamped", !!r.ecoClamped);
+    const alert = $("surplusAlert");
+    if (alert) {
+      alert.hidden = !r.ecoClamped;
+      if (r.ecoClamped) {
+        if ($("surplusKwh")) $("surplusKwh").textContent = fmtSig2(r.surplusKwh) + " kWh / an";
+        if ($("surplusLost")) $("surplusLost").textContent = fmtMoney(r.lostEco);
+      }
+    }
     $("kpiYears").textContent = fmtYears(r.years);
     $("outPayback").textContent =
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
@@ -876,6 +909,10 @@
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
     });
+    const rateEl = $("rate");
+    if (rateEl) {
+      rateEl.addEventListener("blur", () => { coerceRateInput(); render(); });
+    }
     const area = $("area");
     if (area) {
       area.addEventListener("input", () => { roundAreaInput(); render(); });
@@ -974,6 +1011,8 @@
     applyDeneigement,
     creditKwh,
     consoAnnuelleKwh,
+    rateDollarsPerKwh,
+    coerceRateInput,
     lookupCell,
     winterWFromTilt,
     sig2Round,

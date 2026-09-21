@@ -11,6 +11,9 @@
   --border: #cfe3d4;
   --accent: #40916c;
   --warn: #bc6c25;
+  --danger: #9b2226;
+  --danger-soft: #fde8e8;
+  --danger-border: #e3b4b4;
   --shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
   --radius: 14px;
   --font: "Lato", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -649,15 +652,36 @@ section.block > h2,
 .rate-box input#conso {
   max-width: 8.5rem;
 }
-.card-kpi .kpi-note {
-  font-size: 0.68rem;
-  color: var(--green-dark);
-  margin: 0.45rem 0 0;
-  line-height: 1.35;
-  font-weight: 400;
+.card-kpi.is-clamped {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
 }
-.card-kpi .kpi-note[hidden] {
+.card-kpi.is-clamped .kpi {
+  color: var(--danger);
+}
+.surplus-alert {
+  margin: 0.85rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: left;
+}
+.surplus-alert[hidden] {
   display: none;
+}
+.surplus-alert strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.88rem;
+}
+.surplus-alert #surplusKwh {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
 }
 .btn {
   display: inline-flex;
@@ -1090,13 +1114,21 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   .brand { margin-bottom: 0.5rem; }
   .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   section.block, header.hero, .disclaimers,
-  .result-pill, .breakdown, .cards, .card-kpi {
+  .result-pill, .breakdown, .cards, .card-kpi, .surplus-alert {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none;
     border-color: #ccc;
   }
   .result-pill, .card-kpi { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .card-kpi.is-clamped,
+  .surplus-alert {
+    background: #f3e8e8 !important;
+    border-color: #c9a0a0;
+    color: #7a1f22;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   .cards { grid-template-columns: repeat(3, 1fr); }
   a { color: inherit; text-decoration: none; }
   /* Compact inputs for PDF */

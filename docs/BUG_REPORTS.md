@@ -14,7 +14,7 @@ Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le footer ouvre une m
 `index.html` :
 
 ```html
-<meta name="bug-report-endpoint" content="https://solutionera-bug-report.smooth-search.workers.dev" />
+<meta name="bug-report-endpoint" content="https://solutionera-bug-report.fred-435.workers.dev" />
 ```
 
 Aussi accepté : `window.__BUG_REPORT_ENDPOINT__` (jamais un token).
@@ -48,7 +48,7 @@ Secret serveur : `BUG_REPORT_GITHUB_TOKEN` (Issues: write sur ce repo). **Jamais
 
 ### Cloudflare Worker (préféré)
 
-Déployé : `https://solutionera-bug-report.smooth-search.workers.dev`
+Déployé : `https://solutionera-bug-report.fred-435.workers.dev`
 
 ```bash
 npx wrangler secret put BUG_REPORT_GITHUB_TOKEN

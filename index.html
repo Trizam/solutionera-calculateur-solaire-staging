@@ -270,7 +270,7 @@
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        <p class="hint">→ Défaut 2<sup>e</sup> tranche TTC · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
+        <p class="hint">→ Défaut 0,12811&nbsp;$/kWh (2<sup>e</sup> tranche TTC) · ⓘ paliers en ¢ · une saisie &gt;&nbsp;1 (ex. 9,53) est lue en ¢/kWh</p>
         <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
       </div>
 
@@ -279,16 +279,19 @@
           <div class="kpi" id="kpiReel">—</div>
           <div class="kpi-label">Coût réel<br />taxé − subv.</div>
         </div>
-        <div class="card-kpi">
+        <div class="card-kpi" id="cardEco">
           <div class="kpi" id="kpiEco">—</div>
           <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
-          <p class="kpi-note" id="kpiEcoNote" hidden>Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
         </div>
-        <div class="card-kpi">
+        <div class="card-kpi" id="cardYears">
           <div class="kpi" id="kpiYears">—</div>
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
+      <p class="surplus-alert" id="surplusAlert" hidden role="status">
+        <strong>Vous perdez de l’argent.</strong>
+        Vous produisez <strong id="surplusKwh">—</strong> de plus que vous ne consommez. Ce surplus n’est pas crédité (<span id="surplusLost">—</span>&nbsp;/ an). Le retour n’avance plus.
+      </p>
       <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
       <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
 
@@ -309,8 +312,8 @@
         <li>Production annuelle&nbsp;: grille d’irradiation fixe (ancre Québec), NREL/PVWatts — 7 inclinaisons × 24 azimuts (tous les 15°) · fichier <code>quebec-full-grid.json</code>.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
-        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
-        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ $/kWh.</li>
+        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Si tu produis plus que tu consommes, une alerte rouge indique le surplus non crédité (ça allonge le retour).</li>
+        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ $/kWh. Une saisie &gt;&nbsp;1 est interprétée en ¢/kWh (ex. 9,53 → 0,0953).</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
     </aside>
@@ -404,7 +407,7 @@
         </div>
         <div class="info-block">
           <h4>Défaut du calculateur</h4>
-          <p>Le champ tarif utilise par défaut le <strong>tarif de 2<sup>e</sup> tranche TTC</strong> (0,12811&nbsp;$/kWh = 0,11142 × 1,14975).</p>
+          <p>Le champ tarif attend des <strong>$/kWh</strong> (défaut 0,12811 = 2<sup>e</sup> tranche TTC = 0,11142 × 1,14975). Si tu colles une valeur en ¢ (ex. 9,53 ou 12,811), le calculateur la convertit automatiquement.</p>
           <p>C’est le tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
         </div>
       </div>
