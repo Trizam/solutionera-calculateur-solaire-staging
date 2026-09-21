@@ -108,7 +108,7 @@ body.is-range-dragging {
   top: 0.75rem;
   z-index: 1000;
   padding: 0.55rem 0.85rem;
-  background: var(--green-dark);
+  background: #1b4332;
   color: #fff;
   font-weight: 700;
   font-size: 0.9rem;
@@ -170,6 +170,11 @@ body.is-range-dragging {
 .theme-toggle button[aria-checked="true"] {
   background: var(--green-soft);
   color: var(--green-dark);
+}
+html[data-theme="dark"] .theme-toggle button.active,
+html[data-theme="dark"] .theme-toggle button[aria-checked="true"] {
+  background: var(--green);
+  color: #0c1410;
 }
 .theme-toggle button:focus-visible {
   outline: 2px solid var(--green-mid);

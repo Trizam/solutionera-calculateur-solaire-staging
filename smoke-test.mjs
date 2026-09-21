@@ -758,6 +758,7 @@ const cssThemeDark =
   /html\[data-theme="dark"\]/.test(css) &&
   css.includes(".theme-toggle") &&
   css.includes(".topbar") &&
+  /html\[data-theme="dark"\]\s*\.theme-toggle button\.active/.test(css) &&
   /@media print[\s\S]*\.theme-toggle/.test(css);
 console.log(`  theme pref light/sys/dark + persist + OS resolve: ${themeLogicOk ? "PASS" : "FAIL"}`);
 console.log(`  theme toggle top 3-pos (Clair/Sys/Sombre) + head script: ${htmlThemeToggle ? "PASS" : "FAIL"}`);
