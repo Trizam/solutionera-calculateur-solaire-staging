@@ -109,13 +109,11 @@
     return isFinite(v) ? v : NaN;
   }
 
-  /** Integer with fr-CA thousand spaces (17 000). */
+  /** Integer with the same thousand space as page copy (17&nbsp;000). */
   function fmtGroupedInt(n) {
     if (!isFinite(n)) return "";
-    return Math.max(0, Math.round(n)).toLocaleString("fr-CA", {
-      maximumFractionDigits: 0,
-      useGrouping: true
-    });
+    const digits = String(Math.max(0, Math.round(n)));
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
   }
 
   function formatConsoInput(keepCursor) {

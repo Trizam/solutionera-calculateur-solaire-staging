@@ -398,7 +398,7 @@ const hasConsoInput =
   /type="text"/.test(consoTag) &&
   /grouped-int/.test(consoTag) &&
   /inputmode="numeric"/.test(consoTag) &&
-  /value="17 000"/.test(consoTag);
+  /value="17(?: |&nbsp;|\u00A0)000"/.test(consoTag);
 const hasEcoNote =
   html.includes("kpiEcoNote") &&
   html.includes("Plafonné à votre consommation annuelle") &&
@@ -422,10 +422,8 @@ function parseGroupedInt(raw) {
 }
 function fmtGroupedInt(n) {
   if (!isFinite(n)) return "";
-  return Math.max(0, Math.round(n)).toLocaleString("fr-CA", {
-    maximumFractionDigits: 0,
-    useGrouping: true
-  });
+  const digits = String(Math.max(0, Math.round(n)));
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
 }
 const groupedParseOk =
   parseGroupedInt("17000") === 17000 &&
