@@ -26,7 +26,7 @@ En mode webi, un petit badge FR « Mode webi » apparaît près du sous-titre (p
 **v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webi **ne montre que** les blocs pédagogiques 1A + 1B :
 
 - **visible en `webi` :** marque + `#sec-prod` (1A : superficie, densité → qté PV + kWc) + `#sec-prod-b` (1B : localisation QC, orientation, inclinaison, déneige → Mesurage Net kWh/an + Autonomie kWh/j déc) + pied de bug
-- **masqués en `webi` :** hero, `#sec-cost`, `#sec-value` (KPI + PDF), `aside.disclaimers`, modales info/tarif
+- **masqués en `webi` :** hero, `#sec-cost`, `#sec-value` (KPI + PDF), `#sec-auto`, `#sec-reserve`, `#sec-fill`, `#sec-batt`, `#sec-total`, `aside.disclaimers`, modales info/tarif
 
 ---
 

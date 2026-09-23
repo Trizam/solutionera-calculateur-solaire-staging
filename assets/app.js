@@ -101,7 +101,7 @@
     return n.toLocaleString("fr-CA", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
 
-  /** Magnitude-round to 2 significant figures (display only). 14230 → 14000, 874 → 870, 12.53 → 13. */
+  /** Affichage des résultats. Règles : docs/DESIGN.md */
   function sig2Round(n) {
     const x = Number(n);
     if (!isFinite(x)) return NaN;
@@ -142,10 +142,47 @@
       maximumFractionDigits: whole ? 0 : 2
     });
   }
+  /** View preference. Absent checkbox = rounded display (the default). */
+  function detailsOn() {
+    const el = $("showDetails");
+    return !!(el && el.checked);
+  }
+
+  /** Result number: 2 sig figs, or `digits` decimals when details are on. */
+  function fmtShown(n, digits) {
+    if (!isFinite(n)) return "—";
+    if (detailsOn()) return fmtNum(n, digits);
+    return fmtSig2(n);
+  }
+
+  /** Result money: 2 sig figs, or cents when details are on. */
+  function fmtShownMoney(n) {
+    if (!isFinite(n)) return "—";
+    if (detailsOn()) return fmtMoney(n);
+    return fmtMoneySig2(n);
+  }
+
   function fmtYears(n) {
     if (!isFinite(n) || n <= 0) return "—";
     if (n > 100) return "> 100 ans";
-    return "~ " + fmtNum(n, 1) + " ans";
+    if (detailsOn()) return "~ " + fmtNum(n, 1) + " ans";
+    return "~ " + fmtSig2(n) + " ans";
+  }
+
+  function prefGet(key) {
+    try {
+      if (typeof localStorage === "undefined") return null;
+      return localStorage.getItem(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function prefSet(key, value) {
+    try {
+      if (typeof localStorage === "undefined") return;
+      localStorage.setItem(key, value);
+    } catch (_) {}
   }
 
   /** Grouping spaces used by FR locales (regular, NBSP, NNBSP, thin). */
@@ -333,10 +370,10 @@
     if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
     if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
     const minutes = days * 24 * 60;
-    if (minutes < 90) return { num: fmtSig2(minutes), unit: "min · décembre" };
+    if (minutes < 90) return { num: fmtShown(minutes, 0), unit: "min · décembre" };
     const hours = days * 24;
-    if (hours < 48) return { num: fmtSig2(hours), unit: "h · décembre" };
-    return { num: fmtSig2(days), unit: "jours · décembre" };
+    if (hours < 48) return { num: fmtShown(hours, 1), unit: "h · décembre" };
+    return { num: fmtShown(days, 1), unit: "jours · décembre" };
   }
 
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
@@ -663,23 +700,26 @@
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
-      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;%";
+      $("deneigeLive").innerHTML = detailsOn()
+        ? ("−" + fmtNum(lossPct, 1) + "&nbsp;%")
+        : ("−" + fmtSig2(lossPct) + "&nbsp;%");
     }
     if ($("tiltVal")) $("tiltVal").textContent = Math.round(Number(r.tilt)) + "°";
     updateTiltViz(r.tilt);
     updateOrientDial(r.az);
     if ($("tiltWLabel")) {
-      $("tiltWLabel").innerHTML = fmtSig2(r.W * 100) + "&nbsp;%";
+      const wPct = r.W * 100;
+      $("tiltWLabel").innerHTML = (detailsOn() ? fmtNum(wPct, 1) : fmtSig2(r.W * 100)) + "&nbsp;%";
     }
     updateGridStatusUi();
 
     if ($("outKwhDay")) {
       const dayNum = $("outKwhDay").querySelector(".prod-num");
-      if (dayNum) dayNum.textContent = fmtSig2(r.kWhDay);
+      if (dayNum) dayNum.textContent = fmtShown(r.kWhDay, 2);
     }
     if ($("outKwh")) {
       const yearNum = $("outKwh").querySelector(".prod-num");
-      if (yearNum) yearNum.textContent = fmtSig2(r.kWh);
+      if (yearNum) yearNum.textContent = fmtShown(r.kWh, 0);
     }
     if ($("outPv")) {
       const pvNum = $("outPv").querySelector(".prod-num");
@@ -687,7 +727,7 @@
     }
     if ($("outKw")) {
       const kwNum = $("outKw").querySelector(".prod-num");
-      if (kwNum) kwNum.textContent = fmtSig2(r.kW);
+      if (kwNum) kwNum.textContent = fmtShown(r.kW, 2);
     }
     const snowBox = $("autonomySnow");
     if (snowBox) {
@@ -695,35 +735,37 @@
       snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
     $("outLight").textContent =
-      fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
+      fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
 
-    $("lineHT").textContent = fmtMoney(r.HT);
-    $("lineTaxes").textContent = r.taxesOn ? fmtMoney(r.taxes) : "—";
-    $("lineSubv").textContent = r.subvOn ? ("− " + fmtMoney(r.subv)) : "—";
-    $("lineTotal").textContent = fmtMoneySig2(r.reel);
+    $("lineHT").textContent = fmtShownMoney(r.HT);
+    $("lineTaxes").textContent = r.taxesOn ? fmtShownMoney(r.taxes) : "—";
+    $("lineSubv").textContent = r.subvOn ? ("− " + fmtShownMoney(r.subv)) : "—";
+    $("lineTotal").textContent = fmtShownMoney(r.reel);
 
-    $("outEcoYear").textContent = "≈ " + fmtMoney(r.eco) + " / an";
+    $("outEcoYear").textContent = "≈ " + fmtShownMoney(r.eco) + " / an";
     if ($("outEcoFormula")) {
       $("outEcoFormula").textContent = r.ecoClamped
         ? "Crédit (plafonné à la conso) × tarif"
         : "Production × tarif";
     }
-    $("kpiReel").textContent = fmtMoneySig2(r.reel);
-    $("kpiEco").textContent = fmtMoney(r.eco);
+    $("kpiReel").textContent = fmtShownMoney(r.reel);
+    $("kpiEco").textContent = fmtShownMoney(r.eco);
     const note = $("kpiEcoNote");
     if (note) note.hidden = !r.ecoClamped;
     $("kpiYears").textContent = fmtYears(r.years);
-    $("outPayback").textContent =
-      "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
+    const yearText = !isFinite(r.years) || r.years <= 0
+      ? "—"
+      : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
+    $("outPayback").textContent = "Coût réel ÷ économies/an ≈ " + yearText;
 
     document.querySelectorAll(".load-range").forEach(function (el) {
       const label = document.getElementById(el.id + "Val");
       if (label) label.textContent = fmtNum(parseWh(el.value), 0) + " Wh";
     });
     const jourNum = $("consoJour");
-    if (jourNum) jourNum.textContent = fmtNum(r.consoJour, 2);
+    if (jourNum) jourNum.textContent = fmtShown(r.consoJour, 2);
     const jourWh = $("outConsoWh");
-    if (jourWh) jourWh.textContent = fmtNum(r.consoJour * 1000, 0) + " Wh";
+    if (jourWh) jourWh.textContent = fmtShown(r.consoJour * 1000, 0) + " Wh";
     if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
     const autoInput = $("autoStop");
     if (autoInput) {
@@ -731,14 +773,14 @@
       autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtNum(r.reserveKwh, 2);
+    if (reserveNum) reserveNum.textContent = fmtShown(r.reserveKwh, 2);
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
     }
-    if ($("lineBatt")) $("lineBatt").textContent = fmtMoney(r.battCost);
-    if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtMoney(r.reel);
-    if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtMoney(r.battCost);
-    if ($("outProject")) $("outProject").textContent = fmtMoney(r.projectTotal);
+    if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
+    if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("outProject")) $("outProject").textContent = fmtShownMoney(r.projectTotal);
 
     const fillNum = $("outFillNum");
     const fillUnit = $("outFillUnit");
@@ -1552,6 +1594,28 @@
         requestAnimationFrame(function () { formatConsoInput(true); render(); });
       });
     }
+    const showDetails = $("showDetails");
+    if (showDetails) {
+      showDetails.checked = prefGet("solar-details") === "1";
+      showDetails.addEventListener("change", function () {
+        prefSet("solar-details", showDetails.checked ? "1" : "0");
+        render();
+      });
+    }
+    const showNotes = $("showNotes");
+    const editorNotes = $("editorNotes");
+    if (showNotes) {
+      showNotes.checked = prefGet("solar-notes") === "1";
+      const applyNotes = function () {
+        if (editorNotes) editorNotes.hidden = !showNotes.checked;
+        showNotes.setAttribute("aria-expanded", showNotes.checked ? "true" : "false");
+      };
+      applyNotes();
+      showNotes.addEventListener("change", function () {
+        prefSet("solar-notes", showNotes.checked ? "1" : "0");
+        applyNotes();
+      });
+    }
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
@@ -1708,6 +1772,8 @@
     sig2Round,
     fmtSig2,
     fmtMoneySig2,
+    fmtShown,
+    fmtShownMoney,
     validateBugReport,
     bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,

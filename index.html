@@ -7,6 +7,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta name="description" content="Calculateur solaire — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
   <title>Calculateur solaire · Solution ERA</title>
+  <!-- Règles de design, seule copie : docs/DESIGN.md -->
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -80,6 +81,12 @@
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
+    <div class="page-tools">
+      <label class="check">
+        <input type="checkbox" id="showDetails" />
+        <span>Je veux les détails<span class="sub">→ Affiche tous les chiffres. Le calcul reste précis dans les deux cas.</span></span>
+      </label>
+    </div>
     <!--
       Desktop board. Each card is a slot (data-slot).
       Wide screens place them with grid-template-areas in styles.css.
@@ -523,7 +530,7 @@
 
     <!-- 2 · Coût -->
     <section class="block mode-full-only slot-cost" id="sec-cost" data-slot="cost" aria-labelledby="h-cost">
-      <h2 id="h-cost"><span class="num">2</span> Combien ça coûte&nbsp;?</h2>
+      <h2 id="h-cost"><span class="num">2</span> Combien coûte le solaire&nbsp;?</h2>
 
       <div class="field">
         <label for="priceW">Prix au watt installé (CAD)</label>
@@ -686,6 +693,25 @@
       </ul>
     </aside>
 
+    <div class="editor-tools" id="editorTools">
+      <label class="check">
+        <input type="checkbox" id="showNotes" aria-controls="editorNotes" />
+        <span>Afficher les notes d’édition<span class="sub">→ Chantier en cours, masqué par défaut.</span></span>
+      </label>
+      <aside class="editor-notes" id="editorNotes" hidden>
+        <h2>Notes d’édition</h2>
+        <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
+        <ul>
+          <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
+          <li>Consommation par jour = somme des curseurs d’appareils (Wh / j) plus les lignes perso. Ce n’est pas la facture annuelle.</li>
+          <li>Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise seulement le surplus de décembre.</li>
+          <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
+          <li>La durée de réserve, le prix des batteries et les appareils ne vont pas dans l’URL de partage.</li>
+          <li>Ombrage : plus tard.</li>
+        </ul>
+      </aside>
+    </div>
+
     <footer class="bug">
       <a href="#bugModal" id="bugLink" class="bug-report">Signale un bug, une erreur de calcul ou une amélioration</a>
       <br />
@@ -727,6 +753,12 @@
           <p>Le kWh / jour d’autonomie est la production de décembre ÷ 31.</p>
           <p>Sans déneigement, décembre est à zéro si les panneaux ne sont pas verticaux (ou très inclinés).</p>
           <p>Si vous ne déneigez pas à 100&nbsp;%, on recommande les panneaux à la verticale.</p>
+        </div>
+        <div class="info-block">
+          <h4>Batterie</h4>
+          <p>Réserve = consommation par jour (somme des appareils) × durée choisie.</p>
+          <p>Coût des batteries = réserve × prix au kWh. Les taxes et LogisVert restent sur les panneaux.</p>
+          <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
           <h4>Rappel</h4>

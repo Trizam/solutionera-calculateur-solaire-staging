@@ -367,6 +367,23 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
+const design = readFileSync(join(__dirname, "docs/DESIGN.md"), "utf8");
+const designRules =
+  html.includes("Combien coûte le solaire") &&
+  html.includes('id="showDetails"') &&
+  html.includes("Je veux les détails") &&
+  html.includes('id="showNotes"') &&
+  html.includes('id="editorNotes" hidden') &&
+  html.includes("docs/DESIGN.md") &&
+  !html.includes("Loi des deux chiffres") &&
+  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  /\.cards\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  app.includes("function fmtShown") &&
+  design.includes("Loi des deux chiffres") &&
+  design.includes("result-pill") &&
+  design.includes("Je veux les détails") &&
+  design.includes("seule") &&
+  !design.includes("répétées dans le commentaire");
 const batteryColumn =
   html.includes('data-slot="need"') &&
   html.includes('data-slot="fill"') &&
@@ -426,7 +443,7 @@ const tiltSlider =
   !/<select\s+id="tilt"/.test(html) &&
   !html.includes("tilt-select-row") &&
   /\$\("tiltVal"\)\.textContent/.test(app) &&
-  /\["util", "deneige", "priceW", "tilt"\]/.test(app);
+  /\["util", "deneige", "priceW", "tilt"/.test(app);
 const subtitlePad =
   /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
   /section\.block\s*>\s*h2/.test(sliderScreen) &&
@@ -476,7 +493,7 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  battery column + info modal + tilt viz + gridStatus: ${batteryColumn && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery column + design rules + info modal + tilt viz + gridStatus: ${batteryColumn && designRules && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -946,7 +963,7 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /kwNum\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
+  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
   html.includes(">kWc<") &&
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
@@ -1200,9 +1217,10 @@ const fmt14230 = fmtSig2(14230);
 const fmt14230Compact = fmt14230.replace(/\s/g, "");
 const fmt14230Ok = Math.abs(sig2Round(14230) - 14000) < 1e-9 && (fmt14230Compact === "14000" || /14\s*000/.test(fmt14230));
 const prodUsesSig2 =
-  app.includes("fmtSig2(r.kWhDay)") &&
-  app.includes("fmtSig2(r.kWh)") &&
-  app.includes("fmtSig2(r.kW)") &&
+  /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
+  app.includes("fmtShown(r.kWhDay, 2)") &&
+  app.includes("fmtShown(r.kWh, 0)") &&
+  app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1234,8 +1252,10 @@ const fmtMoneySig2Ok =
   !/15675/.test(fmtMoney15675Compact);
 const totalUsesSig2 =
   app.includes("function fmtMoneySig2") &&
-  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
-  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  app.includes("function fmtShownMoney") &&
+  /function fmtShownMoney\(n\)[\s\S]{0,280}return fmtMoneySig2\(n\)/.test(app) &&
+  /\$\("lineTotal"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
   !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
@@ -1728,6 +1748,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(webi, "deneige", "40");
   expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
 
+  const prefs = await bootScenario("");
+  expect(prefs.el("showDetails").checked === false, "details off by default");
+  expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
+  expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
+  expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
   }
@@ -1778,6 +1804,7 @@ const pass =
   logisCopy &&
   subvDefaultJs &&
   batteryColumn &&
+  designRules &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&
