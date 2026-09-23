@@ -550,6 +550,7 @@
     const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
     const kWhAnnuel = table * kW;
     const kWh = applyDeneigement(kWhAnnuel, deneige, W);
+    const kWhPerKwc = applyDeneigement(table, deneige, W);
     const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
     // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
     const snowCover = snowCoverFromTilt(tilt);
@@ -589,7 +590,7 @@
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
+      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
@@ -849,6 +850,10 @@
     if ($("outKwh")) {
       const yearNum = $("outKwh").querySelector(".prod-num");
       if (yearNum) yearNum.textContent = fmtShown(r.kWh, 0);
+    }
+    if ($("outKwhKwc")) {
+      const kwcNum = $("outKwhKwc").querySelector(".prod-num");
+      if (kwcNum) kwcNum.textContent = fmtShown(r.kWhPerKwc, 0);
     }
     if ($("outPv")) {
       const pvNum = $("outPv").querySelector(".prod-num");

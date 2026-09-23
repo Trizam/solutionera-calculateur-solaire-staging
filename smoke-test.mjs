@@ -1133,6 +1133,16 @@ const shortfallInFill =
   fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
   !html.includes("perma-flag") &&
   css.includes(".fill-shortfall");
+const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
+const productiblePill =
+  prodBHtml.includes('id="outKwhKwc"') &&
+  prodBHtml.includes(">Productible<") &&
+  prodBHtml.includes(">kWh/kWc<") &&
+  prodBHtml.includes("kilowatt-crête installé") &&
+  prodBHtml.indexOf('id="deneige"') < prodBHtml.indexOf('id="outKwhKwc"') &&
+  prodBHtml.indexOf('id="outKwhKwc"') < prodBHtml.indexOf('id="gridStatus"') &&
+  app.includes("const kWhPerKwc = applyDeneigement(table, deneige, W)") &&
+  kWhPerKwcDefault > 1070 && kWhPerKwcDefault < 1080;
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
@@ -1145,6 +1155,7 @@ console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FA
 console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
 console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
 console.log(`  1A deux boîtes PV (2 m²) + kWc (indépendant): ${prodKwC ? "PASS" : "FAIL"}`);
+console.log(`  1B productible kWh/kWc en bas (défaut ${kWhPerKwcDefault.toFixed(1)}): ${productiblePill ? "PASS" : "FAIL"}`);
 console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
 console.log(
   `  décembre C-by-tilt 0→1, 45→1, 60→2/3, 75→1/3, 90→0: ${snowCoverOk ? "PASS" : "FAIL"} ` +
@@ -1318,6 +1329,7 @@ const prodUsesSig2 =
   /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
   app.includes("fmtShown(r.kWhDay, 2)") &&
   app.includes("fmtShown(r.kWh, 0)") &&
+  app.includes("fmtShown(r.kWhPerKwc, 0)") &&
   app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
@@ -2006,6 +2018,7 @@ const pass =
   prodPillAnnual &&
   prodPillEqualType &&
   prodKwC &&
+  productiblePill &&
   prodNoWave &&
   dayOk &&
   snowCoverOk &&
