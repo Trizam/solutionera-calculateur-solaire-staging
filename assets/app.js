@@ -1228,8 +1228,6 @@
 
   const BUG_MIN_LEN = 10;
   const BUG_MIN_FORM_MS = 2000;
-  const BUG_ISSUES_URL =
-    "https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report";
   /* Keep in sync with the #bugModal.bug-dock breakpoint in assets/styles.css. */
   const BUG_DOCK_QUERY = "(min-width: 900px)";
 
@@ -1290,6 +1288,7 @@
   let bugOpenedAt = 0;
   let bugSubmitting = false;
   let bugUnlockTimer = null;
+  let bugDoneTimer = null;
 
   function setBugStatus(msg) {
     const el = $("bugFormStatus");
@@ -1309,7 +1308,6 @@
     if ($("bugHp")) $("bugHp").value = "";
     setBugStatus("");
     if ($("bugForm")) $("bugForm").hidden = false;
-    if ($("bugSuccess")) $("bugSuccess").hidden = true;
     bugSubmitting = false;
     const btn = $("btnBugSubmit");
     if (btn) btn.disabled = true;
@@ -1320,17 +1318,30 @@
     }, BUG_MIN_FORM_MS);
   }
 
-  function showBugSuccess(url) {
-    if ($("bugForm")) $("bugForm").hidden = true;
-    const ok = $("bugSuccess");
-    if (ok) ok.hidden = false;
-    const link = $("bugIssueLink");
-    if (link) {
-      link.href = url || BUG_ISSUES_URL;
-      link.textContent = url ? "Ouvrir le signalement" : "Voir les signalements";
+  function hideBugDone() {
+    const el = $("bugDone");
+    if (el) el.hidden = true;
+    if (bugDoneTimer) {
+      clearTimeout(bugDoneTimer);
+      bugDoneTimer = null;
     }
-    const closer = $("btnBugOk") || $("btnBugClose");
-    if (closer) closer.focus();
+  }
+
+  function showBugDone() {
+    closeInfo();
+    const el = $("bugDone");
+    if (!el) return;
+    el.hidden = false;
+    if (bugDoneTimer) clearTimeout(bugDoneTimer);
+    bugDoneTimer = setTimeout(hideBugDone, 1000);
+  }
+
+  function bugShortcutTarget(e) {
+    const m = $("bugModal");
+    if (!m || m.hidden || activeModalId !== "bugModal") return false;
+    if ($("bugForm") && $("bugForm").hidden) return false;
+    const target = e && e.target;
+    return !!(target && m.contains(target));
   }
 
   function bugDockViewport() {
@@ -1385,6 +1396,7 @@
 
   function openBugReport(e) {
     if (e) e.preventDefault();
+    hideBugDone();
     const m = $("bugModal");
     const already = !!(m && !m.hidden && activeModalId === "bugModal");
     if (!already) resetBugForm();
@@ -1423,7 +1435,7 @@
     const payload = buildBugPayload();
     const checked = validateBugReport(payload);
     if (!checked.ok && checked.reason === "honeypot") {
-      showBugSuccess(BUG_ISSUES_URL);
+      showBugDone();
       return;
     }
     if (!checked.ok) {
@@ -1452,7 +1464,7 @@
       });
       const data = await res.json().catch(function () { return {}; });
       if (data && data.ok) {
-        showBugSuccess(data.html_url || BUG_ISSUES_URL);
+        showBugDone();
         return;
       }
       throw new Error("api");
@@ -1920,7 +1932,7 @@
         openFieldInfo(btn.getAttribute("data-info"));
       });
     });
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose", "btnBugOk"].forEach(function (id) {
+    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose"].forEach(function (id) {
       if ($(id)) $(id).addEventListener("click", closeInfo);
     });
     ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
@@ -1933,6 +1945,11 @@
       });
     });
     document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "NumpadEnter") && bugShortcutTarget(e)) {
+        e.preventDefault();
+        submitBugReport(e);
+        return;
+      }
       if (e.key === "Escape") {
         if (townListOpen) {
           closeTownList(true);
