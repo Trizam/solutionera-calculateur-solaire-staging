@@ -51,8 +51,7 @@ Les cartes **4A**, **4B**, **5** et **6** sont l’équipe bleue. Même intensit
 
 - La carte reste blanche, comme à gauche. Seule la teinte change : titre, pastille et curseur en bleu foncé, boîtes de réponse en bleu clair.
 - La réserve est une boîte bleu clair, chiffre bleu foncé, comme les boîtes vertes.
-- Le remplissage (surplus de décembre) reste vert.
-- Le total de la carte 6 reste une boîte verte (`.result-keep-green`), sous le calcul.
+- Le remplissage et le total sont des boîtes bleu clair, comme les autres réponses de la colonne de droite.
 
 ## 4. Case « Je veux les détails »
 

@@ -286,7 +286,7 @@ section.block h2 > span:not(.num) {
  * Famille bleue des cartes d’autonomie (4A, 4B, 5, 6).
  * Même intensité que la famille verte. Règle : docs/DESIGN.md
  */
-section.block.team-blue {
+.team-blue {
   --green: #2a5f8f;
   --green-soft: #d6e8f8;
   --green-mid: #4f94c9;
@@ -297,7 +297,7 @@ section.block.team-blue {
   --hover-soft: #c5dff3;
   --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
 }
-html[data-theme="dark"] section.block.team-blue {
+html[data-theme="dark"] .team-blue {
   --card: #182430;
   --green: #8ec4ea;
   --green-soft: #1a3348;
@@ -1989,7 +1989,7 @@ section.block h2 .field-info-btn {
     --thumb-ring: #ffffff;
     --modal-bg: #ffffff;
   }
-  html[data-theme="dark"] section.block.team-blue {
+  html[data-theme="dark"] .team-blue {
     --green: #2a5f8f;
     --green-soft: #d6e8f8;
     --green-mid: #4f94c9;
