@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 7,
-    "n_scaled": 97,
+    "n_full_grid": 8,
+    "n_scaled": 96,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T04:50:53.486Z"
+    "as_of_utc": "2026-09-23T05:09:01.595Z"
   },
   "towns": [
     {
@@ -1102,7 +1102,8 @@
       "lat": 48.1221,
       "lon": -69.1699,
       "ac_annual_s30": 1261.2776,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/trois-pistoles.json"
     },
     {
       "id": "trois-rivieres",
