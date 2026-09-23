@@ -20,6 +20,22 @@
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
+  /** Daily draw for the reserve. Separate from annual consumption. 17 000 / 365 ≈ 47. */
+  const DEFAULT_CONSO_JOUR_KWH = 47;
+  /** Draft installed-battery range until a real $/kWh band is chosen. */
+  const BATT_PRICE_DEFAULT = 1200;
+  /**
+   * Equal slider stops. Days are the fraction of daily consumption to store.
+   * Track spacing is even — not proportional to duration.
+   */
+  const AUTONOMY_STOPS = [
+    { days: 0, label: "aucune" },
+    { days: 15 / (24 * 60), label: "15 min" },
+    { days: 1 / 24, label: "1 h" },
+    { days: 1, label: "1 jour" },
+    { days: 2, label: "2 jours" },
+    { days: 3, label: "3 jours" }
+  ];
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -268,6 +284,42 @@
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
+  /** Daily consumption for the battery reserve (kWh/day). Empty / invalid → null. */
+  function consoJourKwh() {
+    const el = $("consoJour");
+    if (!el) return null;
+    const raw = String(el.value).trim().replace(",", ".");
+    if (raw === "") return null;
+    const v = parseFloat(raw);
+    if (!isFinite(v) || v < 0) return null;
+    return v;
+  }
+
+  function autonomyChoice() {
+    const el = $("autoStop");
+    const i = el ? parseInt(el.value, 10) : 3;
+    if (!isFinite(i) || i < 0 || i >= AUTONOMY_STOPS.length) return AUTONOMY_STOPS[3];
+    return AUTONOMY_STOPS[i];
+  }
+
+  function battPricePerKwh() {
+    const el = $("battPrice");
+    if (!el) return NaN;
+    const v = parseFloat(el.value);
+    return isFinite(v) ? v : NaN;
+  }
+
+  /** Fill duration at the December daily rate. Display only. */
+  function fmtFillDuration(days) {
+    if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
+    if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
+    const minutes = days * 24 * 60;
+    if (minutes < 90) return { num: fmtSig2(minutes), unit: "min · décembre" };
+    const hours = days * 24;
+    if (hours < 48) return { num: fmtSig2(hours), unit: "h · décembre" };
+    return { num: fmtSig2(days), unit: "jours · décembre" };
+  }
+
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
   function consoAnnuelleKwh() {
     const el = $("conso");
@@ -334,11 +386,32 @@
     const years = eco > 0 ? reel / eco : Infinity;
 
     const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
+    const auto = autonomyChoice();
+    const consoJour = consoJourKwh();
+    const reserveKwh = consoJour == null ? NaN : consoJour * auto.days;
+    const surplusDay = consoJour == null || !isFinite(kWhDay) ? NaN : kWhDay - consoJour;
+    let fillState = "unknown";
+    let fillDays = NaN;
+    if (consoJour != null && isFinite(kWhDay)) {
+      if (!(reserveKwh > 0)) fillState = "none";
+      else if (!(surplusDay > 0)) fillState = "impossible";
+      else {
+        fillState = "ok";
+        fillDays = reserveKwh / surplusDay;
+      }
+    }
+    const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
+    const battPrice = battPricePerKwh();
+    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? reserveKwh * battPrice : NaN;
+    const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
+      consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
+      surplusDay, fillState, fillDays, shortfall,
+      battPrice, battCost, projectTotal,
       gridReady, gridStatus, cellSource: cell.source
     };
   }
@@ -623,6 +696,37 @@
     $("kpiYears").textContent = fmtYears(r.years);
     $("outPayback").textContent =
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
+
+    if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
+    const autoInput = $("autoStop");
+    if (autoInput) {
+      autoInput.setAttribute("aria-valuenow", autoInput.value);
+      autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
+    }
+    const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
+    if (reserveNum) reserveNum.textContent = fmtSig2(r.reserveKwh);
+    if ($("battPriceVal") && isFinite(r.battPrice)) {
+      $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
+    }
+    if ($("lineBatt")) $("lineBatt").textContent = fmtMoney(r.battCost);
+    if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtMoney(r.reel);
+    if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtMoney(r.battCost);
+    if ($("outProject")) $("outProject").textContent = fmtMoney(r.projectTotal);
+
+    const fillNum = $("outFillNum");
+    const fillUnit = $("outFillUnit");
+    if (fillNum && fillUnit) {
+      let fillText = { num: "—", unit: "" };
+      if (r.fillState === "none") fillText = { num: "Aucune réserve", unit: "à remplir" };
+      else if (r.fillState === "impossible") fillText = { num: "Ne se remplit pas", unit: "" };
+      else if (r.fillState === "ok") fillText = fmtFillDuration(r.fillDays);
+      fillNum.textContent = fillText.num;
+      fillNum.classList.toggle("is-sentence", r.fillState === "none" || r.fillState === "impossible");
+      fillUnit.textContent = fillText.unit;
+      fillUnit.hidden = !fillText.unit;
+    }
+    const flag = $("permaFlag");
+    if (flag) flag.hidden = !r.shortfall;
   }
 
   /** Integer-only area: paste/blur/change/input */
@@ -1183,7 +1287,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice", "consoJour"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", render);
@@ -1199,6 +1303,10 @@
       });
     }
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
+      const el = $(id);
+      if (el) wireRangePointerDrag(el);
+    });
+    ["autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
@@ -1255,6 +1363,9 @@
     $("subv").checked = true; // LogisVert on by default (v0.2)
     $("area").value = 40;
     if ($("conso")) $("conso").value = fmtGroupedInt(DEFAULT_CONSO_KWH);
+    if ($("consoJour")) $("consoJour").value = String(DEFAULT_CONSO_JOUR_KWH);
+    if ($("autoStop")) $("autoStop").value = "3";
+    if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
     if ($("unitM2")) $("unitM2").setAttribute("aria-pressed", "true");
     if ($("unitSqft")) $("unitSqft").setAttribute("aria-pressed", "false");
   }

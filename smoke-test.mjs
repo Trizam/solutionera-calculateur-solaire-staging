@@ -234,16 +234,23 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const htmlSansBrand = html
-  .replace(/DÉFI Autonomie Énergétique/g, "")
-  .replace(/Autonomie et neige/g, "")
-  .replace(/en autonomie/gi, "")
-  .replace(/<div class="label">Autonomie<\/div>/g, "")
-  .replace(/Autonomie \(décembre\)/g, "")
-  .replace(/pleine autonomie/gi, "")
-  .replace(/d’autonomie/gi, "")
-  .replace(/d'autonomie/gi, "");
-const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
+const batteryColumn =
+  html.includes('data-slot="need"') &&
+  html.includes('data-slot="fill"') &&
+  html.includes('data-slot="batt"') &&
+  html.includes('data-slot="total"') &&
+  html.includes('id="consoJour"') &&
+  html.includes('id="autoStop"') &&
+  html.includes('id="battPrice"') &&
+  html.includes('id="permaFlag"') &&
+  html.includes('id="sec-yield"') &&
+  !/id="sec-yield"[^>]*mode-full-only/.test(html) &&
+  /mode-full-only[^>]*id="sec-auto"/.test(html) &&
+  /mode-full-only[^>]*id="sec-fill"/.test(html) &&
+  /mode-full-only[^>]*id="sec-batt"/.test(html) &&
+  /mode-full-only[^>]*id="sec-total"/.test(html) &&
+  /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
@@ -336,7 +343,7 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery column + info modal + tilt viz + gridStatus: ${batteryColumn && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -1311,7 +1318,7 @@ const pass =
   logisDefault &&
   logisCopy &&
   subvDefaultJs &&
-  noBattery &&
+  batteryColumn &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&
