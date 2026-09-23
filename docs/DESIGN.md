@@ -42,7 +42,7 @@ La boîte verte montre l’arrondi du **vrai** total, pas la somme des lignes d�
 
 ## 4. Case « Je veux les détails »
 
-Case `#showDetails`, visible dans les deux modes d’affichage. Décochée par défaut.
+Case `#showDetails`, en bas de page avec « Afficher les notes d’édition ». Visible dans les deux modes d’affichage. Décochée par défaut.
 
 - Cochée : les résultats s’affichent en précision de lecture (dollars au cent, kWh avec décimales). Les calculs ne changent pas.
 - Le choix est une préférence d’affichage (`localStorage`, clé `solar-details`), pas un paramètre du scénario dans l’URL.

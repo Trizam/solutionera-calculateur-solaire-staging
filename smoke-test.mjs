@@ -427,6 +427,9 @@ const designRules =
   html.includes("Combien coûte le solaire") &&
   html.includes('id="showDetails"') &&
   html.includes("Je veux les détails") &&
+  html.indexOf('id="editorTools"') < html.indexOf('id="showDetails"') &&
+  html.indexOf('id="showDetails"') < html.indexOf('id="showNotes"') &&
+  !html.includes("page-tools") &&
   html.includes('id="showNotes"') &&
   html.includes('id="editorNotes" hidden') &&
   html.includes("docs/DESIGN.md") &&
