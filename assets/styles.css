@@ -1264,7 +1264,8 @@ footer.bug {
   text-align: center;
   font-size: 0.82rem;
   color: var(--muted);
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  /* Clear the fixed bottom-left bubble when the page is scrolled to the end. */
+  padding-bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 4.5rem);
 }
 footer.bug a {
   color: var(--green);
@@ -1279,6 +1280,46 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   font-size: 0.78rem;
   color: var(--muted);
   line-height: 1.4;
+}
+
+/* Always-on feedback bubble. The sheet itself stays a normal modal on small screens. */
+.bug-fab {
+  position: fixed;
+  z-index: 40;
+  left: max(1rem, env(safe-area-inset-left, 0px));
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--green-dark);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.28);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.bug-fab:hover { background: var(--green); }
+.bug-fab:focus-visible {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 3px;
+}
+.bug-fab[aria-expanded="true"] {
+  background: var(--green-soft);
+  color: var(--green-dark);
+  box-shadow: 0 0 0 2px var(--green), 0 8px 22px rgba(27, 67, 50, 0.28);
+}
+.bug-fab[aria-expanded="true"]:hover { background: var(--hover-soft); }
+html[data-theme="dark"] .bug-fab {
+  background: var(--green);
+  color: #102018;
+}
+html[data-theme="dark"] .bug-fab:hover,
+html[data-theme="dark"] .bug-fab[aria-expanded="true"] {
+  background: var(--green-mid);
+  color: #102018;
 }
 
 /* Info modal */
@@ -1447,6 +1488,35 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 .info-sheet .modal-body .rate-table {
   margin: 0.85rem 0 0;
   font-size: 0.9rem;
+}
+
+/*
+ * Desktop only: the bug sheet floats bottom-left and does not cover the page.
+ * Phones keep the same full-page sheet as the other info popups.
+ * Keep this breakpoint in sync with BUG_DOCK_QUERY in assets/app.js.
+ */
+@media (min-width: 900px) {
+  #bugModal.bug-dock {
+    inset: auto;
+    top: auto;
+    right: auto;
+    left: max(1rem, env(safe-area-inset-left, 0px));
+    bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 3.25rem + 0.65rem);
+    width: min(24rem, calc(100vw - 2rem));
+    height: auto;
+    max-height: min(32rem, calc(100dvh - 6.5rem));
+    padding: 0;
+    background: transparent;
+    align-items: stretch;
+    justify-content: flex-start;
+    pointer-events: none;
+  }
+  #bugModal.bug-dock .modal-card {
+    pointer-events: auto;
+    width: 100%;
+    max-width: none;
+    max-height: min(32rem, calc(100dvh - 6.5rem));
+  }
 }
 .modal-head {
   display: flex;
@@ -1800,7 +1870,7 @@ section.block h2 .field-info-btn {
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, .bug-fab, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
   .board {
     display: block !important;
