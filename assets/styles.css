@@ -1336,18 +1336,19 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   white-space: normal;
   line-height: 1.25;
 }
-.slider-stops {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.1rem;
-  text-align: center;
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: -0.35rem 22px 0.15rem;
+  pointer-events: none;
 }
-.slider-stops span {
-  min-width: 0;
-  line-height: 1.15;
+.slider-ticks i {
+  display: block;
+  width: 2px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--border);
 }
-.slider-stops span:first-child { text-align: left; }
-.slider-stops span:last-child { text-align: right; }
 section.block h2 .field-info-btn {
   margin-left: auto;
   align-self: center;
@@ -1420,8 +1421,7 @@ section.block h2 .field-info-btn {
     display: flex;
     flex-direction: column;
   }
-  html:not([data-mode="webi"]) .slot-need .reserve-out,
-  html:not([data-mode="webi"]) .slot-batt .breakdown {
+  html:not([data-mode="webi"]) .slot-need .reserve-out {
     margin-top: auto;
   }
   html:not([data-mode="webi"]) .slot-total .project-total {
