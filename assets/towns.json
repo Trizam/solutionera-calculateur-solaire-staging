@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 21,
-    "n_scaled": 83,
+    "n_full_grid": 26,
+    "n_scaled": 78,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T20:20:46.314Z"
+    "as_of_utc": "2026-09-23T21:09:21.370Z"
   },
   "towns": [
     {
@@ -172,7 +172,8 @@
       "lat": 46.6702,
       "lon": -71.7751,
       "ac_annual_s30": 1238.9102,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/cap-sante.json"
     },
     {
       "id": "chandler",
@@ -901,7 +902,8 @@
       "lat": 46.496,
       "lon": -72.4198,
       "ac_annual_s30": 1252.7565,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-luc-de-vincennes.json"
     },
     {
       "id": "saint-michel",
@@ -935,7 +937,8 @@
       "lat": 46.7285,
       "lon": -72.5647,
       "ac_annual_s30": 1240.1388,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-tite.json"
     },
     {
       "id": "sainte-adele",
@@ -1047,7 +1050,8 @@
       "lat": 46.5397,
       "lon": -72.7519,
       "ac_annual_s30": 1243.9838,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/shawinigan.json"
     },
     {
       "id": "sherbrooke",
@@ -1127,7 +1131,8 @@
       "lat": 46.3533,
       "lon": -72.5985,
       "ac_annual_s30": 1265.8506,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/trois-rivieres.json"
     },
     {
       "id": "val-dor",
