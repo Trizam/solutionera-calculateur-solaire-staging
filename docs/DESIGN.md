@@ -53,6 +53,10 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 - La réserve est une boîte bleu clair, chiffre bleu foncé, comme les boîtes vertes.
 - Le remplissage et le total sont des boîtes bleu clair, comme les autres réponses de la colonne de droite.
 
+## 1 ter. Thème jaune
+
+Les drapeaux portent `.theme-yellow` : la note de neige, le plafond des économies, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
+
 ## 4. Case « Je veux les détails »
 
 Case `#showDetails`, en bas de page avec « Afficher les notes d’édition ». Visible dans les deux modes d’affichage. Décochée par défaut.

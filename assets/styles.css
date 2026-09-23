@@ -297,6 +297,16 @@ section.block h2 > span:not(.num) {
   --hover-soft: #c5dff3;
   --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
 }
+/* Thème jaune des drapeaux. Même douceur que les boîtes verte et bleue. */
+.theme-yellow {
+  --flag-bg: #fff4cc;
+  --flag-bg-end: #fffbeb;
+  --flag-border: #ead98a;
+  --flag-text: #1a1a1a;
+  border: 1px solid var(--flag-border);
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
+}
 html[data-theme="dark"] .theme-blue {
   --card: #182430;
   --green: #8ec4ea;
@@ -952,12 +962,9 @@ section.block > h2,
 .autonomy-snow {
   margin-top: 0.65rem;
   padding: 0.8rem 1rem;
-  border: 1px solid var(--flag-border);
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
   font-size: 0.86rem;
   line-height: 1.45;
-  color: var(--flag-text);
   text-align: start;
   overflow-wrap: break-word;
   hyphens: auto;
@@ -1098,10 +1105,7 @@ section.block > h2,
 .fill-shortfall {
   margin: 0.75rem 0 0;
   padding: 0.7rem 0.85rem;
-  border: 1px solid var(--flag-border);
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
-  color: var(--flag-text);
   font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.4;
@@ -1251,10 +1255,7 @@ section.block > h2,
 .kpi-note {
   margin: 0.65rem 0 0;
   padding: 0.7rem 0.85rem;
-  border: 1px solid var(--flag-border);
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
-  color: var(--flag-text);
   font-size: 0.86rem;
   font-weight: 400;
   line-height: 1.4;
