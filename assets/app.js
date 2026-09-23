@@ -20,22 +20,11 @@
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
-  /** Daily draw for the reserve. Separate from annual consumption. 17 000 / 365 ≈ 47. */
-  const DEFAULT_CONSO_JOUR_KWH = 47;
   /** Draft installed-battery range until a real $/kWh band is chosen. */
   const BATT_PRICE_DEFAULT = 1200;
-  /**
-   * Equal slider stops. Days are the fraction of daily consumption to store.
-   * Track spacing is even — not proportional to duration.
-   */
-  const AUTONOMY_STOPS = [
-    { days: 0, label: "aucune" },
-    { days: 15 / (24 * 60), label: "15 min" },
-    { days: 1 / 24, label: "1 h" },
-    { days: 1, label: "1 jour" },
-    { days: 2, label: "2 jours" },
-    { days: 3, label: "3 jours" }
-  ];
+  /** Smooth reserve duration: 0 to 3 days, in hours. Default is one day. */
+  const AUTONOMY_MAX_H = 72;
+  const AUTONOMY_DEFAULT_H = 24;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -284,22 +273,52 @@
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
-  /** Daily consumption for the battery reserve (kWh/day). Empty / invalid → null. */
-  function consoJourKwh() {
-    const el = $("consoJour");
-    if (!el) return null;
-    const raw = String(el.value).trim().replace(",", ".");
-    if (raw === "") return null;
-    const v = parseFloat(raw);
-    if (!isFinite(v) || v < 0) return null;
+  function parseWh(raw) {
+    const v = parseFloat(String(raw == null ? "" : raw).trim().replace(",", "."));
+    if (!isFinite(v) || v < 0) return 0;
     return v;
   }
 
-  function autonomyChoice() {
+  /** Daily consumption for the reserve (kWh/day): appliance sliders + custom lines. */
+  function consoJourKwh() {
+    let wh = 0;
+    document.querySelectorAll(".load-range, .custom-load-wh").forEach(function (el) {
+      wh += parseWh(el.value);
+    });
+    return wh / 1000;
+  }
+
+  function autonomyHours() {
     const el = $("autoStop");
-    const i = el ? parseInt(el.value, 10) : 3;
-    if (!isFinite(i) || i < 0 || i >= AUTONOMY_STOPS.length) return AUTONOMY_STOPS[3];
-    return AUTONOMY_STOPS[i];
+    const h = el ? parseFloat(el.value) : AUTONOMY_DEFAULT_H;
+    if (!isFinite(h) || h <= 0) return 0;
+    return Math.min(AUTONOMY_MAX_H, h);
+  }
+
+  /** Friendly duration for the left of the reserve slider. Display only. */
+  function fmtAutonomyHours(hours) {
+    const h = Number(hours);
+    if (!isFinite(h) || h < 0.125) return "aucune";
+    const totalMin = Math.round(h * 60 / 15) * 15;
+    if (totalMin < 60) return totalMin + " min";
+    const wholeH = Math.floor(totalMin / 60);
+    const mins = totalMin % 60;
+    const days = Math.floor(wholeH / 24);
+    const remH = wholeH % 24;
+    if (days === 0) {
+      if (mins === 0) return wholeH === 1 ? "1 heure" : wholeH + " heures";
+      return wholeH + " h " + mins;
+    }
+    const dayWord = days === 1 ? "1 jour" : days + " jours";
+    if (remH === 0 && mins === 0) return dayWord;
+    if (remH === 12 && mins === 0) return dayWord + " et demi";
+    if (mins === 0) return dayWord + " " + (remH === 1 ? "1 heure" : remH + " h");
+    return dayWord + " " + remH + " h " + mins;
+  }
+
+  function autonomyChoice() {
+    const hours = autonomyHours();
+    return { days: hours / 24, label: fmtAutonomyHours(hours) };
   }
 
   function battPricePerKwh() {
@@ -697,6 +716,14 @@
     $("outPayback").textContent =
       "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
 
+    document.querySelectorAll(".load-range").forEach(function (el) {
+      const label = document.getElementById(el.id + "Val");
+      if (label) label.textContent = fmtNum(parseWh(el.value), 0) + " Wh";
+    });
+    const jourNum = $("consoJour");
+    if (jourNum) jourNum.textContent = fmtNum(r.consoJour, 2);
+    const jourWh = $("outConsoWh");
+    if (jourWh) jourWh.textContent = fmtNum(r.consoJour * 1000, 0) + " Wh";
     if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
     const autoInput = $("autoStop");
     if (autoInput) {
@@ -704,7 +731,7 @@
       autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtSig2(r.reserveKwh);
+    if (reserveNum) reserveNum.textContent = fmtNum(r.reserveKwh, 2);
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
     }
@@ -1509,7 +1536,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice", "consoJour"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -1533,6 +1560,27 @@
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
+    document.querySelectorAll(".load-range").forEach(function (el) {
+      el.addEventListener("input", onScenarioEdit);
+      el.addEventListener("change", onScenarioEdit);
+      wireRangePointerDrag(el);
+    });
+    const customLoads = $("customLoads");
+    if (customLoads) {
+      customLoads.addEventListener("input", function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains("custom-load-wh")) onScenarioEdit();
+      });
+      customLoads.addEventListener("click", function (e) {
+        const btn = e.target.closest ? e.target.closest(".custom-load-remove") : null;
+        if (!btn) return;
+        const row = btn.closest(".custom-load");
+        if (row) row.remove();
+        onScenarioEdit();
+      });
+    }
+    if ($("btnAddLoad")) {
+      $("btnAddLoad").addEventListener("click", function () { addCustomLoad(); });
+    }
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
     });
@@ -1581,9 +1629,27 @@
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
-    if ($("consoJour")) $("consoJour").value = String(DEFAULT_CONSO_JOUR_KWH);
-    if ($("autoStop")) $("autoStop").value = "3";
+    if ($("autoStop")) $("autoStop").value = String(AUTONOMY_DEFAULT_H);
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+  }
+
+  function addCustomLoad() {
+    const host = $("customLoads");
+    if (!host) return;
+    const row = document.createElement("div");
+    row.className = "custom-load field";
+    row.innerHTML =
+      '<div class="custom-load-head">' +
+        '<input class="custom-load-name" type="text" maxlength="40" placeholder="Autre usage" autocomplete="off" aria-label="Nom de la consommation" />' +
+        '<button type="button" class="custom-load-remove" aria-label="Retirer cette ligne">×</button>' +
+      "</div>" +
+      '<div class="rate-box">' +
+        '<input class="custom-load-wh" type="number" min="0" step="1" inputmode="decimal" value="" placeholder="0" aria-label="Watt-heures par jour" />' +
+        "<span>Wh / j</span>" +
+      "</div>";
+    host.appendChild(row);
+    const wh = row.querySelector(".custom-load-wh");
+    if (wh) wh.focus();
   }
 
   function setGridFromPayload(data) {
