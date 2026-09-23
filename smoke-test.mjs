@@ -415,6 +415,37 @@ const hasCreditFn =
   app.includes("kWhCredites") &&
   app.includes("ecoClamped");
 const hasConsoWired = app.includes('"conso"') && app.includes("kpiEcoNote");
+const DAILY_LOAD_LABELS = [
+  "Téléphone",
+  "Ordinateur et Wi-Fi",
+  "Éclairage",
+  "Télévision",
+  "Pompe à eau",
+  "Réfrigérateur",
+  "Congélateur",
+  "Laveuse",
+  "Cuisson"
+];
+const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
+const hasConsoJourUi =
+  html.includes("Combien veux-tu consommer par jour") &&
+  html.includes("En autonomie. Chaque cran vers la droite ajoute un usage.") &&
+  html.includes('id="consoExtra"') &&
+  html.includes("Autre consommation") &&
+  html.includes('id="consoJourList"') &&
+  html.includes('id="consoJourTotal"') &&
+  html.includes("tpl-info-conso-jour") &&
+  /id="consoJour"/.test(consoJourTag) &&
+  /type="range"/.test(consoJourTag) &&
+  /min="0"/.test(consoJourTag) &&
+  /max="9"/.test(consoJourTag) &&
+  /step="1"/.test(consoJourTag) &&
+  /value="0"/.test(consoJourTag) &&
+  DAILY_LOAD_LABELS.every((label) => app.includes(label) && html.includes(label)) &&
+  app.includes("function dailyLoadKwh") &&
+  app.includes("function updateConsoJourUi") &&
+  app.includes("tenths: 1") &&
+  app.includes("tenths: 15");
 const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
 function digitsOnly(raw) {
   return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
@@ -544,6 +575,7 @@ console.log(`  conso live grouping wired (text + parse/format): ${hasConsoGroupi
 console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL"}`);
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
+console.log(`  autonomie slider 0→9 + liste + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
@@ -1465,10 +1497,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       taxes: "1",
       subv: "1",
       conso: 17000,
-      rate: "12.811"
+      rate: "12.811",
+      consoJour: "0",
+      consoExtra: "0"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -1499,7 +1533,9 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
     ],
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
-    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })]
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })],
+    ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
+    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
@@ -1526,11 +1562,22 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.el("subv").checked === true, "LogisVert default on");
   expect(live.el("taxes").checked === true, "taxes default on");
   expect(live.el("conso").value === "17 000", "conso default grouped");
+  expect(live.api.dailyLoadKwh(0, 0) === 0, "ladder step 0 is 0");
+  expect(live.api.dailyLoadKwh(1, 0) === 0.1, "phone is 0.1 kWh/j");
+  expect(live.api.dailyLoadKwh(2, 0) === 0.6, "phone + computer");
+  expect(live.api.dailyLoadKwh(5, 0) === 2.3, "through water pump");
+  expect(live.api.dailyLoadKwh(6, 0) === 3.5, "through fridge");
+  expect(live.api.dailyLoadKwh(9, 0) === 6.3, "full ladder 6.3 kWh/j");
+  expect(live.api.dailyLoadKwh(9, 1.2) === 7.5, "custom adds on top");
+  expect(live.api.dailyLoadKwh(3, "0,5") === 1.6, "comma extra");
+  expect(live.api.clampExtraKwh("250") === 100, "extra caps at 100");
+  expect(live.api.fmtKwhDay(6.3) === "6,3", "fmt kWh/j FR");
+  expect(live.el("consoJour").value === "0", "daily slider starts at 0");
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -1675,6 +1722,7 @@ const pass =
   hasEcoNote &&
   hasCreditFn &&
   hasConsoWired &&
+  hasConsoJourUi &&
   defaultRateTtc &&
   rateNormPass &&
   rateBug59Pass &&

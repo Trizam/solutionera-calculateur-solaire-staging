@@ -20,6 +20,26 @@
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
+  /**
+   * Autonomy ladder, kWh/day in tenths (no electric heat).
+   * Rounded off-grid audits: phone ~0.02–0.05 → 0.1 so the first notch shows;
+   * laptop ~0.25 + router 24 h ~0.25; LED house ~0.5; TV ~0.4;
+   * well/pressure pump ~0.5–1.5; efficient fridge ~1–1.5; chest freezer ~0.8;
+   * one washer load ~0.5 (no dryer); modest electric cooking ~1–1.5.
+   * Full right stop ≈ 6.3 kWh/day. A Québec grid house is ~45 kWh/day.
+   */
+  const DAILY_LOADS = [
+    { label: "Téléphone", tenths: 1 },
+    { label: "Ordinateur et Wi-Fi", tenths: 5 },
+    { label: "Éclairage", tenths: 5 },
+    { label: "Télévision", tenths: 4 },
+    { label: "Pompe à eau", tenths: 8 },
+    { label: "Réfrigérateur", tenths: 12 },
+    { label: "Congélateur", tenths: 8 },
+    { label: "Laveuse", tenths: 5 },
+    { label: "Cuisson", tenths: 15 }
+  ];
+  const CONSO_EXTRA_MAX = 100;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -266,6 +286,105 @@
   function applyDeneigement(kWhAnnuel, d, W) {
     const w = isFinite(W) ? W : 0.18;
     return kWhAnnuel * (1 - (1 - d) * w);
+  }
+
+  /** kWh/j with one decimal, FR comma. Whole numbers drop the decimal (0, 1, 6,3). */
+  function fmtKwhDay(n) {
+    if (!isFinite(n)) return "—";
+    const rounded = Math.round(n * 10) / 10;
+    const whole = Math.abs(rounded - Math.round(rounded)) < 1e-9;
+    return rounded.toLocaleString("fr-CA", {
+      minimumFractionDigits: whole ? 0 : 1,
+      maximumFractionDigits: 1
+    });
+  }
+
+  /** Free-text extra kWh/day → 0.1 steps, 0…100. Empty / invalid → 0. */
+  function clampExtraKwh(raw) {
+    const s = String(raw == null ? "" : raw).trim().replace(GROUP_SEP_RE, "").replace(",", ".");
+    if (s === "" || s === "." || s === "+" || s === "-") return 0;
+    const v = Number(s);
+    if (!isFinite(v) || v <= 0) return 0;
+    const snapped = Math.round(v * 10) / 10;
+    return snapped > CONSO_EXTRA_MAX ? CONSO_EXTRA_MAX : snapped;
+  }
+
+  /** Slider step 0…N plus optional extra kWh/day. Sum stays in tenths. */
+  function dailyLoadKwh(step, extra) {
+    const n = Math.max(0, Math.min(DAILY_LOADS.length, Math.round(Number(step) || 0)));
+    let tenths = 0;
+    for (let i = 0; i < n; i++) tenths += DAILY_LOADS[i].tenths;
+    tenths += Math.round(clampExtraKwh(extra) * 10);
+    return tenths / 10;
+  }
+
+  function dailyLoadStep() {
+    return readRange("consoJour", 0, DAILY_LOADS.length, 1, 0);
+  }
+
+  function consoExtraKwh() {
+    const el = $("consoExtra");
+    if (!el) return 0;
+    return clampExtraKwh(el.value);
+  }
+
+  function formatConsoExtraInput() {
+    const el = $("consoExtra");
+    if (!el) return;
+    if (String(el.value).trim() === "") return;
+    const v = clampExtraKwh(el.value);
+    el.value = v > 0 ? fmtKwhDay(v) : "";
+  }
+
+  function renderDailyLoadRows(step) {
+    const body = $("consoJourList");
+    const table = $("consoJourTable");
+    if (!body) return;
+    const n = Math.max(0, Math.min(DAILY_LOADS.length, step));
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      const load = DAILY_LOADS[i];
+      html += "<tr><th scope=\"row\">" + load.label + "</th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
+    }
+    body.innerHTML = html;
+    if (table) table.classList.toggle("is-empty", n === 0);
+  }
+
+  /** Ladder on the slider; total line adds the free kWh/day. Note vs December production. */
+  function updateConsoJourUi(prodDay) {
+    const step = dailyLoadStep();
+    const extra = consoExtraKwh();
+    const base = dailyLoadKwh(step, 0);
+    const total = dailyLoadKwh(step, extra);
+    const val = $("consoJourVal");
+    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh";
+    const maxEl = $("consoJourMax");
+    if (maxEl) maxEl.innerHTML = fmtKwhDay(dailyLoadKwh(DAILY_LOADS.length, 0)) + "&nbsp;kWh";
+    const slider = $("consoJour");
+    if (slider) {
+      const last = step > 0 ? DAILY_LOADS[step - 1].label : "";
+      slider.setAttribute(
+        "aria-valuetext",
+        step === 0
+          ? "0 kilowattheure par jour"
+          : fmtKwhDay(base) + " kilowattheures par jour, avec " + last
+      );
+    }
+    renderDailyLoadRows(step);
+    const totalEl = $("consoJourTotal");
+    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh";
+    const note = $("consoJourNote");
+    if (!note) return;
+    if (!(total > 0) || !isFinite(prodDay)) {
+      note.hidden = true;
+      note.textContent = "";
+      return;
+    }
+    note.hidden = false;
+    const prodTxt = fmtSig2(prodDay);
+    note.textContent = prodDay + 0.001 >= total
+      ? "Décembre produit " + prodTxt + " kWh/j. Cette cible est couverte."
+      : "Décembre produit " + prodTxt + " kWh/j. Cette cible dépasse la production du mois.";
   }
 
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
@@ -602,6 +721,7 @@
       snowBox.hidden = !r.showVerticalRec;
       snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
+    updateConsoJourUi(r.kWhDay);
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
 
@@ -677,7 +797,9 @@
     taxes: true,
     subv: true,
     conso: DEFAULT_CONSO_KWH,
-    rate: DEFAULT_RATE_CENTS
+    rate: DEFAULT_RATE_CENTS,
+    consoJour: 0,
+    consoExtra: 0
   };
 
   function snapStep(n, min, max, step) {
@@ -765,10 +887,17 @@
         }
       }
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate };
+    let consoJour = d.consoJour;
+    if (q.has("consoJour")) {
+      const v = snapStep(q.get("consoJour"), 0, DAILY_LOADS.length, 1);
+      if (isFinite(v)) consoJour = v;
+    }
+    let consoExtra = d.consoExtra;
+    if (q.has("consoExtra")) consoExtra = clampExtraKwh(q.get("consoExtra"));
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, consoJour, consoExtra };
   }
 
-  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
+  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -799,6 +928,8 @@
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
       p.set("rate", trimNum(s.rate, 3));
+      p.set("consoJour", String(s.consoJour));
+      p.set("consoExtra", trimNum(s.consoExtra, 1));
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -813,6 +944,8 @@
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
+    if (s.consoJour !== d.consoJour) p.set("consoJour", String(s.consoJour));
+    if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
     return p.toString();
   }
 
@@ -829,6 +962,8 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
+    if ($("consoJour")) $("consoJour").value = String(s.consoJour);
+    if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -860,7 +995,9 @@
       taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
-      rate: isFinite(rateSnapped) ? rateSnapped : d.rate
+      rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
+      consoJour: readRange("consoJour", 0, DAILY_LOADS.length, 1, d.consoJour),
+      consoExtra: consoExtraKwh()
     };
   }
 
@@ -1405,7 +1542,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -1425,6 +1562,21 @@
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
+    if ($("consoJour")) wireRangePointerDrag($("consoJour"));
+    const consoExtra = $("consoExtra");
+    if (consoExtra) {
+      consoExtra.addEventListener("input", onScenarioEdit);
+      consoExtra.addEventListener("change", function () {
+        scenarioSnapshot = true;
+        formatConsoExtraInput();
+        render();
+      });
+      consoExtra.addEventListener("blur", function () {
+        scenarioSnapshot = true;
+        formatConsoExtraInput();
+        render();
+      });
+    }
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
     });
@@ -1520,6 +1672,9 @@
     applyDeneigement,
     creditKwh,
     consoAnnuelleKwh,
+    dailyLoadKwh,
+    clampExtraKwh,
+    fmtKwhDay,
     parseGroupedInt,
     fmtGroupedInt,
     formatConsoInput,

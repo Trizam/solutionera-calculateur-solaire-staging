@@ -316,6 +316,56 @@
           Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
         </p>
       </aside>
+
+      <div class="field field-conso-jour" id="field-conso-jour">
+        <div class="label-row field-info-wrap">
+          <label for="consoJour">Combien veux-tu consommer par jour&nbsp;?</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="conso-jour"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Consommation par jour en autonomie"
+            title="Aide : Consommation par jour en autonomie"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh</div>
+          <div class="slider-track">
+            <input id="consoJour" type="range" min="0" max="9" step="1" value="0" aria-describedby="consoJourHint" />
+            <div class="slider-meta"><span>0</span><span id="consoJourMax">6,3&nbsp;kWh</span></div>
+          </div>
+        </div>
+        <p class="hint" id="consoJourHint">En autonomie. Chaque cran vers la droite ajoute un usage.</p>
+        <table class="load-table is-empty" id="consoJourTable" aria-label="Usages inclus dans la consommation par jour">
+          <thead>
+            <tr>
+              <th scope="col">Usage</th>
+              <th scope="col">kWh / j</th>
+            </tr>
+          </thead>
+          <tbody id="consoJourList"></tbody>
+          <tbody>
+            <tr class="load-custom-row">
+              <th scope="row"><label for="consoExtra">Autre consommation</label></th>
+              <td>
+                <div class="load-custom">
+                  <input id="consoExtra" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" aria-label="Autre consommation en kilowattheures par jour" />
+                  <span>kWh / j</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="load-total-row">
+              <th scope="row">Total par jour</th>
+              <td id="consoJourTotal">0 kWh</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="calc-line" id="consoJourNote" hidden></p>
+      </div>
     </section>
 
     <!-- 2 · Coût -->
@@ -420,6 +470,7 @@
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
+        <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur pédagogique, de 0 à environ 6,3&nbsp;kWh/j (téléphone → cuisson), plus une ligne libre. Sans chauffage électrique. Ce n’est pas la consommation annuelle de la facture.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
@@ -622,7 +673,35 @@
       <h4>Pourquoi ça bouge</h4>
       <p>L’inclinaison influence aussi l’accumulation&nbsp;:<br>un toit plat (zéro degré) accumule très bien la neige<br>un toit 12/12 (quarante-cinq degrés) accumule la neige<br>une installation verticale (quatre-vingt-dix degrés) n’accumule aucune neige</p>
       <p>La production sous le curseur se met à jour en même temps.</p>
-      <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
+          <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
+    </div>
+  </template>
+  <template id="tpl-info-conso-jour">
+    <span data-info-title>Consommation par jour</span>
+    <div class="info-block">
+      <h4>En autonomie</h4>
+      <p>Le curseur part de zéro. Chaque cran vers la droite ajoute un usage, du plus léger au plus lourd.</p>
+      <p>Les kWh sont des ordres de grandeur pour une maison autonome efficace, <strong>sans chauffage électrique</strong> (bois ou autre). Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
+    </div>
+    <div class="info-block">
+      <h4>Ce que chaque cran ajoute</h4>
+      <ul>
+        <li>Téléphone — 0,1&nbsp;kWh/j</li>
+        <li>Ordinateur et Wi-Fi — 0,5&nbsp;kWh/j</li>
+        <li>Éclairage — 0,5&nbsp;kWh/j</li>
+        <li>Télévision — 0,4&nbsp;kWh/j</li>
+        <li>Pompe à eau — 0,8&nbsp;kWh/j</li>
+        <li>Réfrigérateur — 1,2&nbsp;kWh/j</li>
+        <li>Congélateur — 0,8&nbsp;kWh/j</li>
+        <li>Laveuse — 0,5&nbsp;kWh/j</li>
+        <li>Cuisson — 1,5&nbsp;kWh/j</li>
+      </ul>
+      <p>Tout à droite&nbsp;: environ 6,3&nbsp;kWh/j. Repères d’audits hors réseau, arrondis au 0,1&nbsp;kWh (frigo efficace ~1–1,5, pompe ~0,5–1,5, cuisson électrique modeste ~1–2).</p>
+    </div>
+    <div class="info-block">
+      <h4>Autre consommation</h4>
+      <p>La dernière ligne ajoute des kWh/j absents du curseur&nbsp;: internet satellite, thermopompe, outils, chauffe-eau.</p>
+      <p>Le total se compare à la production de décembre, la journée la plus difficile de l’année.</p>
     </div>
   </template>
 
