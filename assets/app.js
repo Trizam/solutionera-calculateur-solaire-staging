@@ -121,8 +121,14 @@
   let townCatalog = [];
   let townByIdMap = null;
   let quebecS30 = FALLBACK_S30.ac_annual;
+  /** Full PVWatts grids already fetched, keyed by town id. Québec stays in baseCells. */
+  const fullGridCells = Object.create(null);
+  /** Full-grid fetch failed; the menu then shows the same scaled sud 45° cell as the calculator. */
+  const fullGridMiss = Object.create(null);
   let townListOpen = false;
   let townActiveIndex = -1;
+  /** HTML ships the Québec sud 45° figure. Keep it until a computed yield replaces it. */
+  let quebecYieldPlaceholder = true;
   let townTypeBuffer = "";
   let townTypeTimer = null;
 
@@ -812,7 +818,8 @@
         btn._wired = true;
         btn.addEventListener("click", function () {
           loadGrid().then(function () {
-            return ensureTownGrid(selectedVille);
+            refreshTownYields();
+            return Promise.all([ensureTownGrid(selectedVille), loadMenuFullGrids()]);
           }).then(function () { render(); });
         });
       }
@@ -978,7 +985,7 @@
     unit: "m2",
     util: 80,
     orient: 180,
-    tilt: 30,
+    tilt: 45,
     deneige: Math.round(DEFAULT_DENEIGEMENT * 100),
     priceW: 3,
     taxes: true,
@@ -1878,6 +1885,47 @@
     return fmtGroupedInt(Math.round(Number(n))).replace(/ /g, "\u00A0") + " kWh/kWc";
   }
 
+  function southAnnual(cells, tilt, az) {
+    const row = cells && cells[tilt];
+    const cell = row && row[az];
+    const n = cell ? Number(cell.ac_annual) : NaN;
+    return isFinite(n) && n > 0 ? n : NaN;
+  }
+
+  function usesQuebecGrid(town) {
+    return !!(town && town.grid === "full" && String(town.grid_file || "").indexOf("quebec-full-grid") !== -1);
+  }
+
+  /** Québec sud 45° × this town’s measured sud 30° / Québec sud 30°. Same scale the calculator applies. */
+  function scaledSouth45(town) {
+    const q45 = southAnnual(baseCells, "45", "180");
+    const s30 = Number(town && town.ac_annual_s30);
+    if (!(isFinite(q45) && q45 > 0 && isFinite(s30) && s30 > 0 && isFinite(quebecS30) && quebecS30 > 0)) return NaN;
+    return q45 * (s30 / quebecS30);
+  }
+
+  /**
+   * Dropdown kWh/kWc: measured south 45° (tilt 45, azimuth 180) when that grid is loaded.
+   * Towns without a full grid use Québec’s south-45° cell scaled by their sud 30° ratio.
+   * NaN until the needed grid is available — the list is refreshed once it loads.
+   */
+  function menuYieldAnnual(town) {
+    if (!town) return NaN;
+    if (town.grid === "full") {
+      const cells = usesQuebecGrid(town) ? baseCells : fullGridCells[town.id];
+      const measured = southAnnual(cells, "45", "180");
+      if (isFinite(measured)) return measured;
+      if (!usesQuebecGrid(town) && !fullGridMiss[town.id]) return NaN;
+    }
+    return scaledSouth45(town);
+  }
+
+  function menuYieldText(town) {
+    const n = menuYieldAnnual(town);
+    if (!isFinite(n)) return "";
+    return fmtYield(n);
+  }
+
   function foldTownName(s) {
     return String(s || "")
       .replace(/œ/g, "oe")
@@ -1892,9 +1940,16 @@
     const yieldEl = $("villeYield");
     if (nameEl) nameEl.textContent = town ? town.name : (selectedVille === DEFAULT_VILLE ? "Québec" : selectedVille);
     if (yieldEl) {
-      yieldEl.textContent = town
-        ? fmtYield(town.ac_annual_s30)
-        : (selectedVille === DEFAULT_VILLE ? fmtYield(quebecS30) : "—");
+      const text = menuYieldText(town);
+      if (text) {
+        yieldEl.textContent = text;
+        quebecYieldPlaceholder = false;
+      } else if (quebecYieldPlaceholder && selectedVille === DEFAULT_VILLE && town && town.id === DEFAULT_VILLE) {
+        // Leave the pre-rendered Québec sud 45° number until the grid is in.
+      } else {
+        quebecYieldPlaceholder = false;
+        yieldEl.textContent = "—";
+      }
     }
     const btn = $("villeBtn");
     if (btn) btn.setAttribute("aria-expanded", townListOpen ? "true" : "false");
@@ -2017,7 +2072,7 @@
       name.textContent = town.name;
       const yieldEl = document.createElement("span");
       yieldEl.className = "town-yield";
-      yieldEl.textContent = fmtYield(town.ac_annual_s30);
+      yieldEl.textContent = menuYieldText(town) || "—";
       li.appendChild(name);
       li.appendChild(yieldEl);
       li.addEventListener("mousedown", function (e) {
@@ -2028,6 +2083,24 @@
     });
     sel.value = selectedVille;
     paintTownButton();
+  }
+
+  /** Refresh menu yields without rebuilding the list or the native select, so the selection stays put. */
+  function refreshTownYields() {
+    paintTownButton();
+    const list = $("villeList");
+    if (!list || typeof list.querySelectorAll !== "function") return;
+    const options = list.querySelectorAll('[role="option"]');
+    for (let i = 0; i < options.length; i++) {
+      const li = options[i];
+      const town = townById(li.getAttribute("data-id"));
+      const yieldEl = li.querySelector && li.querySelector(".town-yield");
+      if (!town || !yieldEl) continue;
+      const text = menuYieldText(town);
+      if (text) yieldEl.textContent = text;
+    }
+    const sel = $("ville");
+    if (sel && sel.value !== selectedVille) sel.value = selectedVille;
   }
 
   function wireTownPicker() {
@@ -2094,6 +2167,7 @@
   }
 
   async function fetchTownGridFile(town) {
+    if (town && fullGridCells[town.id]) return fullGridCells[town.id];
     const file = town.grid_file || ("assets/town-grids/" + town.id + ".json");
     const res = await fetch(file, { cache: "force-cache" });
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -2103,7 +2177,25 @@
       return acc + Object.keys(data.cells[tilt] || {}).length;
     }, 0);
     if (n < 168) throw new Error("grille incomplète");
+    if (town && town.id) {
+      fullGridCells[town.id] = data.cells;
+      delete fullGridMiss[town.id];
+    }
     return data.cells;
+  }
+
+  /** Load the other full grids so their menu figures are the measured sud 45° cells. */
+  async function loadMenuFullGrids() {
+    const jobs = [];
+    townCatalog.forEach(function (town) {
+      if (!town || town.grid !== "full" || usesQuebecGrid(town)) return;
+      jobs.push(fetchTownGridFile(town).catch(function (err) {
+        fullGridMiss[town.id] = true;
+        console.warn("Grille complète indisponible pour le menu", town.id, err);
+      }));
+    });
+    await Promise.all(jobs);
+    refreshTownYields();
   }
 
   function applyScaledTown(town, token) {
@@ -2123,8 +2215,7 @@
     const useId = canonicalVille(id || selectedVille);
     if (!baseCells) return;
     const town = townById(useId);
-    const useQuebec = !town || useId === DEFAULT_VILLE ||
-      (town.grid === "full" && String(town.grid_file || "").indexOf("quebec-full-grid") !== -1);
+    const useQuebec = !town || useId === DEFAULT_VILLE || usesQuebecGrid(town);
     if (useQuebec) {
       if (token !== gridToken) return;
       gridCells = baseCells;
@@ -2135,12 +2226,23 @@
       return;
     }
     if (town.grid === "full") {
+      if (fullGridCells[town.id]) {
+        if (token !== gridToken) return;
+        gridCells = fullGridCells[town.id];
+        gridReady = true;
+        gridStatus = "ready";
+        gridIsScaled = false;
+        activeTownId = useId;
+        refreshTownYields();
+        return;
+      }
       applyScaledTown(town, token);
       gridStatus = "loading";
       lastGridUiStatus = null;
       updateGridStatusUi();
       try {
         const cells = await fetchTownGridFile(town);
+        refreshTownYields();
         if (token !== gridToken) return;
         gridCells = cells;
         gridReady = true;
@@ -2150,6 +2252,8 @@
         return;
       } catch (err) {
         console.warn("Grille complète indisponible — échelle sud 30°", useId, err);
+        fullGridMiss[town.id] = true;
+        refreshTownYields();
         if (token !== gridToken) return;
         if (applyScaledTown(town, token)) return;
       }
@@ -2307,7 +2411,8 @@
     render();
     await loadTowns();
     await loadGrid();
-    await ensureTownGrid(selectedVille);
+    refreshTownYields();
+    await Promise.all([ensureTownGrid(selectedVille), loadMenuFullGrids()]);
     render();
   });
 

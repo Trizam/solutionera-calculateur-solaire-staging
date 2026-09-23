@@ -278,6 +278,10 @@ section.block h2 .num {
   letter-spacing: 0.02em;
   flex-shrink: 0;
 }
+section.block h2 > label,
+section.block h2 > span:not(.num) {
+  min-width: 0;
+}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -841,11 +845,11 @@ section.block > h2,
   font-weight: 700;
   color: var(--muted);
 }
-/* Hauteur des cartes : docs/DESIGN.md */
+/* Hauteur : docs/DESIGN.md — boîtes vertes côte à côte = même hauteur. */
 .result-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-items: start;
+  align-items: stretch;
   gap: 0.65rem;
   margin-top: 0.5rem;
 }
@@ -853,6 +857,9 @@ section.block > h2,
   margin-top: 0;
   padding: 0.85rem 0.65rem;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .result-pair .result-pill .big {
   font-size: 1.45rem;
@@ -895,7 +902,13 @@ section.block > h2,
   margin: 0;
 }
 .slot-yield {
-  align-items: start;
+  align-items: stretch;
+}
+/* Mesurage et Autonomie sont les deux cases de la rangée.
+   La note de neige occupe la ligne du dessous, sous Autonomie. */
+.slot-yield > .result-pill {
+  grid-column: 1;
+  grid-row: 1;
 }
 .field-conso-jour {
   margin-top: var(--section-hairline-pad);
@@ -1001,16 +1014,18 @@ section.block > h2,
   margin-top: 0.55rem;
 }
 .yield-auto {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  min-width: 0;
+  display: contents;
+}
+.yield-auto > .result-pill {
+  grid-column: 2;
+  grid-row: 1;
 }
 .yield-auto .autonomy-snow {
+  grid-column: 2;
+  grid-row: 2;
   margin-top: 0;
 }
 @media (max-width: 520px) {
-  .yield-auto { display: contents; }
   .slot-yield .autonomy-snow { grid-column: 1 / -1; }
 }
 .fill-shortfall {
@@ -1088,7 +1103,7 @@ section.block > h2,
 .cards {
   display: grid;
   grid-template-columns: 1fr;
-  align-items: start;
+  align-items: stretch;
   gap: 0.65rem;
   margin-top: 0.75rem;
 }
@@ -1096,6 +1111,9 @@ section.block > h2,
   .cards { grid-template-columns: repeat(3, 1fr); }
 }
 .card-kpi {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   background: var(--green-soft);
   border-radius: 12px;
   padding: 0.85rem 0.7rem;
@@ -1163,15 +1181,22 @@ section.block > h2,
   word-spacing: 0.12em;
   white-space: nowrap;
 }
-.card-kpi .kpi-note {
-  font-size: 0.68rem;
-  color: var(--green-dark);
-  margin: 0.45rem 0 0;
-  line-height: 1.35;
+.kpi-note {
+  margin: 0.65rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--flag-border);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
+  font-size: 0.86rem;
   font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
-.card-kpi .kpi-note[hidden] {
-  display: none;
+.kpi-note[hidden] {
+  display: none !important;
 }
 .btn {
   display: inline-flex;
@@ -1864,7 +1889,7 @@ section.block h2 .field-info-btn {
   .brand { margin-bottom: 0.5rem; }
   .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   section.block, header.hero, .disclaimers,
-  .result-pill, .result-pair, .autonomy-snow, .breakdown, .cards, .card-kpi {
+  .result-pill, .result-pair, .autonomy-snow, .kpi-note, .breakdown, .cards, .card-kpi {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none;
@@ -1873,7 +1898,8 @@ section.block h2 .field-info-btn {
   .result-pill, .card-kpi, .town-btn { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .town-list, .town-caret { display: none !important; }
   .autonomy-snow,
-  .fill-shortfall {
+  .fill-shortfall,
+  .kpi-note {
     background: linear-gradient(135deg, #fff4cc, #fffbeb) !important;
     border: 1px solid #ead98a !important;
     color: #1a1a1a !important;

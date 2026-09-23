@@ -1,0 +1,75 @@
+name: fetch-quebec-grids
+
+# Code only: once an hour, fetch the next PVWatts cells and commit them.
+# Stops by itself when all 104 town grids are full.
+# Needs the repository secret NLR_API_KEY (NLR PVWatts). The key is never logged.
+on:
+  schedule:
+    # Next fire is the minute written below, UTC, then every hour at that minute.
+    - cron: "45 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-quebec-grids
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use the data branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin data/quebec-town-grids || true
+          if git rev-parse --verify origin/data/quebec-town-grids >/dev/null 2>&1; then
+            git checkout -B data/quebec-town-grids origin/data/quebec-town-grids
+            git merge origin/master -X ours --no-edit
+          else
+            git checkout -B data/quebec-town-grids
+          fi
+
+      - name: Stop when the secret is missing
+        env:
+          NLR_API_KEY: ${{ secrets.NLR_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NLR_API_KEY}" ]; then
+            echo "Repository secret NLR_API_KEY is empty. Add the NLR PVWatts key, then re-run this workflow."
+            exit 1
+          fi
+
+      - name: Fetch the next batch
+        env:
+          NLR_API_KEY: ${{ secrets.NLR_API_KEY }}
+        run: |
+          set -euo pipefail
+          status="$(node scripts/fetch-quebec-towns.mjs --status --short)"
+          echo "before ${status}"
+          if [ "${status}" = "104/104" ]; then
+            echo "all town grids are already complete"
+            exit 0
+          fi
+          node scripts/fetch-quebec-towns.mjs --grids-only --budget 900 --exit-on-limit
+          node scripts/fetch-quebec-towns.mjs --status --short
+
+      - name: Commit finished cells
+        run: |
+          set -euo pipefail
+          git add assets/towns.json assets/town-grids scripts/pvwatts-progress
+          if git diff --cached --quiet; then
+            echo "nothing new to commit"
+            exit 0
+          fi
+          status="$(node scripts/fetch-quebec-towns.mjs --status --short)"
+          git commit -m "Fetch Quebec PVWatts grids (${status})."
+          git push origin data/quebec-town-grids

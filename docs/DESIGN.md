@@ -15,10 +15,12 @@ Toute réponse principale s’affiche dans la famille verte (fond `--green-soft`
 
 ## 2. Hauteur des cartes et flèche
 
-La hauteur d’une carte vient de **son** contenu. Un voisin à gauche ou à droite ne l’étire pas.
+Deux hauteurs, selon le type de boîte.
 
-- Dans une rangée de pairs (`.result-pair`, `.cards`), `align-items: start`. Le surplus descend. Il n’augmente pas la carte d’à côté.
-- Sur le grand écran, le plateau `.board` place les cartes par `data-slot`. Chaque case reste à la hauteur de son contenu (`align-self: start`).
+- Une grande carte (`.block`, case du plateau) prend la hauteur de son contenu. Le voisin ne l’étire pas. Sur le grand écran, chaque case du `.board` reste à cette hauteur (`align-self: start`).
+- Les boîtes vertes côte à côte ont toujours la même hauteur : celle de la plus haute de la rangée. Ça vaut pour une paire `.result-pair` (`.result-pill`) et pour le trio `.cards` (`.card-kpi`). La rangée étire (`align-items: stretch`). Dans une paire, le texte est centré. Dans le trio, le chiffre reste en haut.
+- Le plafond des économies (`.kpi-note`) est un drapeau jaune sous le trio, comme la note de neige. Le texte est centré, en graisse normale. Il ne rentre pas dans la carte du milieu et n’allonge pas les trois boîtes.
+- Dans le rendement, Mesurage net et Autonomie sont les deux boîtes de la rangée. La note de neige (`.autonomy-snow`) reste sous Autonomie. Elle n’allonge pas Mesurage net. En pile étroite (≤ 520px) elle passe sous les deux.
 - La flèche `.flow-arrow` est dans la carte de remplissage. Au grand écran elle est centrée (`top: 50%`) dans l’espace entre les deux colonnes. En pile étroite elle est masquée.
 - Curseur : reprendre `.slider-row`. La valeur de gauche (`.slider-val-left`) a exactement la hauteur du pouce (`--slider-hit`, 44px) et son centre est aligné sur la ligne du pouce.
 
@@ -64,13 +66,15 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
 | Rendement | Mesurage net et autonomie de décembre | Paire de boîtes vertes |
-| Besoin | Combien veux-tu consommer par jour ? | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre |
-| Réserve | Combien de jours de réserve voulez-vous ? | Durée 0 à 3 jours, boîte verte en kWh |
+| Besoin **4A** | Combien d'autonomie je veux | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre |
+| Réserve **4B** | Combien de jours de réserve voulez-vous ? | Durée 0 à 3 jours, boîte verte en kWh |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte verte, flèche centrée |
-| Coût | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
-| Batterie | Prix au kWh installé | Ligne de coût, pas une seconde boîte |
-| Retour | Valeur des panneaux | Trio `.card-kpi` |
-| Total | Coût total du projet | Panneaux (coût réel) + batteries, chiffre vert |
+| Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
+| Batterie **5** | Combien coûtent les batteries ? | Ligne de coût, pas une seconde boîte |
+| Retour **3** | Valeur des panneaux | Trio `.card-kpi` |
+| Total **6** | Coût total du projet | Panneaux (coût réel) + batteries, chiffre vert |
+
+Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
 
 La consommation du jour est le cran du curseur (téléphone jusqu’à la cuisson) plus la ligne libre. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
 

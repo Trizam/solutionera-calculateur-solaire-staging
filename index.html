@@ -189,7 +189,7 @@
             aria-describedby="locHint"
           >
             <span class="town-name" id="villeName">Québec</span>
-            <span class="town-yield" id="villeYield">1&nbsp;255 kWh/kWc</span>
+            <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc</span>
             <span class="town-caret" aria-hidden="true"></span>
           </button>
           <ul id="villeList" class="town-list" role="listbox" tabindex="-1" hidden aria-labelledby="locLabel"></ul>
@@ -197,7 +197,7 @@
             <option value="quebec" selected>Québec</option>
           </select>
         </div>
-        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 30°.</p>
+        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -284,15 +284,15 @@
                 <line x1="4" y1="40" x2="60" y2="40" stroke="currentColor" stroke-width="2" opacity="0.45" />
                 <!-- roof/panel line (updated by JS) -->
                 <g id="tiltPanel">
-                  <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+                  <line id="tiltLine" x1="12" y1="40" x2="40.28" y2="11.72" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
                   <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="currentColor" />
                 </g>
               </svg>
             </div>
-            <span id="tiltVal">30°</span>
+            <span id="tiltVal">45°</span>
           </div>
           <div class="slider-track">
-            <input id="tilt" type="range" min="0" max="90" step="15" value="30" />
+            <input id="tilt" type="range" min="0" max="90" step="15" value="45" />
             <div class="slider-meta"><span>0&nbsp;°</span><span>90&nbsp;°</span></div>
           </div>
         </div>
@@ -354,10 +354,12 @@
       </div>
     </div>
 
+    <!-- 4A · Autonomie -->
     <div class="slot-need" data-slot="need">
     <section class="block mode-full-only" id="sec-auto" aria-labelledby="h-auto">
       <h2 id="h-auto">
-        <label for="consoJour">Combien veux-tu consommer par jour&nbsp;?</label>
+        <span class="num">4A</span>
+        <label for="consoJour">Combien d'autonomie je veux</label>
         <button
           type="button"
           class="field-info-btn"
@@ -407,8 +409,10 @@
       </div>
     </section>
 
+    <!-- 4B · Réserve -->
     <section class="block mode-full-only" id="sec-reserve" aria-labelledby="h-reserve">
       <h2 id="h-reserve">
+        <span class="num">4B</span>
         <span>Combien de jours de réserve voulez-vous&nbsp;?</span>
         <button
           type="button"
@@ -507,8 +511,9 @@
       </div>
     </section>
 
+    <!-- 5 · Batteries -->
     <section class="block mode-full-only slot-batt" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
-      <h2 id="h-batt">Combien coûtent les batteries&nbsp;?</h2>
+      <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
       <div class="field">
         <div class="label-row field-info-wrap">
           <label for="battPrice">Prix au kWh installé</label>
@@ -571,13 +576,13 @@
         <div class="card-kpi">
           <div class="kpi" id="kpiEco">—</div>
           <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
-          <p class="kpi-note" id="kpiEcoNote" hidden>Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
         </div>
         <div class="card-kpi">
           <div class="kpi" id="kpiYears">—</div>
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
+      <p class="kpi-note" id="kpiEcoNote" hidden role="status">Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
       <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
       <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
 
@@ -585,8 +590,10 @@
       <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
 
+    <!-- 6 · Coût total du projet -->
     <section class="block mode-full-only slot-total" id="sec-total" data-slot="total" aria-labelledby="h-total">
       <h2 id="h-total">
+        <span class="num">6</span>
         <span>Coût total du projet</span>
         <button
           type="button"
@@ -622,7 +629,7 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 30° en kWh/kWc pour 1&nbsp;kWc. La boîte Production annuelle en bas de 1B reprend ce chiffre après l’orientation, l’inclinaison et le déneigement.</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Production annuelle en bas de 1B reprend ce chiffre après l’orientation, l’inclinaison et le déneigement.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -675,7 +682,7 @@
       <div class="modal-body" id="infoDesc">
         <div class="info-block">
           <h4>Grille d’irradiation</h4>
-          <p>Estimation PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%. La ville choisie fournit le productible sud 30° pour 1&nbsp;kWc.</p>
+          <p>Estimation PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%. La ville choisie fournit le productible sud 45° pour 1&nbsp;kWc.</p>
           <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kWc annuel. Québec a une grille complète. Ailleurs, grille complète ou grille de Québec mise à l’échelle du rapport sud 30° mesuré.</p>
         </div>
         <div class="info-block">
@@ -795,9 +802,9 @@
     <div class="info-block">
       <h4>Ville et productible</h4>
       <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique.</p>
-      <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>30°</strong> (kWh par kW crête).</p>
+      <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
       <p>La boîte <strong>Production annuelle</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé, après l’orientation, l’inclinaison et le déneigement choisis.</p>
-      <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu reste une mesure PVWatts.</p>
+      <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu est le productible sud 45° pour 1&nbsp;kWc : la cellule mesurée si la grille est complète, sinon la cellule sud 45° de Québec à l’échelle de ce rapport.</p>
     </div>
   </template>
   <template id="tpl-info-orient">
