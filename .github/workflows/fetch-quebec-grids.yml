@@ -5,7 +5,8 @@ name: fetch-quebec-grids
 # Needs the repository secret NLR_API_KEY (NLR PVWatts). The key is never logged.
 on:
   schedule:
-    - cron: "15 * * * *"
+    # Next fire is the minute written below, UTC, then every hour at that minute.
+    - cron: "45 * * * *"
   workflow_dispatch:
 
 permissions:
