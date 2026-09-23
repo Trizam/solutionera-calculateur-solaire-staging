@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 8,
-    "n_scaled": 96,
+    "n_full_grid": 12,
+    "n_scaled": 92,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T05:09:01.595Z"
+    "as_of_utc": "2026-09-23T18:53:31.242Z"
   },
   "towns": [
     {
@@ -748,7 +748,8 @@
       "lat": 47.8358,
       "lon": -69.5368,
       "ac_annual_s30": 1262.8755,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/riviere-du-loup.json"
     },
     {
       "id": "roberval",
@@ -759,7 +760,8 @@
       "lat": 48.5148,
       "lon": -72.2248,
       "ac_annual_s30": 1179.7905,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/roberval.json"
     },
     {
       "id": "rouyn-noranda",
@@ -914,7 +916,8 @@
       "lat": 47.5266,
       "lon": -69.8074,
       "ac_annual_s30": 1235.7217,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-pascal.json"
     },
     {
       "id": "saint-tite",
@@ -1069,7 +1072,8 @@
       "lat": 47.6837,
       "lon": -68.8853,
       "ac_annual_s30": 1221.298,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/temiscouata-sur-le-lac.json"
     },
     {
       "id": "terrebonne",
