@@ -127,10 +127,11 @@
   const fullGridMiss = Object.create(null);
   let townListOpen = false;
   let townActiveIndex = -1;
+  let townQueryDirty = false;
+  let townSuppressOpen = false;
+  let townBlurTimer = null;
   /** HTML ships the Québec sud 45° figure. Keep it until a computed yield replaces it. */
   let quebecYieldPlaceholder = true;
-  let townTypeBuffer = "";
-  let townTypeTimer = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -1920,16 +1921,55 @@
   function foldTownName(s) {
     return String(s || "")
       .replace(/œ/g, "oe")
+      .replace(/æ/g, "ae")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/['’]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function townMatchesQuery(town, foldedQuery) {
+    if (!foldedQuery) return true;
+    const fields = [town.name, town.territory, town.region];
+    for (let i = 0; i < fields.length; i++) {
+      if (foldTownName(fields[i]).indexOf(foldedQuery) !== -1) return true;
+    }
+    return false;
+  }
+
+  function selectedTownLabel() {
+    const town = townById(selectedVille);
+    if (town) return town.name;
+    return selectedVille === DEFAULT_VILLE ? "Québec" : selectedVille;
+  }
+
+  function townQueryFolded() {
+    const input = $("villeBtn");
+    return foldTownName(input ? input.value : "");
+  }
+
+  function townsForList() {
+    if (!townListOpen || !townQueryDirty) return townCatalog;
+    const q = townQueryFolded();
+    if (!q) return townCatalog;
+    return townCatalog.filter(function (town) { return townMatchesQuery(town, q); });
+  }
+
+  function visibleTownOptions() {
+    const list = $("villeList");
+    if (!list || typeof list.querySelectorAll !== "function") return [];
+    return list.querySelectorAll('[role="option"]');
   }
 
   function paintTownButton() {
     const town = townById(selectedVille);
-    const nameEl = $("villeName");
+    const input = $("villeBtn");
     const yieldEl = $("villeYield");
-    if (nameEl) nameEl.textContent = town ? town.name : (selectedVille === DEFAULT_VILLE ? "Québec" : selectedVille);
+    const field = $("townField");
+    if (input && !(townListOpen && townQueryDirty)) input.value = selectedTownLabel();
     if (yieldEl) {
       const text = menuYieldText(town);
       if (text) {
@@ -1942,39 +1982,55 @@
         yieldEl.textContent = "—";
       }
     }
-    const btn = $("villeBtn");
-    if (btn) btn.setAttribute("aria-expanded", townListOpen ? "true" : "false");
-    const list = $("villeList");
-    if (!list || typeof list.querySelectorAll !== "function") return;
-    list.querySelectorAll('[role="option"]').forEach(function (li) {
-      const on = li.getAttribute("data-id") === selectedVille;
-      li.setAttribute("aria-selected", on ? "true" : "false");
-    });
+    if (input) input.setAttribute("aria-expanded", townListOpen ? "true" : "false");
+    if (field && field.classList) {
+      field.classList.toggle("is-open", townListOpen);
+      field.classList.toggle("is-searching", !!(townListOpen && townQueryDirty));
+    }
+    const caret = $("villeCaret");
+    if (caret) caret.setAttribute("aria-label", townListOpen ? "Masquer les villes" : "Afficher les villes");
+    const options = visibleTownOptions();
+    for (let i = 0; i < options.length; i++) {
+      const on = options[i].getAttribute("data-id") === selectedVille;
+      options[i].setAttribute("aria-selected", on ? "true" : "false");
+    }
   }
 
   function setTownActive(index) {
-    const list = $("villeList");
-    if (!list || !townCatalog.length) return;
-    const n = townCatalog.length;
+    const options = visibleTownOptions();
+    const input = $("villeBtn");
+    const n = options.length;
+    if (!n) {
+      townActiveIndex = -1;
+      if (input) input.removeAttribute("aria-activedescendant");
+      return;
+    }
     townActiveIndex = ((index % n) + n) % n;
-    const options = typeof list.querySelectorAll === "function"
-      ? list.querySelectorAll('[role="option"]')
-      : [];
-    for (let i = 0; i < options.length; i++) {
+    for (let i = 0; i < n; i++) {
       options[i].classList.toggle("is-active", i === townActiveIndex);
     }
     const active = options[townActiveIndex];
-    if (active) {
-      list.setAttribute("aria-activedescendant", active.id || "");
-      if (typeof active.scrollIntoView === "function") {
-        try { active.scrollIntoView({ block: "nearest" }); } catch (_) {}
-      }
+    if (input) input.setAttribute("aria-activedescendant", active.id || "");
+    const list = $("villeList");
+    if (active && list && typeof active.offsetTop === "number") {
+      const top = active.offsetTop;
+      const bottom = top + (active.offsetHeight || 0);
+      if (top < list.scrollTop) list.scrollTop = top;
+      else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
     }
   }
 
   function moveTownActive(delta) {
+    const options = visibleTownOptions();
+    if (!options.length) return;
     if (townActiveIndex < 0) {
-      const current = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+      let current = -1;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].getAttribute("data-id") === selectedVille) {
+          current = i;
+          break;
+        }
+      }
       setTownActive(current < 0 ? 0 : current);
       return;
     }
@@ -1983,44 +2039,103 @@
 
   function openTownList() {
     const list = $("villeList");
-    const btn = $("villeBtn");
+    const input = $("villeBtn");
     if (!list || !townCatalog.length) return;
+    const already = townListOpen;
     townListOpen = true;
     list.hidden = false;
-    if (btn) btn.setAttribute("aria-expanded", "true");
-    const idx = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+    if (!already) townQueryDirty = false;
+    paintTownButton();
+    renderTownOptions();
+    const towns = townsForList();
+    let idx = -1;
+    for (let i = 0; i < towns.length; i++) {
+      if (towns[i].id === selectedVille) {
+        idx = i;
+        break;
+      }
+    }
     setTownActive(idx < 0 ? 0 : idx);
-    try { list.focus(); } catch (_) {}
+    if (!already && input && typeof input.setSelectionRange === "function") {
+      try { input.setSelectionRange(0, String(input.value || "").length); } catch (_) {}
+    }
+    revealTownList();
+  }
+
+  function revealTownList() {
+    const field = $("townField");
+    if (!field || typeof field.getBoundingClientRect !== "function") return;
+    if (typeof window === "undefined" || !window.innerHeight) return;
+    const rect = field.getBoundingClientRect();
+    const room = Math.min(320, Math.round(window.innerHeight * 0.46));
+    const limit = window.innerHeight - room;
+    if (rect.bottom <= limit) return;
+    const delta = rect.bottom - limit;
+    try { window.scrollBy({ top: delta, left: 0, behavior: "instant" }); }
+    catch (_) { try { window.scrollBy(0, delta); } catch (__) {} }
   }
 
   function closeTownList(focusBtn) {
     const list = $("villeList");
-    const btn = $("villeBtn");
+    const input = $("villeBtn");
     townListOpen = false;
+    townQueryDirty = false;
     townActiveIndex = -1;
+    if (townBlurTimer) {
+      clearTimeout(townBlurTimer);
+      townBlurTimer = null;
+    }
     if (list) {
       list.hidden = true;
       list.removeAttribute("aria-activedescendant");
     }
-    if (btn) btn.setAttribute("aria-expanded", "false");
-    if (focusBtn && btn) {
-      try { btn.focus(); } catch (_) {}
+    if (input) input.removeAttribute("aria-activedescendant");
+    paintTownButton();
+    if (focusBtn && input) {
+      townSuppressOpen = true;
+      try { input.focus(); } catch (_) {}
+      setTimeout(function () { townSuppressOpen = false; }, 0);
     }
   }
 
-  function typeTown(ch) {
-    townTypeBuffer += foldTownName(ch);
-    if (townTypeTimer) clearTimeout(townTypeTimer);
-    townTypeTimer = setTimeout(function () { townTypeBuffer = ""; }, 700);
-    const q = townTypeBuffer;
-    const idx = townCatalog.findIndex(function (t) { return foldTownName(t.name).indexOf(q) === 0; });
-    if (idx >= 0) setTownActive(idx);
+  function commitTownActive() {
+    const options = visibleTownOptions();
+    const active = options[townActiveIndex];
+    const id = active && active.getAttribute("data-id");
+    if (id) pickTown(id);
+    else closeTownList(true);
   }
 
-  function commitTownActive() {
-    const town = townCatalog[townActiveIndex];
-    if (town) pickTown(town.id);
-    else closeTownList(true);
+  function applyTownQuery() {
+    const input = $("villeBtn");
+    townQueryDirty = true;
+    const list = $("villeList");
+    if (!townListOpen && list && townCatalog.length) {
+      townListOpen = true;
+      list.hidden = false;
+    }
+    paintTownButton();
+    renderTownOptions();
+    const q = townQueryFolded();
+    const options = visibleTownOptions();
+    if (!options.length) {
+      townActiveIndex = -1;
+      if (input) input.removeAttribute("aria-activedescendant");
+      return;
+    }
+    if (!q) {
+      let idx = -1;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].getAttribute("data-id") === selectedVille) {
+          idx = i;
+          break;
+        }
+      }
+      setTownActive(idx < 0 ? 0 : idx);
+    } else {
+      setTownActive(0);
+    }
+    revealTownList();
   }
 
   async function pickTown(id) {
@@ -2039,11 +2154,27 @@
     }
   }
 
-  function renderTownList() {
-    const list = $("villeList");
+  function appendTownOption(list, town) {
+    const li = document.createElement("li");
+    li.className = "town-option";
+    li.setAttribute("role", "option");
+    li.id = "ville-opt-" + town.id;
+    li.setAttribute("data-id", town.id);
+    li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
+    const name = document.createElement("span");
+    name.className = "town-name";
+    name.textContent = town.name;
+    const yieldEl = document.createElement("span");
+    yieldEl.className = "town-yield";
+    yieldEl.textContent = menuYieldText(town) || "—";
+    li.appendChild(name);
+    li.appendChild(yieldEl);
+    list.appendChild(li);
+  }
+
+  function syncNativeSelect() {
     const sel = $("ville");
-    if (!list || !sel || typeof document.createElement !== "function") return;
-    list.textContent = "";
+    if (!sel || typeof document.createElement !== "function") return;
     sel.textContent = "";
     townCatalog.forEach(function (town) {
       const opt = document.createElement("option");
@@ -2051,28 +2182,30 @@
       opt.textContent = town.name;
       if (town.id === selectedVille) opt.selected = true;
       sel.appendChild(opt);
-
-      const li = document.createElement("li");
-      li.className = "town-option";
-      li.setAttribute("role", "option");
-      li.id = "ville-opt-" + town.id;
-      li.setAttribute("data-id", town.id);
-      li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
-      const name = document.createElement("span");
-      name.className = "town-name";
-      name.textContent = town.name;
-      const yieldEl = document.createElement("span");
-      yieldEl.className = "town-yield";
-      yieldEl.textContent = menuYieldText(town) || "—";
-      li.appendChild(name);
-      li.appendChild(yieldEl);
-      li.addEventListener("mousedown", function (e) {
-        if (e && e.preventDefault) e.preventDefault();
-        pickTown(town.id);
-      });
-      list.appendChild(li);
     });
     sel.value = selectedVille;
+  }
+
+  function renderTownOptions() {
+    const list = $("villeList");
+    if (!list || typeof document.createElement !== "function") return;
+    const towns = townsForList();
+    list.textContent = "";
+    if (!towns.length) {
+      const empty = document.createElement("li");
+      empty.className = "town-empty";
+      empty.setAttribute("role", "presentation");
+      empty.textContent = "Aucune ville";
+      list.appendChild(empty);
+      return;
+    }
+    towns.forEach(function (town) { appendTownOption(list, town); });
+  }
+
+  function renderTownList() {
+    if (typeof document.createElement !== "function") return;
+    syncNativeSelect();
+    renderTownOptions();
     paintTownButton();
   }
 
@@ -2095,39 +2228,87 @@
   }
 
   function wireTownPicker() {
-    const btn = $("villeBtn");
-    if (!btn || btn._townWired) return;
-    btn._townWired = true;
-    btn.addEventListener("click", function () {
-      if (townListOpen) closeTownList(false);
-      else openTownList();
+    const input = $("villeBtn");
+    if (!input || input._townWired) return;
+    input._townWired = true;
+    input.addEventListener("focus", function () {
+      if (townSuppressOpen) return;
+      openTownList();
     });
-    btn.addEventListener("keydown", function (e) {
+    input.addEventListener("input", function () {
+      applyTownQuery();
+    });
+    input.addEventListener("keydown", function (e) {
       if (!e) return;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         if (e.preventDefault) e.preventDefault();
         if (!townListOpen) openTownList();
         else moveTownActive(e.key === "ArrowDown" ? 1 : -1);
+      } else if (e.key === "Enter" && townListOpen) {
+        if (e.preventDefault) e.preventDefault();
+        commitTownActive();
       } else if (e.key === "Escape" && townListOpen) {
         if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
         closeTownList(true);
+      } else if (e.key === "Tab" && townListOpen) {
+        closeTownList(false);
       }
     });
+    input.addEventListener("blur", function () {
+      if (townBlurTimer) clearTimeout(townBlurTimer);
+      townBlurTimer = setTimeout(function () {
+        townBlurTimer = null;
+        if (!townListOpen) return;
+        closeTownList(false);
+      }, 200);
+    });
+    const caret = $("villeCaret");
+    function toggleFromCaret() {
+      if (townListOpen) closeTownList(true);
+      else {
+        townSuppressOpen = false;
+        try { input.focus(); } catch (_) {}
+        openTownList();
+      }
+    }
+    if (caret) {
+      caret.addEventListener("pointerdown", function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        toggleFromCaret();
+      });
+      caret.addEventListener("mousedown", function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (typeof PointerEvent !== "undefined") return;
+        toggleFromCaret();
+      });
+    }
     const list = $("villeList");
+    function optionFromEvent(e) {
+      const target = e && e.target;
+      if (!target || typeof target.closest !== "function") return null;
+      const li = target.closest('[role="option"]');
+      if (!li || (typeof list.contains === "function" && !list.contains(li))) return null;
+      return li;
+    }
+    function keepListFocus(e) {
+      const li = optionFromEvent(e);
+      if (!li) return;
+      if (e.preventDefault) e.preventDefault();
+      if (townBlurTimer) {
+        clearTimeout(townBlurTimer);
+        townBlurTimer = null;
+      }
+    }
     if (list) {
-      list.addEventListener("keydown", function (e) {
-        if (!e) return;
-        if (e.key === "ArrowDown") { if (e.preventDefault) e.preventDefault(); moveTownActive(1); }
-        else if (e.key === "ArrowUp") { if (e.preventDefault) e.preventDefault(); moveTownActive(-1); }
-        else if (e.key === "Home") { if (e.preventDefault) e.preventDefault(); setTownActive(0); }
-        else if (e.key === "End") { if (e.preventDefault) e.preventDefault(); setTownActive(townCatalog.length - 1); }
-        else if (e.key === "Enter" || e.key === " ") { if (e.preventDefault) e.preventDefault(); commitTownActive(); }
-        else if (e.key === "Escape") { if (e.preventDefault) e.preventDefault(); closeTownList(true); }
-        else if (e.key === "Tab") closeTownList(false);
-        else if (e.key && e.key.length === 1 && /\S/.test(e.key)) {
-          if (e.preventDefault) e.preventDefault();
-          typeTown(e.key);
-        }
+      list.addEventListener("pointerdown", keepListFocus);
+      list.addEventListener("mousedown", keepListFocus);
+      list.addEventListener("click", function (e) {
+        const li = optionFromEvent(e);
+        if (!li) return;
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+        pickTown(li.getAttribute("data-id"));
       });
     }
     document.addEventListener("click", function (e) {

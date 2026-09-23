@@ -179,25 +179,36 @@
           </button>
         </div>
         <div class="town-picker" id="townPicker">
-          <button
-            type="button"
-            id="villeBtn"
-            class="town-btn"
-            aria-haspopup="listbox"
-            aria-expanded="false"
-            aria-controls="villeList"
-            aria-describedby="locHint"
-          >
-            <span class="town-name" id="villeName">Québec</span>
+          <div class="town-field" id="townField">
+            <input
+              type="text"
+              id="villeBtn"
+              class="town-input"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="villeList"
+              aria-describedby="locHint"
+              autocomplete="off"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="search"
+              placeholder="Ville, MRC ou région"
+              value="Québec"
+            />
             <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc</span>
-            <span class="town-caret" aria-hidden="true"></span>
-          </button>
-          <ul id="villeList" class="town-list" role="listbox" tabindex="-1" hidden aria-labelledby="locLabel"></ul>
+            <button type="button" class="town-caret-btn" id="villeCaret" tabindex="-1" aria-label="Afficher les villes">
+              <span class="town-caret" aria-hidden="true"></span>
+            </button>
+          </div>
+          <ul id="villeList" class="town-list" role="listbox" hidden aria-labelledby="locLabel"></ul>
           <select id="ville" class="town-native" tabindex="-1" aria-hidden="true">
             <option value="quebec" selected>Québec</option>
           </select>
         </div>
-        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°.</p>
+        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°. Une ville, une MRC ou une région administrative filtre la liste.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -793,7 +804,8 @@
     <span data-info-title>Localisation</span>
     <div class="info-block">
       <h4>Ville et productible</h4>
-      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique.</p>
+      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique. La liste se déroule et se fait défiler.</p>
+      <p>Écrire un nom filtre les villes. Une MRC ou une région administrative filtre aussi, même si ces noms ne s’affichent pas&nbsp;: le menu ne montre que les villes.</p>
       <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
       <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu est le productible sud 45° pour 1&nbsp;kWc : la cellule mesurée si la grille est complète, sinon la cellule sud 45° de Québec à l’échelle de ce rapport.</p>
     </div>
