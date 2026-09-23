@@ -80,10 +80,6 @@
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
-    <div class="perma-flag mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">
-      <p id="permaFlagText">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
-    </div>
-
     <!--
       Desktop board. Each card is a slot (data-slot).
       Wide screens place them with grid-template-areas in styles.css.
@@ -307,11 +303,6 @@
         </div>
       </div>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
-      <aside class="autonomy-snow" id="autonomySnow" hidden>
-        <p class="autonomy-snow-rec" id="autonomySnowRec">
-          Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
-        </p>
-      </aside>
     </section>
 
     <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
@@ -322,12 +313,19 @@
           <span class="prod-unit">kWh / an</span>
         </div>
       </div>
-      <div class="result-pill">
-        <div class="label">Autonomie</div>
-        <div class="big prod-line" id="outKwhDay">
-          <span class="prod-num">—</span>
-          <span class="prod-unit">kWh / j déc</span>
+      <div class="yield-auto">
+        <div class="result-pill">
+          <div class="label">Autonomie</div>
+          <div class="big prod-line" id="outKwhDay">
+            <span class="prod-num">—</span>
+            <span class="prod-unit">kWh / j déc</span>
+          </div>
         </div>
+        <aside class="autonomy-snow" id="autonomySnow" hidden>
+          <p class="autonomy-snow-rec" id="autonomySnowRec">
+            Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
+          </p>
+        </aside>
       </div>
     </div>
 
@@ -520,6 +518,7 @@
         <span class="prod-num" id="outFillNum">—</span>
         <span class="prod-unit" id="outFillUnit">au rythme de décembre</span>
       </div>
+      <p class="fill-shortfall mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
     </section>
 
     <!-- 2 · Coût -->
