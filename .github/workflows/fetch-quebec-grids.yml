@@ -4,6 +4,7 @@ name: fetch-quebec-grids
 # Each stretch lasts 45 minutes, commits, then starts the next stretch
 # until all 104 town grids are full.
 # Needs the repository secret NLR_API_KEY (NLR PVWatts). The key is never logged.
+# A push of this file starts a stretch. The secret is read from Actions, not from the repo.
 on:
   schedule:
     - cron: "45 * * * *"
