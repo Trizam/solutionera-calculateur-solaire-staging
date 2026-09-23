@@ -444,6 +444,8 @@ const hasConsoJourUi =
   DAILY_LOAD_LABELS.every((label) => app.includes(label) && html.includes(label)) &&
   app.includes("function dailyLoadKwh") &&
   app.includes("function updateConsoJourUi") &&
+  app.includes('class="load-ico"') &&
+  app.includes('class=\\"load-name\\"') &&
   app.includes("tenths: 1") &&
   app.includes("tenths: 15");
 const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;

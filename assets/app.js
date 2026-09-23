@@ -28,16 +28,21 @@
    * one washer load ~0.5 (no dryer); modest electric cooking ~1–1.5.
    * Full right stop ≈ 6.3 kWh/day. A Québec grid house is ~45 kWh/day.
    */
+  /** 16px stroke icons, same language as the theme marks. Shown only on a visible row. */
+  function loadIcon(paths) {
+    return '<svg class="load-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">' + paths + '</svg>';
+  }
+  const ICO_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
   const DAILY_LOADS = [
-    { label: "Téléphone", tenths: 1 },
-    { label: "Ordinateur et Wi-Fi", tenths: 5 },
-    { label: "Éclairage", tenths: 5 },
-    { label: "Télévision", tenths: 4 },
-    { label: "Pompe à eau", tenths: 8 },
-    { label: "Réfrigérateur", tenths: 12 },
-    { label: "Congélateur", tenths: 8 },
-    { label: "Laveuse", tenths: 5 },
-    { label: "Cuisson", tenths: 15 }
+    { label: "Téléphone", tenths: 1, icon: loadIcon('<rect x="4.5" y="1.5" width="7" height="13" rx="1.5"' + ICO_STROKE + '/><path d="M7 12.25h2"' + ICO_STROKE + '/>') },
+    { label: "Ordinateur et Wi-Fi", tenths: 5, icon: loadIcon('<path d="M3.2 4h9.6v6.4H3.2zM1.8 11.6h12.4"' + ICO_STROKE + '/>') },
+    { label: "Éclairage", tenths: 5, icon: loadIcon('<circle cx="8" cy="6.1" r="3.15"' + ICO_STROKE + '/><path d="M6.55 9.15h2.9M6.8 10.7h2.4M7.1 12.15h1.8M7.35 13.5h1.3"' + ICO_STROKE + '/>') },
+    { label: "Télévision", tenths: 4, icon: loadIcon('<rect x="1.75" y="3" width="12.5" height="8" rx="1.25"' + ICO_STROKE + '/><path d="M6.25 13.35h3.5M8 11v2.35"' + ICO_STROKE + '/>') },
+    { label: "Pompe à eau", tenths: 8, icon: loadIcon('<path d="M8 1.7c1.8 2.3 3.5 4.15 3.5 6.15a3.5 3.5 0 0 1-7 0C4.5 5.85 6.2 4 8 1.7z"' + ICO_STROKE + '/>') },
+    { label: "Réfrigérateur", tenths: 12, icon: loadIcon('<rect x="3.75" y="1.5" width="8.5" height="13" rx="1.2"' + ICO_STROKE + '/><path d="M3.75 7h8.5M10.4 4.2v1.15M10.4 9.3v1.15"' + ICO_STROKE + '/>') },
+    { label: "Congélateur", tenths: 8, icon: loadIcon('<path d="M8 1.8v12.4M2.7 4.7 13.3 11.3M13.3 4.7 2.7 11.3"' + ICO_STROKE + '/>') },
+    { label: "Laveuse", tenths: 5, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="8.8" r="2.45"' + ICO_STROKE + '/><path d="M4.7 4.55h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') },
+    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') }
   ];
   const CONSO_EXTRA_MAX = 100;
   const SQFT_PER_M2 = 10.76391041671;
@@ -344,7 +349,7 @@
     let html = "";
     for (let i = 0; i < n; i++) {
       const load = DAILY_LOADS[i];
-      html += "<tr><th scope=\"row\">" + load.label + "</th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
+      html += "<tr><th scope=\"row\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span></th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
     }
     body.innerHTML = html;
     if (table) table.classList.toggle("is-empty", n === 0);
