@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Smoke — Calculateur Solaire version 0.2 · grille QC + W-by-tilt */
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { inflateSync } from "zlib";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { runInNewContext } from "vm";
@@ -220,12 +221,144 @@ const orientLabel =
 const orient24 = (html.match(/option value="/g) || []).length >= 24;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
+/** RGBA PNG (8-bit, non-interlaced). Used to prove the mark is not pre-cropped. */
+function readPngRgba(path) {
+  const buf = readFileSync(path);
+  if (buf.length < 8 || buf.toString("hex", 0, 8) !== "89504e470d0a1a0a") {
+    throw new Error(`not a png: ${path}`);
+  }
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  let interlace = 0;
+  const idats = [];
+  while (offset < buf.length) {
+    const len = buf.readUInt32BE(offset);
+    const type = buf.toString("ascii", offset + 4, offset + 8);
+    const data = buf.subarray(offset + 8, offset + 8 + len);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      interlace = data[12];
+    } else if (type === "IDAT") {
+      idats.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+    offset += 12 + len;
+  }
+  if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
+    throw new Error(`unsupported png ${path}: bit=${bitDepth} color=${colorType} interlace=${interlace}`);
+  }
+  const raw = inflateSync(Buffer.concat(idats));
+  const bpp = 4;
+  const stride = width * bpp;
+  const rgba = Buffer.alloc(height * stride);
+  let i = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = raw[i++];
+    const row = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const v = raw[i++];
+      const left = x >= bpp ? rgba[row + x - bpp] : 0;
+      const up = y > 0 ? rgba[row - stride + x] : 0;
+      const ul = y > 0 && x >= bpp ? rgba[row - stride + x - bpp] : 0;
+      let outByte = v;
+      if (filter === 1) outByte = (v + left) & 255;
+      else if (filter === 2) outByte = (v + up) & 255;
+      else if (filter === 3) outByte = (v + ((left + up) >> 1)) & 255;
+      else if (filter === 4) {
+        const p = left + up - ul;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - ul);
+        const pred = pa <= pb && pa <= pc ? left : pb <= pc ? up : ul;
+        outByte = (v + pred) & 255;
+      } else if (filter !== 0) {
+        throw new Error(`bad png filter ${filter}`);
+      }
+      rgba[row + x] = outByte;
+    }
+  }
+  return { width, height, rgba };
+}
+
+/** A cropped disc has a long flat side. A real circle only stays flat for a few pixels. */
+function logoDiscIntact(path) {
+  const { width, height, rgba } = readPngRgba(path);
+  if (width !== height || width < 64) return false;
+  const alphaAt = (x, y) => rgba[(y * width + x) * 4 + 3];
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  let any = false;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (alphaAt(x, y) > 20) {
+        any = true;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!any) return false;
+  const margin = Math.min(minX, minY, width - 1 - maxX, height - 1 - maxY);
+  const longestFlat = (vals) => {
+    let best = 1;
+    let cur = 1;
+    for (let i = 1; i < vals.length; i++) {
+      if (vals[i] === vals[i - 1]) {
+        cur += 1;
+        if (cur > best) best = cur;
+      } else {
+        cur = 1;
+      }
+    }
+    return best;
+  };
+  const rights = [];
+  for (let y = 0; y < height; y++) {
+    let right = -1;
+    for (let x = width - 1; x >= 0; x--) {
+      if (alphaAt(x, y) > 128) {
+        right = x;
+        break;
+      }
+    }
+    if (right >= 0) rights.push(right);
+  }
+  const flat = longestFlat(rights);
+  // ~14px padding on a 240 canvas. A clipped export touches the edge or stays flat for ~100 rows.
+  return margin >= 8 && flat <= 20;
+}
+
+const logoBlocks = css.match(/\.brand-logo\b[^{]*\{[^}]*\}/g) || [];
+const logoCssOk =
+  logoBlocks.length >= 1 &&
+  logoBlocks.every(
+    (block) =>
+      !/border-radius\s*:/.test(block) &&
+      !/overflow\s*:\s*hidden/.test(block) &&
+      !/object-fit\s*:\s*(cover|fill)/.test(block) &&
+      !/image-rendering\s*:/.test(block) &&
+      !/padding\s*:/.test(block)
+  ) &&
+  logoBlocks.some((block) => /object-fit\s*:\s*contain/.test(block));
+const logoPngOk =
+  logoDiscIntact(join(__dirname, "assets/logo-solution-era.png")) &&
+  logoDiscIntact(join(__dirname, "favicon.png"));
 const logoOk =
-  (html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg")) &&
-  css.includes(".brand-logo") &&
-  /border-radius:\s*50%/.test(css) &&
-  !/\.brand-logo[\s\S]{0,220}border-radius:\s*10px/.test(css) &&
-  css.includes("overflow: visible");
+  html.includes("logo-solution-era.png") &&
+  html.includes('class="brand-logo"') &&
+  logoCssOk &&
+  logoPngOk;
 const taxes15 = html.includes("15&nbsp;%") || html.includes("15 %");
 const logisDefault = /id="subv"[^>]*checked/.test(html) || /id="subv" checked/.test(html);
 const logisCopy =

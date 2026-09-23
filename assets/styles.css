@@ -210,19 +210,16 @@ html[data-theme="dark"] .theme-toggle button[aria-checked="true"] {
   overflow: hidden;
 }
 .brand-logo {
-  width: 44px;
-  height: 44px;
-  padding: 2px;
-  box-sizing: content-box;
+  /* Full disc sits inside a square PNG with transparent padding.
+     object-fit: contain keeps that padding. border-radius, padding,
+     overflow, or image-rendering here clip the rim again. */
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  display: block;
   object-fit: contain;
   object-position: center;
-  flex-shrink: 0;
-  border-radius: 50%;
-  overflow: visible;
-  display: block;
   background: transparent;
-  /* crisp on retina; source ~197×200 */
-  image-rendering: -webkit-optimize-contrast;
 }
 .brand-name {
   font-weight: 700;
@@ -1710,7 +1707,6 @@ section.block h2 .field-info-btn {
   .theme-toggle { height: 40px; }
   .theme-toggle button { width: 2.25rem; }
   .brand { margin-bottom: 0.55rem; gap: 0.55rem; }
-  .brand-logo { width: 44px; height: 44px; }
   .brand-name { font-size: 0.9rem; }
   .brand-sub { font-size: 0.72rem; }
   header.hero {
