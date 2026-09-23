@@ -15,10 +15,11 @@ Toute réponse principale s’affiche dans la famille verte (fond `--green-soft`
 
 ## 2. Hauteur des cartes et flèche
 
-La hauteur d’une carte vient de **son** contenu. Un voisin à gauche ou à droite ne l’étire pas.
+Deux hauteurs, selon le type de boîte.
 
-- Dans une rangée de pairs (`.result-pair`, `.cards`), `align-items: start`. Le surplus descend. Il n’augmente pas la carte d’à côté.
-- Sur le grand écran, le plateau `.board` place les cartes par `data-slot`. Chaque case reste à la hauteur de son contenu (`align-self: start`).
+- Une grande carte (`.block`, case du plateau) prend la hauteur de son contenu. Le voisin ne l’étire pas. Sur le grand écran, chaque case du `.board` reste à cette hauteur (`align-self: start`).
+- Les boîtes vertes côte à côte ont toujours la même hauteur : celle de la plus haute de la rangée. Ça vaut pour une paire `.result-pair` (`.result-pill`) et pour le trio `.cards` (`.card-kpi`). La rangée étire (`align-items: stretch`). Le texte est centré dans la boîte.
+- Dans le rendement, Mesurage net et Autonomie sont les deux boîtes de la rangée. La note de neige (`.autonomy-snow`) reste sous Autonomie. Elle n’allonge pas Mesurage net. En pile étroite (≤ 520px) elle passe sous les deux.
 - La flèche `.flow-arrow` est dans la carte de remplissage. Au grand écran elle est centrée (`top: 50%`) dans l’espace entre les deux colonnes. En pile étroite elle est masquée.
 - Curseur : reprendre `.slider-row`. La valeur de gauche (`.slider-val-left`) a exactement la hauteur du pouce (`--slider-hit`, 44px) et son centre est aligné sur la ligne du pouce.
 
