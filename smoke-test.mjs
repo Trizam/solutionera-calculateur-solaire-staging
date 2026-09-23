@@ -1637,7 +1637,8 @@ console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" 
 console.log(`  bug dock desktop + bubble, other sheets unchanged: ${bugDockUi ? "PASS" : "FAIL"}`);
 const bugWindowPolish =
   html.includes('class="bug-fab-icon"') &&
-  html.includes("M20 8h-2.81") &&
+  html.includes("M8.8 6.1 6.6 3.2") &&
+  html.includes("M15.8 17.6 19.2 20.6") &&
   !html.includes("M5 4.75h14") &&
   html.includes('id="bugDone"') &&
   html.includes(">Done<") &&
