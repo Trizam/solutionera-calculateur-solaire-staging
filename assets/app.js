@@ -853,7 +853,11 @@
     }
     if ($("outKwhKwc")) {
       const kwcNum = $("outKwhKwc").querySelector(".prod-num");
-      if (kwcNum) kwcNum.textContent = fmtShown(r.kWhPerKwc, 0);
+      if (kwcNum) {
+        kwcNum.textContent = isFinite(r.kWhPerKwc)
+          ? fmtGroupedInt(Math.round(r.kWhPerKwc)).replace(/ /g, "\u00A0")
+          : "—";
+      }
     }
     if ($("outPv")) {
       const pvNum = $("outPv").querySelector(".prod-num");

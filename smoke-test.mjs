@@ -1142,6 +1142,8 @@ const productiblePill =
   prodBHtml.indexOf('id="deneige"') < prodBHtml.indexOf('id="outKwhKwc"') &&
   prodBHtml.indexOf('id="outKwhKwc"') < prodBHtml.indexOf('id="gridStatus"') &&
   app.includes("const kWhPerKwc = applyDeneigement(table, deneige, W)") &&
+  app.includes("fmtGroupedInt(Math.round(r.kWhPerKwc))") &&
+  !app.includes("fmtShown(r.kWhPerKwc") &&
   kWhPerKwcDefault > 1070 && kWhPerKwcDefault < 1080;
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
@@ -1329,7 +1331,6 @@ const prodUsesSig2 =
   /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
   app.includes("fmtShown(r.kWhDay, 2)") &&
   app.includes("fmtShown(r.kWh, 0)") &&
-  app.includes("fmtShown(r.kWhPerKwc, 0)") &&
   app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
