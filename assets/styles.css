@@ -714,41 +714,73 @@ section.block > h2,
 .check input { margin-top: 0.2rem; accent-color: var(--accent); }
 .check .sub { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
 .town-picker { position: relative; }
-.town-btn {
+.town-field {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   min-height: 44px;
-  padding: 0.55rem 0.75rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--green-soft);
-  color: var(--green-dark);
+  background: var(--input-bg);
+  color: var(--text);
+}
+.town-field:focus-within {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.town-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
   font-family: inherit;
   font-weight: 700;
   font-size: 16px;
   line-height: 1.2;
   text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
 }
-.town-btn:hover,
-.town-btn:focus-visible { background: var(--hover-soft); }
-.town-btn:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
+.town-input::placeholder {
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 1;
 }
+.town-input:focus { outline: none; }
 .town-name {
   min-width: 0;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 .town-yield {
+  flex-shrink: 0;
   margin-left: auto;
-  font-weight: 600;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.town-field.is-searching .town-yield { display: none; }
+.town-caret-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.town-caret-btn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .town-caret {
   flex-shrink: 0;
   width: 0.55rem;
@@ -758,7 +790,7 @@ section.block > h2,
   border-bottom: 2px solid currentColor;
   transform: rotate(45deg);
 }
-.town-btn[aria-expanded="true"] .town-caret {
+.town-field.is-open .town-caret {
   margin-top: 0.2rem;
   transform: rotate(225deg);
 }
@@ -772,18 +804,20 @@ section.block > h2,
   margin: 0;
   padding: 0.25rem 0;
   list-style: none;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
+  touch-action: pan-y;
 }
 .town-list:focus { outline: none; }
-.town-list:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
-}
 .town-option {
   display: flex;
   align-items: center;
@@ -795,13 +829,16 @@ section.block > h2,
   cursor: pointer;
 }
 .town-option.is-active,
-.town-option:hover { background: var(--hover-soft); }
+.town-option:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .town-option[aria-selected="true"] {
-  background: var(--green-soft);
-  color: var(--green-dark);
-  font-weight: 700;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
-.town-option[aria-selected="true"].is-active { background: var(--hover-soft); }
+.town-option[aria-selected="true"].is-active { background: color-mix(in srgb, var(--text) 10%, transparent); }
+.town-empty {
+  padding: 0.7rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
 .field select.town-native {
   position: absolute;
   width: 1px;
@@ -1870,8 +1907,8 @@ section.block h2 .field-info-btn {
     box-shadow: none;
     border-color: #ccc;
   }
-  .result-pill, .card-kpi, .town-btn { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .town-list, .town-caret { display: none !important; }
+  .result-pill, .card-kpi, .town-field { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .town-list, .town-caret-btn { display: none !important; }
   .autonomy-snow,
   .fill-shortfall {
     background: linear-gradient(135deg, #fff4cc, #fffbeb) !important;
