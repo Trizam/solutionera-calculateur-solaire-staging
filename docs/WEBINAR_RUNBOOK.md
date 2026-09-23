@@ -130,7 +130,7 @@ Ouvrir le primary, laisser les valeurs par défaut de la page (ou les rétablir)
 | Champ | Défaut staging |
 |-------|----------------|
 | Superficie | **40 m²** |
-| Inclinaison | **30°** |
+| Inclinaison | **45°** |
 | Orientation | **180° (Sud)** |
 | Utilisation surface | **80 %** |
 | Déneigement (d) | **20 %** |

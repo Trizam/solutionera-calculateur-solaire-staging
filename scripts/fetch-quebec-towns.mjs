@@ -5,17 +5,23 @@
  * Priority: Sud/30° for every town (dropdown yield), then full grids
  * (tilts 0/15/30/45/60/75/90 × azimuth every 15°; tilt 0 fetched once).
  *
- * Resume: towns.json keeps S/30 yields; scripts/.pvwatts-cache/ keeps raw cells;
- * assets/town-grids/<id>.json is written only when a town grid is complete.
+ * Resume: towns.json keeps S/30 yields; scripts/pvwatts-progress/ keeps raw cells
+ * for a town that is not finished; assets/town-grids/<id>.json is written only
+ * when that town grid is complete, and its progress file is then removed.
  *
  * API key: NLR_API_KEY env or .dev.vars (never logged, never committed).
  *
  *   node scripts/fetch-quebec-towns.mjs --geocode-only
  *   node scripts/fetch-quebec-towns.mjs --s30-only
  *   node scripts/fetch-quebec-towns.mjs --grids-only
- *   node scripts/fetch-quebec-towns.mjs
+ *   node scripts/fetch-quebec-towns.mjs --status
+ *   node scripts/fetch-quebec-towns.mjs --grids-only --budget 900 --exit-on-limit
+ *
+ * --budget N and --exit-on-limit stop the process (exit 0) so a later run can
+ * continue. GitHub Actions uses that pair once an hour. See
+ * .github/workflows/fetch-quebec-grids.yml.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -24,7 +30,7 @@ const ROOT = join(__dirname, "..");
 const TOWNS_PATH = join(ROOT, "assets", "towns.json");
 const QUEBEC_GRID_PATH = join(ROOT, "assets", "quebec-full-grid.json");
 const GRID_DIR = join(ROOT, "assets", "town-grids");
-const CACHE_DIR = join(__dirname, ".pvwatts-cache");
+const CACHE_DIR = join(__dirname, "pvwatts-progress");
 const LOG_PATH = join(__dirname, "fetch-quebec-towns.log");
 
 const PV_HOST = "https://developer.nlr.gov/api/pvwatts/v8.json";
@@ -515,11 +521,87 @@ function writeCache(id, cache) {
   writeFileSync(cachePath(id), JSON.stringify(cache));
 }
 
+function clearCache(id) {
+  const path = cachePath(id);
+  if (existsSync(path)) unlinkSync(path);
+}
+
 /** 99% of the 1 000/hour cap, leaving a 10-call buffer. */
 const RATE_LIMIT = 1000;
 const RATE_BUFFER = 10;
 let gapMs = Math.round(3600000 / (RATE_LIMIT - RATE_BUFFER));
 let nextSlot = 0;
+let callsUsed = 0;
+let maxCalls = Infinity;
+let exitOnLimit = false;
+let stopReason = "";
+
+class StopFetch extends Error {
+  constructor(reason) {
+    super(reason);
+    this.name = "StopFetch";
+  }
+}
+
+function noteBudget(remain) {
+  callsUsed += 1;
+  if (exitOnLimit && isFinite(remain) && remain <= RATE_BUFFER) stopReason = stopReason || "rate";
+  if (callsUsed >= maxCalls) stopReason = stopReason || "budget";
+}
+
+function parseArgs(argv) {
+  const flags = new Set();
+  let budget = Infinity;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--budget" || arg.startsWith("--budget=")) {
+      const raw = arg === "--budget" ? argv[++i] : arg.slice("--budget=".length);
+      const n = Number(raw);
+      if (!raw || !isFinite(n) || n < 1) throw new Error("--budget expects a positive number");
+      budget = Math.floor(n);
+      continue;
+    }
+    flags.add(arg);
+  }
+  return { flags, budget };
+}
+
+function runSelfCheck() {
+  const errors = [];
+  const parsed = parseArgs(["--grids-only", "--budget", "12", "--exit-on-limit"]);
+  if (parsed.budget !== 12 || !parsed.flags.has("--grids-only") || !parsed.flags.has("--exit-on-limit")) {
+    errors.push("parse");
+  }
+  let rejected = false;
+  try {
+    parseArgs(["--budget", "0"]);
+  } catch (_) {
+    rejected = true;
+  }
+  if (!rejected) errors.push("budget 0");
+  maxCalls = 2;
+  exitOnLimit = true;
+  stopReason = "";
+  callsUsed = 0;
+  noteBudget(800);
+  if (stopReason) errors.push("early stop");
+  noteBudget(800);
+  if (stopReason !== "budget" || callsUsed !== 2) errors.push("budget stop");
+  stopReason = "";
+  callsUsed = 0;
+  maxCalls = 50;
+  noteBudget(RATE_BUFFER);
+  if (stopReason !== "rate" || callsUsed !== 1) errors.push("rate stop");
+  maxCalls = Infinity;
+  exitOnLimit = false;
+  stopReason = "";
+  callsUsed = 0;
+  if (errors.length) {
+    console.error(errors.join("; "));
+    process.exit(1);
+  }
+  console.log("self-check ok");
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -550,6 +632,7 @@ function cellFromOutputs(outputs) {
 }
 
 async function pvwatts(key, lat, lon, tilt, azimuth) {
+  if (stopReason) throw new StopFetch(stopReason);
   const params = new URLSearchParams({
     api_key: key,
     lat: String(lat),
@@ -604,7 +687,7 @@ async function pvwatts(key, lat, lon, tilt, azimuth) {
     }
     const remainRaw = res.headers.get("x-ratelimit-remaining") || res.headers.get("ratelimit-remaining");
     const remain = remainRaw == null ? NaN : Number(remainRaw);
-    if (isFinite(remain) && remain <= RATE_BUFFER) {
+    if (isFinite(remain) && remain <= RATE_BUFFER && !exitOnLimit) {
       const resetRaw = res.headers.get("x-ratelimit-reset") || res.headers.get("ratelimit-reset");
       const resetNum = Number(resetRaw);
       let waitMs = 5 * 60 * 1000;
@@ -618,7 +701,9 @@ async function pvwatts(key, lat, lon, tilt, azimuth) {
     } else {
       gapMs = 400;
     }
-    return cellFromOutputs(data.outputs || {});
+    const cell = cellFromOutputs(data.outputs || {});
+    noteBudget(remain);
+    return cell;
   }
   throw new Error("pvwatts gave up: " + lastErr);
 }
@@ -629,6 +714,21 @@ function compactCell(cell) {
     W_winter: cell.W_winter,
     ac_dec: cell.ac_dec
   };
+}
+
+async function fetchMissingCell(key, place, row, tilt, az, cache) {
+  const keyCell = tilt + ":" + az;
+  if (cache.cells[keyCell]) return cache.cells[keyCell];
+  if (stopReason) throw new StopFetch(stopReason);
+  const cell = await pvwatts(key, row.lat, row.lon, tilt, az);
+  cache.cells[keyCell] = cell;
+  writeCache(place.id, cache);
+  if (stopReason) throw new StopFetch(stopReason);
+  return cell;
+}
+
+function pause(placeName) {
+  log(`pause ${placeName} reason=${stopReason} calls=${callsUsed}`);
 }
 
 async function fetchS30(key, townsById) {
@@ -644,11 +744,15 @@ async function fetchS30(key, townsById) {
       continue;
     }
     const cache = readCache(place.id);
-    let cell = cache.cells["30:180"];
-    if (!cell) {
-      cell = await pvwatts(key, row.lat, row.lon, 30, 180);
-      cache.cells["30:180"] = cell;
-      writeCache(place.id, cache);
+    let cell;
+    try {
+      cell = await fetchMissingCell(key, place, row, 30, 180, cache);
+    } catch (err) {
+      if (err instanceof StopFetch) {
+        pause(place.name);
+        return;
+      }
+      throw err;
     }
     row.ac_annual_s30 = cell.ac_annual;
     if (row.grid !== "full") row.grid = "scaled";
@@ -674,10 +778,12 @@ async function fetchFullGrids(key, townsById, onlyIds) {
     const row = townsById.get(place.id);
     if (!row) continue;
     if (place.id === "quebec") {
-      row.grid = "full";
-      row.grid_file = "assets/quebec-full-grid.json";
-      townsById.set(place.id, row);
-      writeTowns([...townsById.values()]);
+      if (row.grid !== "full" || row.grid_file !== "assets/quebec-full-grid.json") {
+        row.grid = "full";
+        row.grid_file = "assets/quebec-full-grid.json";
+        townsById.set(place.id, row);
+        writeTowns([...townsById.values()]);
+      }
       continue;
     }
     const outPath = join(GRID_DIR, place.id + ".json");
@@ -693,12 +799,17 @@ async function fetchFullGrids(key, townsById, onlyIds) {
     for (const tilt of TILTS) {
       const azimuths = tilt === 0 ? [0] : AZS;
       for (const az of azimuths) {
-        const keyCell = tilt + ":" + az;
-        let cell = cache.cells[keyCell];
+        let cell = cache.cells[tilt + ":" + az];
         if (!cell) {
-          cell = await pvwatts(key, row.lat, row.lon, tilt, az);
-          cache.cells[keyCell] = cell;
-          writeCache(place.id, cache);
+          try {
+            cell = await fetchMissingCell(key, place, row, tilt, az, cache);
+          } catch (err) {
+            if (err instanceof StopFetch) {
+              pause(place.name);
+              return;
+            }
+            throw err;
+          }
         }
         if (!built[String(tilt)]) built[String(tilt)] = {};
         if (tilt === 0) {
@@ -721,6 +832,7 @@ async function fetchFullGrids(key, townsById, onlyIds) {
       cells: built
     };
     writeFileSync(outPath, JSON.stringify(doc));
+    clearCache(place.id);
     row.grid = "full";
     row.grid_file = "assets/town-grids/" + place.id + ".json";
     townsById.set(place.id, row);
@@ -776,19 +888,43 @@ function loadTownMap() {
   return map;
 }
 
+function printStatus(short) {
+  const towns = [...loadTownMap().values()];
+  const full = towns.filter((t) => t.grid === "full");
+  if (short) {
+    console.log(full.length + "/" + towns.length);
+    return;
+  }
+  const left = towns.filter((t) => t.grid !== "full").map((t) => t.name);
+  log(`status full=${full.length}/${towns.length} remaining=${left.length} calls=${callsUsed} stop=${stopReason || "none"}`);
+  if (left.length) log("next " + left.slice(0, 8).join(", "));
+}
+
 async function main() {
-  const args = new Set(process.argv.slice(2));
-  const geocodeOnly = args.has("--geocode-only");
-  const s30Only = args.has("--s30-only");
-  const gridsOnly = args.has("--grids-only");
-  const phase1 = args.has("--phase1");
+  const { flags, budget } = parseArgs(process.argv.slice(2));
+  maxCalls = budget;
+  exitOnLimit = flags.has("--exit-on-limit") || Number.isFinite(budget);
+  if (flags.has("--self-check")) {
+    runSelfCheck();
+    return;
+  }
+  if (flags.has("--status")) {
+    printStatus(flags.has("--short"));
+    return;
+  }
+  const geocodeOnly = flags.has("--geocode-only");
+  const s30Only = flags.has("--s30-only");
+  const gridsOnly = flags.has("--grids-only");
+  const phase1 = flags.has("--phase1");
   const doGeocode = geocodeOnly || (!s30Only && !gridsOnly && !phase1);
   const doS30 = s30Only || phase1 || (!geocodeOnly && !gridsOnly);
   const doGrids = gridsOnly || (!geocodeOnly && !s30Only && !phase1);
 
   const map = loadTownMap();
-  if (doGeocode) await geocodeAll(map);
-  writeTowns([...map.values()]);
+  if (doGeocode) {
+    await geocodeAll(map);
+    writeTowns([...map.values()]);
+  }
   if (geocodeOnly) {
     log("geocode done " + map.size);
     return;
@@ -799,16 +935,17 @@ async function main() {
     process.exit(1);
   }
   if (phase1) await fetchFullGrids(key, map, new Set(["montreal", "sherbrooke"]));
-  if (doS30) await fetchS30(key, map);
-  if (doGrids) await fetchFullGrids(key, map);
-  writeTowns([...map.values()]);
-  const towns = [...map.values()];
-  const nS30 = towns.filter((t) => hasYield(t.ac_annual_s30)).length;
-  const nFull = towns.filter((t) => t.grid === "full").length;
-  log(`done s30=${nS30} full=${nFull} scaled=${towns.length - nFull}`);
+  if (doS30 && !stopReason) await fetchS30(key, map);
+  if (doGrids && !stopReason) await fetchFullGrids(key, map);
+  if (!stopReason) writeTowns([...map.values()]);
+  printStatus(false);
 }
 
 main().catch((err) => {
+  if (err instanceof StopFetch) {
+    log("paused " + err.message + " calls=" + callsUsed);
+    process.exit(0);
+  }
   log("FATAL " + redact(err && err.stack ? err.stack : err));
   process.exit(1);
 });

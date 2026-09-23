@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { inflateSync } from "zlib";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { spawnSync } from "child_process";
 import { runInNewContext } from "vm";
 import {
   validateBugPayload,
@@ -111,6 +112,8 @@ function townDataReport() {
           if (g.scaled === true) problems.push("full marked scaled " + t.name);
           const n = Object.keys(g.cells || {}).reduce((acc, tilt) => acc + Object.keys(g.cells[tilt] || {}).length, 0);
           if (n !== 168) problems.push("cells " + n + " " + t.name);
+          const s45 = g.cells && g.cells["45"] && g.cells["45"]["180"];
+          if (!s45 || !(Number(s45.ac_annual) > 0)) problems.push("s45 " + t.name);
         } catch (_) {
           problems.push("bad grid " + t.name);
         }
@@ -126,6 +129,23 @@ function townDataReport() {
 const townData = townDataReport();
 const townDataOk = townData.ok;
 console.log(`  towns.json 104 places, S/30, grids: ${townDataOk ? "PASS" : "FAIL"} ${townData.detail}`);
+
+const fetchScript = join(__dirname, "scripts", "fetch-quebec-towns.mjs");
+const fetchWorkflowPath = join(__dirname, ".github", "workflows", "fetch-quebec-grids.yml");
+const fetchSelf = spawnSync(process.execPath, [fetchScript, "--self-check"], { encoding: "utf8" });
+const fetchStatus = spawnSync(process.execPath, [fetchScript, "--status", "--short"], { encoding: "utf8" });
+const fetchWorkflowText = existsSync(fetchWorkflowPath) ? readFileSync(fetchWorkflowPath, "utf8") : "";
+const fetchJobOk =
+  fetchSelf.status === 0 &&
+  fetchStatus.status === 0 &&
+  fetchStatus.stdout.trim() === "8/104" &&
+  fetchWorkflowText.includes("cron:") &&
+  fetchWorkflowText.includes("--budget 900") &&
+  fetchWorkflowText.includes("NLR_API_KEY") &&
+  fetchWorkflowText.includes("data/quebec-town-grids");
+console.log(
+  `  hourly PVWatts fetch job: ${fetchJobOk ? "PASS" : "FAIL"} status=${(fetchStatus.stdout || "").trim()} self=${fetchSelf.status}`
+);
 
 /** Same W-by-tilt model as app.js */
 function winterWFromTilt(tilt) {
@@ -458,6 +478,14 @@ const batteryColumn =
   /mode-full-only[^>]*id="sec-batt"/.test(html) &&
   /mode-full-only[^>]*id="sec-total"/.test(html) &&
   /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
+  /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
+  /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
+  /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
+  design.includes("4A") &&
+  design.includes("4B") &&
+  design.includes("**5**") &&
+  design.includes("**6**") &&
   /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -495,6 +523,9 @@ const tiltSlider =
   /id="tilt"[^>]*min="0"/.test(html) &&
   /id="tilt"[^>]*max="90"/.test(html) &&
   /id="tilt"[^>]*step="15"/.test(html) &&
+  /id="tilt"[^>]*value="45"/.test(html) &&
+  html.includes('id="tiltVal">45°') &&
+  /tilt:\s*45/.test(app) &&
   html.includes('id="tiltVal"') &&
   html.includes("tilt-gutter") &&
   html.includes("tiltViz") &&
@@ -643,7 +674,7 @@ const DAILY_LOAD_LABELS = [
 ];
 const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
 const hasConsoJourUi =
-  html.includes("Combien veux-tu consommer par jour") &&
+  html.includes("Combien d'autonomie je veux") &&
   html.includes("En autonomie. Chaque cran vers la droite ajoute un usage.") &&
   html.includes('id="consoExtra"') &&
   html.includes("Autre consommation") &&
@@ -1010,7 +1041,8 @@ const htmlSplit1B =
   html.includes('id="villeList"') &&
   html.includes("1&nbsp;kWc") &&
   html.includes("kWh/kWc") &&
-  html.includes("plein sud, 30°") &&
+  html.includes("plein sud, 45°") &&
+  !html.includes("plein sud, 30°") &&
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
@@ -1020,6 +1052,41 @@ const htmlSplit1B =
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
   html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
   html.indexOf('id="tilt"') < html.indexOf("field-deneige");
+function menuYieldReport() {
+  const problems = [];
+  const grid = JSON.parse(readFileSync(join(__dirname, "assets/quebec-full-grid.json"), "utf8"));
+  const q45 = Number(grid.cells["45"]["180"].ac_annual);
+  if (Math.round(q45) !== 1270) problems.push("québec s45 " + q45);
+  const towns = JSON.parse(readFileSync(join(__dirname, "assets/towns.json"), "utf8"));
+  const q30 = Number(towns.meta.quebec_s30);
+  const acton = towns.towns.find((t) => t.id === "acton-vale");
+  const montreal = towns.towns.find((t) => t.id === "montreal");
+  const mGrid = JSON.parse(readFileSync(join(__dirname, "assets/town-grids/montreal.json"), "utf8"));
+  const measured = Number(mGrid.cells["45"]["180"].ac_annual);
+  const scaledActon = q45 * (Number(acton.ac_annual_s30) / q30);
+  const scaledMontreal = q45 * (Number(montreal.ac_annual_s30) / q30);
+  if (Math.round(scaledActon) !== 1248) problems.push("acton scaled45 " + scaledActon);
+  if (Math.round(measured) !== 1326) problems.push("montréal s45 " + measured);
+  if (Math.round(measured) === Math.round(scaledMontreal)) problems.push("montréal measured equals scaled");
+  if (!html.includes("1&nbsp;270 kWh/kWc")) problems.push("placeholder");
+  if (!html.includes("productible sud 45°")) problems.push("copy 45");
+  if (html.includes("productible sud 30°")) problems.push("copy still sud 30");
+  if (!html.includes("rapport sud 30°")) problems.push("scaling copy removed");
+  if (!html.includes("inclinaison <strong>45°</strong>")) problems.push("help tilt");
+  if (html.includes("inclinaison <strong>30°</strong>")) problems.push("help still 30");
+  const codeOk =
+    app.includes("function menuYieldAnnual") &&
+    app.includes('southAnnual(cells, "45", "180")') &&
+    app.includes("q45 * (s30 / quebecS30)") &&
+    app.includes("function loadMenuFullGrids") &&
+    app.includes("function refreshTownYields") &&
+    !app.includes("fmtYield(town.ac_annual_s30)") &&
+    !app.includes("fmtYield(quebecS30)");
+  if (!codeOk) problems.push("app menu yield");
+  return { ok: problems.length === 0, detail: problems.join("; ") };
+}
+const menuYield = menuYieldReport();
+const menuYieldOk = menuYield.ok;
 const secCostIdx = html.indexOf('id="sec-cost"');
 const secValueIdx = html.indexOf('id="sec-value"');
 const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
@@ -1139,6 +1206,7 @@ console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && 
 console.log(`  webi hides non-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
 console.log(`  step 1 split 1A superficie/densité → PV+kWc: ${htmlSplit1A ? "PASS" : "FAIL"}`);
 console.log(`  step 1B localisation QC / orient / tilt / déneige: ${htmlSplit1B ? "PASS" : "FAIL"}`);
+console.log(`  menu yield sud 45° (QC 1 270, scale keeps sud 30°): ${menuYieldOk ? "PASS" : "FAIL"} ${menuYield.detail}`);
 console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
 console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
@@ -1732,7 +1800,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       unit: "m2",
       util: 80,
       orient: 180,
-      tilt: 30,
+      tilt: 45,
       deneige: 20,
       priceW: "3",
       taxes: "1",
@@ -1766,7 +1834,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&area=0&conso=0&orient=0", fullSearch({ mode: "webi", area: 0, conso: 0, orient: 0 })],
     [
       "?tilt=31&orient=190&util=10&priceW=9&rate=nope&conso=abc",
-      fullSearch({ util: 60, orient: 195, priceW: "4.5" })
+      fullSearch({ util: 60, orient: 195, tilt: 30, priceW: "4.5" })
     ],
     ["?taxes=off&subv=non&rate=9,53", fullSearch({ taxes: "0", subv: "0", rate: "9.53" })],
     [
@@ -1774,7 +1842,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
     ],
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
-    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })],
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
@@ -1802,6 +1870,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(sqM2 - 40 / 10.76391041671) < 1e-6, `40 sqft m2=${sqM2}`);
 
   const live = await bootScenario("", "#main");
+  expect(live.el("tilt").value === "45", "default roof inclination is 45°");
   expect(live.location.search === "", "bare URL stays bare");
   expect(live.el("subv").checked === true, "LogisVert default on");
   expect(live.el("taxes").checked === true, "taxes default on");
@@ -1884,6 +1953,7 @@ const pass =
   annualOk &&
   cellsOk &&
   townDataOk &&
+  fetchJobOk &&
   wTiltOk &&
   hasFetch &&
   hasFallback &&
@@ -1996,6 +2066,7 @@ const pass =
   htmlAllowlist &&
   htmlSplit1A &&
   htmlSplit1B &&
+  menuYieldOk &&
   htmlProdBVisible &&
   cssHidesFull &&
   cssHidesWebiOnly &&
