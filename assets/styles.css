@@ -11,6 +11,11 @@
   --border: #cfe3d4;
   --accent: #40916c;
   --warn: #bc6c25;
+  /* Flag callout under the green production cards — one look, any language length */
+  --flag-bg: #ffe56a;
+  --flag-bg-end: #ffc83d;
+  --flag-border: #e25a12;
+  --flag-text: #1a1a1a;
   --shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
   --radius: 14px;
   --font: "Lato", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -44,6 +49,10 @@ html[data-theme="dark"] {
   --border: #2f4a3c;
   --accent: #74c69d;
   --warn: #d4924a;
+  --flag-bg: #7a4e12;
+  --flag-bg-end: #5c3a0e;
+  --flag-border: #ff8a3d;
+  --flag-text: #fff6e0;
   --shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
   --section-hairline: rgba(216, 243, 220, 0.12);
   --input-bg: #121c17;
@@ -767,24 +776,22 @@ section.block > h2,
 }
 .autonomy-snow {
   margin-top: 0.65rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--warn);
-  border-radius: 10px;
-  background: var(--card);
-  font-size: 0.82rem;
-  line-height: 1.4;
-  color: var(--text);
-  text-align: left;
+  padding: 0.8rem 1rem;
+  border: 3px solid var(--flag-border);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--flag-text);
+  text-align: start;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 .autonomy-snow[hidden] {
   display: none;
 }
 .autonomy-snow-rec {
   margin: 0;
-}
-.autonomy-snow.is-zero {
-  border-left-color: var(--warn);
 }
 .result-pill .prod-num {
   font-variant-numeric: tabular-nums;
@@ -1332,6 +1339,10 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     --border: #cfe3d4;
     --accent: #40916c;
     --warn: #bc6c25;
+    --flag-bg: #ffe56a;
+    --flag-bg-end: #ffc83d;
+    --flag-border: #e25a12;
+    --flag-text: #1a1a1a;
     --input-bg: #ffffff;
     --hover-soft: #c8ebd0;
     --pill-end: #e9f5ee;
@@ -1402,6 +1413,13 @@ footer.bug .bug-ver { font-size: 0.72rem; }
     border-color: #ccc;
   }
   .result-pill, .card-kpi, .loc-fixed { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .autonomy-snow {
+    background: linear-gradient(135deg, #ffe56a, #ffc83d) !important;
+    border: 3px solid #e25a12 !important;
+    color: #1a1a1a !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   .result-pair { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: repeat(3, 1fr); }
   a { color: inherit; text-decoration: none; }
