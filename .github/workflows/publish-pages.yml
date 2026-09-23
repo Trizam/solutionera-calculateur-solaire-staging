@@ -1,0 +1,54 @@
+name: publish-pages
+
+# GitHub Free only serves Pages from a public repository.
+# This turns the staging site back on from master / and asks for a build.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/publish-pages.yml
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable GitHub Pages from master
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_TOKEN: ${{ secrets.BUG_REPORT_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+
+          pages_ready() {
+            gh api "repos/${repo}/pages" >/dev/null 2>&1
+          }
+
+          enable_pages() {
+            gh api --method POST "repos/${repo}/pages" \
+              -f build_type=legacy \
+              -f "source[branch]=master" \
+              -f "source[path]=/"
+          }
+
+          if pages_ready; then
+            echo "GitHub Pages is already enabled"
+          elif enable_pages; then
+            echo "Enabled GitHub Pages with the Actions token"
+          elif [ -n "${REPO_TOKEN}" ]; then
+            echo "Actions token cannot enable Pages. Trying the repository token."
+            GH_TOKEN="${REPO_TOKEN}" enable_pages
+            echo "Enabled GitHub Pages with the repository token"
+          else
+            echo "A repository admin has to open Settings, then Pages, and deploy from branch master, folder /."
+            exit 1
+          fi
+
+          gh api --method POST "repos/${repo}/pages/builds" || true
