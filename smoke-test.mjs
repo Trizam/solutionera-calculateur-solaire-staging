@@ -249,6 +249,7 @@ const liveBeside =
   !html.includes("slider-val-left-stack") &&
   !html.includes("loss-annuel");
 const liveFmt =
+  (html.includes("−0&nbsp;%") || html.includes("−0 %")) &&
   (html.includes("−14&nbsp;%") || html.includes("−14 %")) &&
   !html.includes("−14,4") &&
   !html.includes("% annuel") &&
@@ -479,8 +480,9 @@ const batteryColumn =
   /mode-full-only[^>]*id="sec-batt"/.test(html) &&
   /mode-full-only[^>]*id="sec-total"/.test(html) &&
   /mode-full-only[^>]*id="permaFlag"/.test(html) &&
-  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
-  /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
+  /<h2 id="h-reserve">\s*<span class="num">4A<\/span>/.test(html) &&
+  /<h2 id="h-auto">\s*<span class="num">4B<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
+  html.indexOf('id="sec-reserve"') < html.indexOf('id="sec-auto"') &&
   /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
   /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
   design.includes("4A") &&
@@ -1204,8 +1206,8 @@ const shortfallInFill =
 const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
 const productiblePill =
   prodBHtml.includes('id="outKwhKwc"') &&
-  prodBHtml.includes(">Production annuelle<") &&
-  prodBHtml.includes(">kWh/kWc<") &&
+  prodBHtml.includes(">Efficacité de l’installation<") &&
+  prodBHtml.includes(">kWh/kWc/An<") &&
   prodBHtml.includes("kilowatt-crête installé") &&
   prodBHtml.indexOf('id="deneige"') < prodBHtml.indexOf('id="outKwhKwc"') &&
   prodBHtml.indexOf('id="outKwhKwc"') < prodBHtml.indexOf('id="gridStatus"') &&
@@ -1850,7 +1852,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       util: 80,
       orient: 180,
       tilt: 45,
-      deneige: 20,
+      deneige: 100,
       priceW: "3",
       taxes: "1",
       subv: "1",
