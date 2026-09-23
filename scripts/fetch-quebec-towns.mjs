@@ -15,10 +15,10 @@
  *   node scripts/fetch-quebec-towns.mjs --s30-only
  *   node scripts/fetch-quebec-towns.mjs --grids-only
  *   node scripts/fetch-quebec-towns.mjs --status
- *   node scripts/fetch-quebec-towns.mjs --grids-only --budget 900 --exit-on-limit
+ *   node scripts/fetch-quebec-towns.mjs --grids-only --max-minutes 45
  *
- * --budget N and --exit-on-limit stop the process (exit 0) so a later run can
- * continue. GitHub Actions uses that pair once an hour. See
+ * Each new PVWatts call waits 4 seconds. --max-minutes stops cleanly so the
+ * workflow can commit and start the next stretch. See
  * .github/workflows/fetch-quebec-grids.yml.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "fs";
@@ -526,15 +526,17 @@ function clearCache(id) {
   if (existsSync(path)) unlinkSync(path);
 }
 
-/** 99% of the 1 000/hour cap, leaving a 10-call buffer. */
+/** One new PVWatts call every 4 seconds. 900/hour, under the 1 000/hour cap. */
+const CALL_GAP_MS = 4000;
 const RATE_LIMIT = 1000;
 const RATE_BUFFER = 10;
-let gapMs = Math.round(3600000 / (RATE_LIMIT - RATE_BUFFER));
+let gapMs = CALL_GAP_MS;
 let nextSlot = 0;
 let callsUsed = 0;
 let maxCalls = Infinity;
 let exitOnLimit = false;
 let stopReason = "";
+let runDeadline = Infinity;
 
 class StopFetch extends Error {
   constructor(reason) {
@@ -552,6 +554,7 @@ function noteBudget(remain) {
 function parseArgs(argv) {
   const flags = new Set();
   let budget = Infinity;
+  let maxMinutes = Infinity;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--budget" || arg.startsWith("--budget=")) {
@@ -561,9 +564,16 @@ function parseArgs(argv) {
       budget = Math.floor(n);
       continue;
     }
+    if (arg === "--max-minutes" || arg.startsWith("--max-minutes=")) {
+      const raw = arg === "--max-minutes" ? argv[++i] : arg.slice("--max-minutes=".length);
+      const n = Number(raw);
+      if (!raw || !isFinite(n) || n < 1) throw new Error("--max-minutes expects a positive number");
+      maxMinutes = Math.floor(n);
+      continue;
+    }
     flags.add(arg);
   }
-  return { flags, budget };
+  return { flags, budget, maxMinutes };
 }
 
 function runSelfCheck() {
@@ -592,6 +602,9 @@ function runSelfCheck() {
   maxCalls = 50;
   noteBudget(RATE_BUFFER);
   if (stopReason !== "rate" || callsUsed !== 1) errors.push("rate stop");
+  if (CALL_GAP_MS !== 4000) errors.push("gap");
+  const timed = parseArgs(["--max-minutes", "45"]);
+  if (timed.maxMinutes !== 45) errors.push("max-minutes");
   maxCalls = Infinity;
   exitOnLimit = false;
   stopReason = "";
@@ -632,6 +645,7 @@ function cellFromOutputs(outputs) {
 }
 
 async function pvwatts(key, lat, lon, tilt, azimuth) {
+  if (!stopReason && Date.now() >= runDeadline) stopReason = "time";
   if (stopReason) throw new StopFetch(stopReason);
   const params = new URLSearchParams({
     api_key: key,
@@ -661,8 +675,8 @@ async function pvwatts(key, lat, lon, tilt, azimuth) {
     if (res.status === 429) {
       const ra = Number(res.headers.get("retry-after"));
       const wait = isFinite(ra) && ra > 0 ? Math.min(ra, 600) * 1000 : Math.min(120000, 15000 * (attempt + 1));
-      gapMs = Math.min(8000, Math.max(gapMs * 2, 1500));
-      log(`429 tilt=${tilt} az=${azimuth} wait=${Math.round(wait / 1000)}s gap=${gapMs}ms`);
+      gapMs = CALL_GAP_MS;
+      log(`429 tilt=${tilt} az=${azimuth} wait=${Math.round(wait / 1000)}s`);
       await sleep(wait);
       continue;
     }
@@ -693,13 +707,11 @@ async function pvwatts(key, lat, lon, tilt, azimuth) {
       let waitMs = 5 * 60 * 1000;
       if (isFinite(resetNum) && resetNum > 1e9) waitMs = Math.max(5000, resetNum * 1000 - Date.now() + 2000);
       else if (isFinite(resetNum) && resetNum > 0 && resetNum < 7200) waitMs = resetNum * 1000 + 2000;
-      gapMs = Math.round(3600000 / (RATE_LIMIT - RATE_BUFFER));
+      gapMs = CALL_GAP_MS;
       nextSlot = Date.now() + waitMs;
       log(`rate buffer remaining=${remain} wait=${Math.round(waitMs / 1000)}s reset=${resetRaw || ""}`);
-    } else if (isFinite(remain) && remain <= RATE_BUFFER + 20) {
-      gapMs = Math.round(3600000 / (RATE_LIMIT - RATE_BUFFER));
     } else {
-      gapMs = 400;
+      gapMs = CALL_GAP_MS;
     }
     const cell = cellFromOutputs(data.outputs || {});
     noteBudget(remain);
@@ -901,9 +913,10 @@ function printStatus(short) {
 }
 
 async function main() {
-  const { flags, budget } = parseArgs(process.argv.slice(2));
+  const { flags, budget, maxMinutes } = parseArgs(process.argv.slice(2));
   maxCalls = budget;
   exitOnLimit = flags.has("--exit-on-limit") || Number.isFinite(budget);
+  if (Number.isFinite(maxMinutes)) runDeadline = Date.now() + maxMinutes * 60 * 1000;
   if (flags.has("--self-check")) {
     runSelfCheck();
     return;
