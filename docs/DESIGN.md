@@ -1,31 +1,32 @@
 # Règles de design — Calculateur solaire
 
-Ces règles s’appliquent à **chaque** modification de la page (`index.html`, `assets/styles.css`, `assets/app.js`). Elles sont répétées dans le commentaire en tête de `index.html` pour qu’une édition du HTML les voie sans ouvrir ce fichier.
+Ce fichier est la **seule** copie de ces règles. `index.html`, `assets/app.js`, `assets/styles.css` et les notes d’édition ne font que renvoyer ici. On ne recopie pas le texte.
 
-Le public lit une estimation pédagogique. Ce n’est pas une soumission.
+Ces règles s’appliquent à chaque modification de la page. Le public lit une estimation pédagogique. Ce n’est pas une soumission.
 
 ## 1. Boîte verte de résultat
 
-Toute réponse principale d’une carte s’affiche dans une **boîte verte** `.result-pill` (fond `--green-soft`, chiffre en `--green-dark`).
+Toute réponse principale s’affiche dans la famille verte (fond `--green-soft`, chiffre en `--green-dark`).
 
-- Une boîte = une réponse. Le chiffre est grand, l’unité en dessous, le libellé au-dessus.
-- Ne pas inventer un autre style de résultat (pas de gros texte nu, pas de pastille d’une autre couleur).
-- Les trois indicateurs courts de la carte 3 restent des `.card-kpi` : même famille verte, format plus petit, réservé à ce trio.
-- Les lignes `.breakdown` expliquent. Elles ne remplacent pas la boîte verte.
+- Une boîte `.result-pill` = une réponse. Le chiffre est grand, l’unité en dessous, le libellé au-dessus. Production, consommation du jour, réserve et temps de remplissage utilisent cette boîte.
+- Le trio de la carte valeur reste des `.card-kpi` : même famille, format plus petit.
+- Le coût total du projet est le chiffre vert `.project-total .kpi`. Les lignes `.breakdown` expliquent. Elles ne remplacent pas ce chiffre.
+- Ne pas inventer une autre couleur de résultat.
 
-## 2. Hauteur des cartes et ligne centrale
+## 2. Hauteur des cartes et flèche
 
 La hauteur d’une carte vient de **son** contenu. Un voisin à gauche ou à droite ne l’étire pas.
 
-- Empiler les cartes dans la colonne (largeur du `.wrap`). Les cartes 4, 5 et 6 sont des sections pleine largeur, reliées par une flèche `.flow-arrow` centrée. L’axe de la flèche est l’axe de la colonne, le même que le centre des cartes.
-- Dans une rangée de pairs (`.result-pair`, `.cards`), `align-items: start`. Le surplus (une note, un libellé plus long) descend. Il n’augmente pas la carte d’à côté.
-- Curseur : reprendre `.slider-row`. La valeur de gauche (`.slider-val-left`) a exactement la hauteur du pouce (`--slider-hit`, 44px) et son centre est aligné sur la ligne du pouce. Le texte sous la piste (`.slider-meta`) ne grandit pas cette valeur.
+- Dans une rangée de pairs (`.result-pair`, `.cards`), `align-items: start`. Le surplus descend. Il n’augmente pas la carte d’à côté.
+- Sur le grand écran, le plateau `.board` place les cartes par `data-slot`. Chaque case reste à la hauteur de son contenu (`align-self: start`).
+- La flèche `.flow-arrow` est dans la carte de remplissage. Au grand écran elle est centrée (`top: 50%`) dans l’espace entre les deux colonnes. En pile étroite elle est masquée.
+- Curseur : reprendre `.slider-row`. La valeur de gauche (`.slider-val-left`) a exactement la hauteur du pouce (`--slider-hit`, 44px) et son centre est aligné sur la ligne du pouce.
 
 ## 3. Loi des deux chiffres
 
-**Affichage seulement.** Tous les calculs gardent la précision complète (taxes, kWh, division par 365, etc.).
+**Affichage seulement.** Tous les calculs gardent la précision complète.
 
-Par défaut, chaque **résultat** montré au public a au plus **deux chiffres significatifs** (`sig2Round`, `fmtSig2`, `fmtMoneySig2`) :
+Par défaut, chaque **résultat** montré au public a au plus **deux chiffres significatifs** (`sig2Round`, `fmtSig2`, `fmtMoneySig2`, via `fmtShown` et `fmtShownMoney`) :
 
 - 14 230 → 14 000
 - 15 675 $ → 16 000 $
@@ -34,39 +35,48 @@ Par défaut, chaque **résultat** montré au public a au plus **deux chiffres si
 
 Ce qui ne passe pas par cette loi :
 
-- La valeur d’un champ que la personne est en train de régler (curseur, superficie, tarif saisi). Elle doit voir le chiffre qu’elle a choisi.
+- La valeur d’un champ que la personne est en train de régler (curseur, superficie, tarif saisi, Wh d’un appareil). Elle doit voir le chiffre qu’elle a choisi.
 - Un compte d’objets déjà entier (nombre de panneaux).
 
-La boîte verte montre l’arrondi du **vrai** total, pas la somme des lignes déjà arrondies. Deux lignes arrondies peuvent donc ne pas « retomber » pile sur le total. C’est voulu.
+La boîte verte montre l’arrondi du **vrai** total, pas la somme des lignes déjà arrondies. Deux lignes arrondies peuvent donc ne pas retomber pile sur le total. C’est voulu.
 
 ## 4. Case « Je veux les détails »
 
 Case `#showDetails`, visible dans les deux modes d’affichage. Décochée par défaut.
 
-- Cochée : les résultats s’affichent en précision de lecture (dollars au cent, kWh avec décimales). Les calculs ne changent pas — ils étaient déjà complets.
-- Le choix est un préférence d’affichage (`localStorage`), pas un paramètre du scénario dans l’URL.
+- Cochée : les résultats s’affichent en précision de lecture (dollars au cent, kWh avec décimales). Les calculs ne changent pas.
+- Le choix est une préférence d’affichage (`localStorage`, clé `solar-details`), pas un paramètre du scénario dans l’URL.
 
-## 5. Notes d’édition
+## 5. Où vivent les règles
 
-Le flux public ne porte pas le chantier.
+Les règles durables sont seulement dans ce fichier.
 
-- Les règles durables vivent **ici** et dans le commentaire HTML. On ne les cache pas derrière une case.
-- Ce qui reste à faire, les hypothèses ouvertes, les rappels de modèle : panneau `#editorNotes`, masqué, ouvert par la case « Afficher les notes d’édition » en bas de page. Préférence `localStorage`.
-- « À retenir » reste le rappel pour la personne qui estime son projet. On n’y met pas les notes de travail.
+- Le commentaire en tête de `index.html` pointe vers ce fichier. Il ne répète pas les règles.
+- Le panneau `#editorNotes`, ouvert par la case « Afficher les notes d’édition », contient le chantier ouvert. Préférence `localStorage`, clé `solar-notes`. On n’y recopie pas ces règles.
+- « À retenir » reste le rappel pour la personne qui estime son projet.
 
-## 6. Cartes
+## 6. Plateau
 
-| Carte | Question | Réponse |
+Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la grille est : taille | besoin, production | besoin, rendement | remplissage, coût | batterie, retour | total.
+
+| Emplacement | Question | Réponse |
 | --- | --- | --- |
-| 1A / 1B | Toit et production | Boîtes vertes déjà en place |
-| 2 | Combien coûte le solaire ? | Équation `W × $/W` puis le détail. Le total affiché suit la loi des deux chiffres |
-| 3 | Valeur | Trio `.card-kpi` |
-| 4 | Combien de réserve voulez-vous ? | Consommation par jour × jours. Boîte verte en kWh |
-| 5 | Combien coûte la batterie ? | Équation `kWh × $/kWh`, puis boîte verte |
-| 6 | Combien coûte le projet au total ? | Équation `solaire + batterie` en haut, détail dessous, total dans la boîte verte |
+| Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
+| Rendement | Mesurage net et autonomie de décembre | Paire de boîtes vertes |
+| Besoin | Combien consommez-vous par jour ? | Somme des appareils, boîte verte en kWh/j |
+| Réserve | Combien de jours de réserve voulez-vous ? | Durée 0 à 3 jours, boîte verte en kWh |
+| Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte verte, flèche centrée |
+| Coût | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
+| Batterie | Prix au kWh installé | Ligne de coût, pas une seconde boîte |
+| Retour | Valeur des panneaux | Trio `.card-kpi` |
+| Total | Coût total du projet | Panneaux (coût réel) + batteries, chiffre vert |
 
-La consommation par jour de la carte 4 suit `consommation annuelle ÷ 365` tant que le champ n’est pas modifié. Le calcul utilise cette division exacte, pas le chiffre arrondi du champ.
+La consommation du jour est la somme des curseurs d’appareils et des lignes perso. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
 
-Réserve (kWh) = kWh/jour × jours. Coût batterie = réserve × prix $/kWh, taxes si la case de la carte 2 est cochée. LogisVert ne s’applique pas à la batterie. Le total du projet = coût réel du solaire + coût de la batterie.
+Réserve (kWh) = consommation du jour × durée. Coût des batteries = réserve × prix $/kWh, sans taxes. LogisVert reste sur les panneaux. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
 
-Prix batterie : curseur pédagogique 600–2 000 $/kWh, défaut 1 200. Jours de réserve : 0–5, pas de 0,5, défaut 1. Zéro jour = pas de batterie.
+Prix batterie : curseur 600–1 800 $/kWh, pas de 50, défaut 1 200. Durée : 0 à 72 h, pas de 0,25 h, défaut 24 h (1 jour). Durée nulle = pas de batterie.
+
+L’URL de partage ne contient que le scénario de toiture (superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif). La durée de réserve, le prix des batteries et les appareils n’y vont pas.
+
+En mode webi, tout ce qui porte `.mode-full-only` est masqué : coût, retour, consommation du jour, réserve, remplissage, batterie, total.

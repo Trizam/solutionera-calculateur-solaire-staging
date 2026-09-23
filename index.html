@@ -7,18 +7,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta name="description" content="Calculateur solaire — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
   <title>Calculateur solaire · Solution ERA</title>
-  <!--
-    Règles pour toute modification de cette page. Détail : docs/DESIGN.md
-    1. Boîte verte .result-pill pour chaque résultat. Hauteur = contenu :
-       un voisin à gauche ou à droite n’étire pas la carte. Empiler.
-       Valeur de curseur centrée sur la ligne du pouce. Flèche .flow-arrow
-       centrée sur l’axe de la colonne.
-    2. Loi des deux chiffres : les résultats affichés ont au plus 2 chiffres
-       significatifs. Les calculs gardent toute la précision. Case
-       « Je veux les détails » (#showDetails) pour montrer les chiffres complets.
-    3. Notes de chantier : case « Afficher les notes d’édition » en bas
-       (#showNotes → #editorNotes). Pas dans le flux public.
-  -->
+  <!-- Règles de design, seule copie : docs/DESIGN.md -->
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -98,9 +87,16 @@
         <span>Je veux les détails<span class="sub">→ Affiche tous les chiffres. Le calcul reste précis dans les deux cas.</span></span>
       </label>
     </div>
+    <!--
+      Desktop board. Each card is a slot (data-slot).
+      Wide screens place them with grid-template-areas in styles.css.
+      DOM order is the narrow stack, so a later mobile layout can move slots
+      without rewriting the cards.
+    -->
+    <div class="board" id="board">
 
     <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
-    <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
+    <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
       <h2 id="h-prod"><span class="num">1A</span> Combien de panneaux puis-je installer sur ma toiture&nbsp;?</h2>
       <div class="field">
         <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
@@ -171,7 +167,7 @@
     </section>
 
     <!-- 1B · Production — visible in both modes; webi = 1A + 1B -->
-    <section class="block" id="sec-prod-b" aria-labelledby="h-prod-b">
+    <section class="block slot-prod" id="sec-prod-b" data-slot="prod" aria-labelledby="h-prod-b">
       <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
       <div class="field" id="field-loc">
         <div class="label-row field-info-wrap">
@@ -314,14 +310,17 @@
         </div>
       </div>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
-      <div class="result-pair">
-        <div class="result-pill">
-          <div class="label">Mesurage Net</div>
-          <div class="big prod-line" id="outKwh">
-            <span class="prod-num">—</span>
-            <span class="prod-unit">kWh / an</span>
-          </div>
+    </section>
+
+    <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
+      <div class="result-pill">
+        <div class="label">Mesurage Net</div>
+        <div class="big prod-line" id="outKwh">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh / an</span>
         </div>
+      </div>
+      <div class="yield-auto">
         <div class="result-pill">
           <div class="label">Autonomie</div>
           <div class="big prod-line" id="outKwhDay">
@@ -329,16 +328,208 @@
             <span class="prod-unit">kWh / j déc</span>
           </div>
         </div>
+        <aside class="autonomy-snow" id="autonomySnow" hidden>
+          <p class="autonomy-snow-rec" id="autonomySnowRec">
+            Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
+          </p>
+        </aside>
       </div>
-      <aside class="autonomy-snow" id="autonomySnow" hidden>
-        <p class="autonomy-snow-rec" id="autonomySnowRec">
-          Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
-        </p>
-      </aside>
+    </div>
+
+    <div class="slot-need" data-slot="need">
+    <section class="block mode-full-only" id="sec-auto" aria-labelledby="h-auto">
+      <h2 id="h-auto">
+        <span>Combien consommez-vous par jour&nbsp;?</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="consojour"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Consommation par jour"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <p class="hint">Chaque curseur est en watt-heures par jour. Mettez-les à zéro si vous n’utilisez que la ligne perso.</p>
+
+      <div class="field">
+        <label for="loadFridge">Réfrigérateur</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadFridgeVal">1&nbsp;000 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadFridge" type="range" min="0" max="3000" step="50" value="1000" />
+            <div class="slider-meta"><span>0</span><span>3&nbsp;000</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadFreezer">Congélateur</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadFreezerVal">800 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadFreezer" type="range" min="0" max="2500" step="50" value="800" />
+            <div class="slider-meta"><span>0</span><span>2&nbsp;500</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadLight">Éclairage</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadLightVal">200 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadLight" type="range" min="0" max="1500" step="25" value="200" />
+            <div class="slider-meta"><span>0</span><span>1&nbsp;500</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadWifi">Wi-Fi</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadWifiVal">120 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadWifi" type="range" min="0" max="400" step="10" value="120" />
+            <div class="slider-meta"><span>0</span><span>400</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadPhone">Téléphone</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadPhoneVal">15 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadPhone" type="range" min="0" max="80" step="5" value="15" />
+            <div class="slider-meta"><span>0</span><span>80</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadComputer">Ordinateur</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadComputerVal">200 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadComputer" type="range" min="0" max="1000" step="25" value="200" />
+            <div class="slider-meta"><span>0</span><span>1&nbsp;000</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadTv">Télévision</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadTvVal">250 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadTv" type="range" min="0" max="1200" step="25" value="250" />
+            <div class="slider-meta"><span>0</span><span>1&nbsp;200</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadPump">Pompe à eau</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadPumpVal">300 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadPump" type="range" min="0" max="2500" step="50" value="300" />
+            <div class="slider-meta"><span>0</span><span>2&nbsp;500</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadWasher">Laveuse</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadWasherVal">400 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadWasher" type="range" min="0" max="2000" step="50" value="400" />
+            <div class="slider-meta"><span>0</span><span>2&nbsp;000</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loadCook">Cuisson</label>
+        <div class="slider-row">
+          <div class="slider-val-left load-val" id="loadCookVal">600 Wh</div>
+          <div class="slider-track">
+            <input class="load-range" id="loadCook" type="range" min="0" max="3000" step="50" value="600" />
+            <div class="slider-meta"><span>0</span><span>3&nbsp;000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="customLoads"></div>
+      <button type="button" class="btn btn-quiet" id="btnAddLoad">Ajouter une consommation</button>
+
+      <div class="result-pill" id="consoSum">
+        <div class="label">Consommation par jour</div>
+        <div class="big prod-line">
+          <span class="prod-num" id="consoJour">—</span>
+          <span class="prod-unit">kWh / j</span>
+        </div>
+        <p class="hint" id="outConsoWh">—</p>
+      </div>
+    </section>
+
+    <section class="block mode-full-only" id="sec-reserve" aria-labelledby="h-reserve">
+      <h2 id="h-reserve">
+        <span>Combien de jours de réserve voulez-vous&nbsp;?</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="autostop"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Durée de réserve"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="field">
+        <label for="autoStop">Durée</label>
+        <div class="slider-row">
+          <div class="slider-val-left" id="autoStopVal">1 jour</div>
+          <div class="slider-track">
+            <input id="autoStop" type="range" min="0" max="72" step="0.25" value="24" aria-valuemin="0" aria-valuemax="72" aria-valuenow="24" aria-valuetext="1 jour" />
+            <div class="slider-meta"><span>aucune</span><span>3 jours</span></div>
+          </div>
+        </div>
+        <p class="hint">Le curseur glisse librement, de rien jusqu’à 3 jours.</p>
+      </div>
+      <div class="reserve-out result-pill" id="reserveOut">
+        <div class="label">Réserve</div>
+        <div class="big prod-line" id="outReserve">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh</span>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <section class="result-pill mode-full-only slot-fill" id="sec-fill" data-slot="fill" aria-labelledby="h-fill">
+      <div class="flow-arrow" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="18" height="18">
+          <path d="M5 16h18M16 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="label label-with-info" id="h-fill">
+        <span>Temps pour remplir</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="remplissage"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Temps pour remplir la réserve"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </div>
+      <div class="big prod-line" id="outFill">
+        <span class="prod-num" id="outFillNum">—</span>
+        <span class="prod-unit" id="outFillUnit">au rythme de décembre</span>
+      </div>
+      <p class="fill-shortfall mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
     </section>
 
     <!-- 2 · Coût -->
-    <section class="block mode-full-only" id="sec-cost" aria-labelledby="h-cost">
+    <section class="block mode-full-only slot-cost" id="sec-cost" data-slot="cost" aria-labelledby="h-cost">
       <h2 id="h-cost"><span class="num">2</span> Combien coûte le solaire&nbsp;?</h2>
 
       <div class="field">
@@ -376,8 +567,38 @@
       </div>
     </section>
 
-    <!-- 3 · Valeur + résultat -->
-    <section class="block mode-full-only" id="sec-value" aria-labelledby="h-value">
+    <section class="block mode-full-only slot-batt" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
+      <h2 id="h-batt">Combien coûtent les batteries&nbsp;?</h2>
+      <div class="field">
+        <div class="label-row field-info-wrap">
+          <label for="battPrice">Prix au kWh installé</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="battprice"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Prix au kWh installé"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="slider-row">
+          <div class="slider-val-left" id="battPriceVal">1&nbsp;200&nbsp;$</div>
+          <div class="slider-track">
+            <input id="battPrice" type="range" min="600" max="1800" step="50" value="1200" />
+            <div class="slider-meta"><span>600&nbsp;$</span><span>1&nbsp;800&nbsp;$</span></div>
+          </div>
+        </div>
+        <p class="hint">Brouillon — la fourchette $/kWh reste à confirmer.</p>
+      </div>
+      <div class="breakdown" aria-live="polite">
+        <div class="line total"><span>Coût des batteries</span><span id="lineBatt">—</span></div>
+      </div>
+    </section>
+
+    <!-- 3 · Valeur + résultat — retour solaire seulement -->
+    <section class="block mode-full-only slot-roi" id="sec-value" data-slot="roi" aria-labelledby="h-value">
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
@@ -424,136 +645,32 @@
       <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
 
-    <div class="flow-arrow mode-full-only" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <path d="M12 4v14M6.5 13.5 12 19l5.5-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-    </div>
-
-    <!-- 4 · Réserve batterie -->
-    <section class="block mode-full-only" id="sec-reserve" aria-labelledby="h-reserve">
-      <h2 id="h-reserve"><span class="num">4</span> Combien de réserve voulez-vous&nbsp;?</h2>
-
-      <div class="field">
-        <div class="label-row field-info-wrap">
-          <label for="kwhJour">Combien consommez-vous par jour&nbsp;?</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="kwhJour"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Combien consommez-vous par jour"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="rate-box">
-          <input id="kwhJour" type="number" min="0" step="0.1" inputmode="decimal" autocomplete="off" value="46.6" />
-          <span>kWh / j</span>
-        </div>
-        <p class="hint">→ Prérempli avec la consommation annuelle ÷ 365. Modifiez-le si seule une partie de la maison doit tenir sur batterie.</p>
+    <section class="block mode-full-only slot-total" id="sec-total" data-slot="total" aria-labelledby="h-total">
+      <h2 id="h-total">
+        <span>Coût total du projet</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="project"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Coût total du projet"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="project-total">
+        <div class="kpi" id="outProject">—</div>
+        <div class="kpi-label">Panneaux + batteries</div>
       </div>
-
-      <div class="field">
-        <div class="label-row field-info-wrap">
-          <label for="reserveDays">Jours de réserve</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="reserve"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Jours de réserve"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="reserveVal">1 j</div>
-          <div class="slider-track">
-            <input id="reserveDays" type="range" min="0" max="5" step="0.5" value="1" />
-            <div class="slider-meta"><span>0&nbsp;j</span><span>5&nbsp;j</span></div>
-          </div>
-        </div>
-        <p class="hint">→ 0 = pas de batterie. 1 jour couvre une journée sans soleil, à la consommation indiquée.</p>
+      <div class="breakdown">
+        <div class="line"><span>Panneaux (coût réel)</span><span id="lineProjectSolar">—</span></div>
+        <div class="line"><span>Batteries</span><span id="lineProjectBatt">—</span></div>
       </div>
-
-      <p class="calc-line" id="outReserveEq">—</p>
-      <div class="result-pill">
-        <div class="label">Réserve utile</div>
-        <div class="big prod-line" id="outReserve">
-          <span class="prod-num">—</span>
-          <span class="prod-unit">kWh</span>
-        </div>
-      </div>
+      <p class="hint project-note">Le retour à gauche ne compte que les panneaux.</p>
     </section>
 
-    <div class="flow-arrow mode-full-only" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <path d="M12 4v14M6.5 13.5 12 19l5.5-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
     </div>
-
-    <!-- 5 · Coût batterie -->
-    <section class="block mode-full-only" id="sec-battery" aria-labelledby="h-battery">
-      <h2 id="h-battery"><span class="num">5</span> Combien coûte la batterie&nbsp;?</h2>
-
-      <div class="field">
-        <div class="label-row field-info-wrap">
-          <label for="battPrice">Prix au kWh installé (CAD)</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="battPrice"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Prix au kWh installé"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="battPriceVal">1 200 $</div>
-          <div class="slider-track">
-            <input id="battPrice" type="range" min="600" max="2000" step="50" value="1200" />
-            <div class="slider-meta"><span>600&nbsp;$</span><span>2&nbsp;000&nbsp;$</span></div>
-          </div>
-        </div>
-        <p class="hint">→ Fourchette pédagogique. Les taxes suivent la case de la carte solaire. LogisVert ne s’applique pas ici.</p>
-      </div>
-
-      <p class="calc-line" id="outBattEq">—</p>
-      <div class="result-pill">
-        <div class="label">Coût de la batterie</div>
-        <div class="big prod-line" id="outBatt">
-          <span class="prod-num">—</span>
-          <span class="prod-unit" id="outBattUnit">taxes incluses</span>
-        </div>
-      </div>
-    </section>
-
-    <div class="flow-arrow mode-full-only" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <path d="M12 4v14M6.5 13.5 12 19l5.5-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-    </div>
-
-    <!-- 6 · Total projet -->
-    <section class="block mode-full-only" id="sec-project" aria-labelledby="h-project">
-      <h2 id="h-project"><span class="num">6</span> Combien coûte le projet au total&nbsp;?</h2>
-      <p class="calc-line" id="outProjectEq">—</p>
-      <div class="breakdown" aria-live="polite">
-        <div class="line"><span>Solaire (coût réel)</span><span id="lineSolar">—</span></div>
-        <div class="line"><span>Batterie</span><span id="lineBattery">—</span></div>
-      </div>
-      <div class="result-pill">
-        <div class="label">Coût total du projet</div>
-        <div class="big prod-line" id="outProject">
-          <span class="prod-num">—</span>
-        </div>
-      </div>
-    </section>
 
     <aside class="disclaimers mode-full-only">
       <div class="disc-head">
@@ -570,9 +687,9 @@
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
+        <li>Réserve&nbsp;: la consommation par jour est la somme des appareils (Wh / j) plus les lignes perso. Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
-        <li>Batterie : réserve = consommation par jour × jours. Prix au kWh pédagogique (défaut 1&nbsp;200&nbsp;$/kWh) — pas une soumission. LogisVert ne s’y applique pas.</li>
       </ul>
     </aside>
 
@@ -583,14 +700,14 @@
       </label>
       <aside class="editor-notes" id="editorNotes" hidden>
         <h2>Notes d’édition</h2>
-        <p>Ces notes sont le chantier. Les règles durables sont dans <a href="docs/DESIGN.md">docs/DESIGN.md</a> et dans le commentaire en tête de la page, pour que chaque modification les voie même quand ce panneau est fermé.</p>
+        <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
         <ul>
-          <li>Prix batterie : fourchette pédagogique 600–2&nbsp;000&nbsp;$/kWh, défaut 1&nbsp;200. À valider. Pas une soumission.</li>
-          <li>Réserve = kWh/jour × jours (0 à 5). Pas de profondeur de décharge, pas de rendement d’onduleur.</li>
-          <li>kWh/jour suit la consommation annuelle ÷ 365 tant que le champ n’est pas modifié. Le calcul utilise la division exacte.</li>
-          <li>LogisVert ne s’applique pas à la batterie. Les taxes suivent la case de la carte solaire.</li>
+          <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
+          <li>Consommation par jour = somme des curseurs d’appareils (Wh / j) plus les lignes perso. Ce n’est pas la facture annuelle.</li>
+          <li>Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise seulement le surplus de décembre.</li>
+          <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
+          <li>La durée de réserve, le prix des batteries et les appareils ne vont pas dans l’URL de partage.</li>
           <li>Ombrage : plus tard.</li>
-          <li>Loi des deux chiffres : affichage seulement. « Je veux les détails » montre la précision de lecture.</li>
         </ul>
       </aside>
     </div>
@@ -639,9 +756,9 @@
         </div>
         <div class="info-block">
           <h4>Batterie</h4>
-          <p>Réserve utile = consommation par jour × jours de réserve.</p>
-          <p>Coût = réserve × prix au kWh. Les taxes suivent la case de la carte solaire. La subvention LogisVert ne s’applique pas à la batterie.</p>
-          <p>Le total du projet additionne le coût réel du solaire et le coût de la batterie.</p>
+          <p>Réserve = consommation par jour (somme des appareils) × durée choisie.</p>
+          <p>Coût des batteries = réserve × prix au kWh. Les taxes et LogisVert restent sur les panneaux.</p>
+          <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
           <h4>Rappel</h4>
@@ -782,37 +899,48 @@
       <p><strong>60&nbsp;%</strong>&nbsp;: s’il y a <strong>quelques obstacles</strong> (cheminées, puits de ventilation, etc.).</p>
     </div>
   </template>
-  <template id="tpl-info-kwhJour">
+  <template id="tpl-info-consojour">
     <span data-info-title>Consommation par jour</span>
     <div class="info-block">
-      <h4>D’où vient le chiffre</h4>
-      <p>Tant que vous ne modifiez pas le champ, il suit la consommation annuelle divisée par 365.</p>
-      <p>Le calcul utilise cette division exacte. La boîte verte, elle, arrondit.</p>
+      <h4>Les curseurs</h4>
+      <p>Chaque ligne est un usage courant, en watt-heures par jour. Ce n’est pas un compteur&nbsp;: un ordre de grandeur pour dimensionner la réserve.</p>
+      <p>Le total en bas additionne toutes les lignes. Mettez les curseurs à zéro et ajoutez une ligne perso si vous connaissez déjà votre chiffre.</p>
     </div>
     <div class="info-block">
-      <h4>Maison entière ou charges essentielles</h4>
-      <p>Une batterie de secours couvre souvent seulement le frigo, un peu d’éclairage et quelques prises — pas le chauffage de toute la maison.</p>
-      <p>Baissez le kWh/jour si c’est votre cas.</p>
+      <h4>Pas la facture annuelle</h4>
+      <p>La consommation annuelle, à gauche, sert encore aux économies et au retour solaire. Elle ne change pas cette réserve.</p>
     </div>
   </template>
-  <template id="tpl-info-reserve">
-    <span data-info-title>Jours de réserve</span>
+  <template id="tpl-info-autostop">
+    <span data-info-title>Durée de réserve</span>
     <div class="info-block">
-      <h4>Ce que le curseur compte</h4>
-      <p>Nombre de jours de consommation à garder en batterie, sans nouveau soleil.</p>
-      <p>0 = pas de batterie. La réserve utile est simplement kWh/jour × jours.</p>
+      <h4>Le curseur</h4>
+      <p>Il glisse librement de aucune durée jusqu’à 3 jours. Le mot à gauche est le temps choisi&nbsp;: 3 heures, 7 heures, 1 jour et demi.</p>
+      <p>Réserve = consommation par jour × cette durée.<br>Aucune = 0 kWh.</p>
     </div>
   </template>
-  <template id="tpl-info-battPrice">
+  <template id="tpl-info-remplissage">
+    <span data-info-title>Temps pour remplir la réserve</span>
+    <div class="info-block">
+      <h4>Décembre d’abord</h4>
+      <p>La production du jour de décembre couvre d’abord la consommation. Seul le surplus remplit la réserve.</p>
+      <p>Le rythme est toujours celui de décembre, même si l’été produit plus.</p>
+    </div>
+  </template>
+  <template id="tpl-info-battprice">
     <span data-info-title>Prix au kWh installé</span>
     <div class="info-block">
-      <h4>Fourchette pédagogique</h4>
-      <p>Le curseur va de 600 à 2&nbsp;000&nbsp;$/kWh, défaut 1&nbsp;200. C’est un ordre de grandeur pack + installation, pas un prix du marché ni une soumission.</p>
+      <h4>Coût de la réserve</h4>
+      <p>Coût des batteries = réserve (kWh) × prix au kWh installé.</p>
+      <p>La fourchette du curseur est un brouillon. Les taxes et LogisVert restent sur les panneaux.</p>
     </div>
+  </template>
+  <template id="tpl-info-project">
+    <span data-info-title>Coût total du projet</span>
     <div class="info-block">
-      <h4>Taxes et subvention</h4>
-      <p>Si « Inclure les taxes » est coché sur le solaire, le même taux s’applique à la batterie.</p>
-      <p>La subvention LogisVert ne réduit pas ce montant.</p>
+      <h4>Panneaux + batteries</h4>
+      <p>Total = coût réel des panneaux (taxes et subvention comprises) + coût des batteries.</p>
+      <p>Le retour sur investissement, à gauche, ne compte que les panneaux.</p>
     </div>
   </template>
   <template id="tpl-info-deneige">

@@ -235,39 +235,39 @@ const logisCopy =
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
 const design = readFileSync(join(__dirname, "docs/DESIGN.md"), "utf8");
-const reserveTag = html.slice(Math.max(0, html.indexOf('id="sec-reserve"') - 80), html.indexOf('id="sec-reserve"') + 24);
-const batteryUi =
+const designRules =
   html.includes("Combien coûte le solaire") &&
-  !html.includes("Combien ça coûte") &&
-  html.includes('id="sec-reserve"') &&
-  html.includes('id="sec-battery"') &&
-  html.includes('id="sec-project"') &&
-  html.includes("Combien de réserve voulez-vous") &&
-  html.includes("Combien consommez-vous par jour") &&
-  html.includes("Combien coûte la batterie") &&
-  html.includes("Combien coûte le projet au total") &&
   html.includes('id="showDetails"') &&
   html.includes("Je veux les détails") &&
   html.includes('id="showNotes"') &&
-  html.includes("notes d’édition") &&
   html.includes('id="editorNotes" hidden') &&
-  html.includes('id="outBatt"') &&
-  html.includes('id="outProject"') &&
-  html.includes('id="outProjectEq"') &&
-  html.includes("flow-arrow") &&
   html.includes("docs/DESIGN.md") &&
-  /id="sec-battery"[\s\S]{0,4500}class="result-pill"[\s\S]{0,500}id="outBatt"/.test(html) &&
-  /id="outProjectEq"[\s\S]{0,900}id="lineSolar"[\s\S]{0,500}id="outProject"/.test(html) &&
-  /mode-full-only/.test(reserveTag) &&
+  !html.includes("Loi des deux chiffres") &&
   /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
   /\.cards\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
-  /\.flow-arrow\s*\{[\s\S]{0,240}justify-content:\s*center/.test(css) &&
+  app.includes("function fmtShown") &&
   design.includes("Loi des deux chiffres") &&
   design.includes("result-pill") &&
   design.includes("Je veux les détails") &&
-  app.includes("function batteryQuote") &&
-  app.includes("kwhJour * days") &&
-  app.includes("function fmtShown");
+  design.includes("seule") &&
+  !design.includes("répétées dans le commentaire");
+const batteryColumn =
+  html.includes('data-slot="need"') &&
+  html.includes('data-slot="fill"') &&
+  html.includes('data-slot="batt"') &&
+  html.includes('data-slot="total"') &&
+  html.includes('id="consoJour"') &&
+  html.includes('id="autoStop"') &&
+  html.includes('id="battPrice"') &&
+  html.includes('id="permaFlag"') &&
+  html.includes('id="sec-yield"') &&
+  !/id="sec-yield"[^>]*mode-full-only/.test(html) &&
+  /mode-full-only[^>]*id="sec-auto"/.test(html) &&
+  /mode-full-only[^>]*id="sec-fill"/.test(html) &&
+  /mode-full-only[^>]*id="sec-batt"/.test(html) &&
+  /mode-full-only[^>]*id="sec-total"/.test(html) &&
+  /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
@@ -360,8 +360,7 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  battery cards + green result + design rules: ${batteryUi ? "PASS" : "FAIL"}`);
-console.log(`  info modal + tilt viz + gridStatus: ${infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery column + design rules + info modal + tilt viz + gridStatus: ${batteryColumn && designRules && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -881,6 +880,9 @@ const dayOk =
   kWhDecDay > 2 && kWhDecDay < 2.5 &&
   Math.abs(kWhDecNever) < 1e-9 &&
   kWhDecVertical > 10;
+const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-auto"'));
+const prodBHtml = html.slice(html.indexOf('id="sec-prod-b"'), html.indexOf('id="sec-yield"'));
+const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-cost"'));
 const recFn =
   app.includes("function recommendVerticalPanels") &&
   app.includes("showVerticalRec") &&
@@ -889,7 +891,17 @@ const recFn =
   html.includes("mettez les panneaux à la verticale") &&
   html.includes("décembre ne tombe pas à zéro") &&
   css.includes(".autonomy-snow") &&
-  /autonomy-snow\[hidden\]/.test(css);
+  /autonomy-snow\[hidden\]/.test(css) &&
+  yieldHtml.includes('id="autonomySnow"') &&
+  yieldHtml.indexOf('id="outKwhDay"') < yieldHtml.indexOf('id="autonomySnow"') &&
+  !prodBHtml.includes("autonomySnow");
+const shortfallInFill =
+  fillHtml.includes('id="permaFlag"') &&
+  fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
+  !html.includes("perma-flag") &&
+  css.includes(".fill-shortfall");
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
@@ -913,6 +925,7 @@ console.log(
   }`
 );
 console.log(`  boîte verticale sous autonomie (d<100 % et tilt<90°): ${recFn ? "PASS" : "FAIL"}`);
+console.log(`  décembre sous Temps pour remplir: ${shortfallInFill ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -1493,16 +1506,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       taxes: "1",
       subv: "1",
       conso: 17000,
-      rate: "12.811",
-      reserve: 1,
-      battPrice: 1200,
-      kwhJour: null
+      rate: "12.811"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "reserve", "battPrice"].forEach((key) => {
+    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
       p.set(key, String(s[key]));
     });
-    if (s.kwhJour != null && s.kwhJour !== "") p.set("kwhJour", String(s.kwhJour));
     return "?" + p.toString();
   }
   const roundTrips = [
@@ -1562,7 +1571,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "reserve", "battPrice"].forEach((key) => {
+  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -1606,31 +1615,11 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(webi, "deneige", "40");
   expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
 
-  const batt = await bootScenario("?kwhJour=10&reserve=2&battPrice=1000&taxes=0");
-  const b = batt.api.calc();
-  expect(b.kwhJourManual === true, "manual daily kWh");
-  expect(Math.abs(b.kwhJour - 10) < 1e-9, `kwh/j 10 got ${b.kwhJour}`);
-  expect(b.reserveDays === 2, `2 days got ${b.reserveDays}`);
-  expect(Math.abs(b.kwhReserve - 20) < 1e-9, `20 kWh reserve got ${b.kwhReserve}`);
-  expect(b.battPrice === 1000, `battery price got ${b.battPrice}`);
-  expect(Math.abs(b.battHT - 20000) < 1e-6, `HT got ${b.battHT}`);
-  expect(Math.abs(b.battCost - 20000) < 1e-6, `no-tax cost got ${b.battCost}`);
-  expect(Math.abs(b.project - (b.reel + 20000)) < 1e-4, `project sum got ${b.project}`);
-  expect(batt.location.search === fullSearch({ kwhJour: "10", reserve: 2, battPrice: 1000, taxes: "0" }), `battery link → ${batt.location.search}`);
-
-  const auto = await bootScenario("");
-  const a = auto.api.calc();
-  const jour = 17000 / 365;
-  expect(Math.abs(a.kwhJour - jour) < 1e-9, `auto day got ${a.kwhJour}`);
-  expect(a.kwhJourManual === false, "auto day is not manual");
-  expect(a.reserveDays === 1, `default reserve got ${a.reserveDays}`);
-  expect(a.battPrice === 1200, `default batt price got ${a.battPrice}`);
-  const quote = auto.api.batteryQuote(jour, 1, 1200, true);
-  expect(Math.abs(a.battCost - quote.cost) < 1e-6, "quote matches calc");
-  expect(Math.abs(a.battHT - jour * 1200) < 1e-4, "HT is exact day × price");
-  expect(Math.abs(a.project - (a.reel + a.battCost)) < 1e-4, "default project is solar + battery");
-  expect(auto.el("showDetails").checked === false, "details off by default");
-  expect(auto.el("editorNotes").hidden === true, "editor notes hidden by default");
+  const prefs = await bootScenario("");
+  expect(prefs.el("showDetails").checked === false, "details off by default");
+  expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
+  expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
+  expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -1681,7 +1670,8 @@ const pass =
   logisDefault &&
   logisCopy &&
   subvDefaultJs &&
-  batteryUi &&
+  batteryColumn &&
+  designRules &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&
@@ -1768,6 +1758,7 @@ const pass =
   dayOk &&
   snowCoverOk &&
   recFn &&
+  shortfallInFill &&
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&

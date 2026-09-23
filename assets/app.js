@@ -20,6 +20,11 @@
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
+  /** Draft installed-battery range until a real $/kWh band is chosen. */
+  const BATT_PRICE_DEFAULT = 1200;
+  /** Smooth reserve duration: 0 to 3 days, in hours. Default is one day. */
+  const AUTONOMY_MAX_H = 72;
+  const AUTONOMY_DEFAULT_H = 24;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -96,11 +101,7 @@
     return n.toLocaleString("fr-CA", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
 
-  /**
-   * Loi des deux chiffres (docs/DESIGN.md) — affichage seulement.
-   * Magnitude-round to 2 significant figures. 14230 → 14000, 874 → 870, 12.53 → 13.
-   * Les calculs ne passent jamais par ici. #showDetails montre la précision de lecture.
-   */
+  /** Affichage des résultats. Règles : docs/DESIGN.md */
   function sig2Round(n) {
     const x = Number(n);
     if (!isFinite(x)) return NaN;
@@ -159,15 +160,6 @@
     if (!isFinite(n)) return "—";
     if (detailsOn()) return fmtMoney(n);
     return fmtMoneySig2(n);
-  }
-
-  function fmtDaysFr(n) {
-    if (!isFinite(n)) return "—";
-    const whole = Math.abs(n - Math.round(n)) < 1e-9;
-    return n.toLocaleString("fr-CA", {
-      minimumFractionDigits: whole ? 0 : 1,
-      maximumFractionDigits: 1
-    });
   }
 
   function fmtYears(n) {
@@ -318,6 +310,72 @@
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
+  function parseWh(raw) {
+    const v = parseFloat(String(raw == null ? "" : raw).trim().replace(",", "."));
+    if (!isFinite(v) || v < 0) return 0;
+    return v;
+  }
+
+  /** Daily consumption for the reserve (kWh/day): appliance sliders + custom lines. */
+  function consoJourKwh() {
+    let wh = 0;
+    document.querySelectorAll(".load-range, .custom-load-wh").forEach(function (el) {
+      wh += parseWh(el.value);
+    });
+    return wh / 1000;
+  }
+
+  function autonomyHours() {
+    const el = $("autoStop");
+    const h = el ? parseFloat(el.value) : AUTONOMY_DEFAULT_H;
+    if (!isFinite(h) || h <= 0) return 0;
+    return Math.min(AUTONOMY_MAX_H, h);
+  }
+
+  /** Friendly duration for the left of the reserve slider. Display only. */
+  function fmtAutonomyHours(hours) {
+    const h = Number(hours);
+    if (!isFinite(h) || h < 0.125) return "aucune";
+    const totalMin = Math.round(h * 60 / 15) * 15;
+    if (totalMin < 60) return totalMin + " min";
+    const wholeH = Math.floor(totalMin / 60);
+    const mins = totalMin % 60;
+    const days = Math.floor(wholeH / 24);
+    const remH = wholeH % 24;
+    if (days === 0) {
+      if (mins === 0) return wholeH === 1 ? "1 heure" : wholeH + " heures";
+      return wholeH + " h " + mins;
+    }
+    const dayWord = days === 1 ? "1 jour" : days + " jours";
+    if (remH === 0 && mins === 0) return dayWord;
+    if (remH === 12 && mins === 0) return dayWord + " et demi";
+    if (mins === 0) return dayWord + " " + (remH === 1 ? "1 heure" : remH + " h");
+    return dayWord + " " + remH + " h " + mins;
+  }
+
+  function autonomyChoice() {
+    const hours = autonomyHours();
+    return { days: hours / 24, label: fmtAutonomyHours(hours) };
+  }
+
+  function battPricePerKwh() {
+    const el = $("battPrice");
+    if (!el) return NaN;
+    const v = parseFloat(el.value);
+    return isFinite(v) ? v : NaN;
+  }
+
+  /** Fill duration at the December daily rate. Display only. */
+  function fmtFillDuration(days) {
+    if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
+    if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
+    const minutes = days * 24 * 60;
+    if (minutes < 90) return { num: fmtShown(minutes, 0), unit: "min · décembre" };
+    const hours = days * 24;
+    if (hours < 48) return { num: fmtShown(hours, 1), unit: "h · décembre" };
+    return { num: fmtShown(days, 1), unit: "jours · décembre" };
+  }
+
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
   function consoAnnuelleKwh() {
     const el = $("conso");
@@ -335,26 +393,6 @@
     const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
     if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
     return v / 100;
-  }
-
-  /** Daily kWh from annual consumption. Exact: the field may show fewer decimals. */
-  function kwhJourAuto(conso) {
-    if (!isFinite(conso) || conso <= 0) return NaN;
-    return conso / 365;
-  }
-
-  /**
-   * Battery quote at full precision.
-   * reserve kWh = kWh/day × days. Cost = reserve × $/kWh, × taxes when requested.
-   * days = 0 → no battery. LogisVert is not applied here.
-   */
-  function batteryQuote(kwhJour, reserveDays, pricePerKwh, taxesOn) {
-    const days = isFinite(reserveDays) ? reserveDays : 0;
-    const kwh = days === 0 ? 0 : (isFinite(kwhJour) ? kwhJour * days : NaN);
-    const ht = isFinite(kwh) && isFinite(pricePerKwh) ? kwh * pricePerKwh : NaN;
-    const taxes = taxesOn && isFinite(ht) ? ht * (TAX_MULT - 1) : 0;
-    const cost = isFinite(ht) ? ht + taxes : NaN;
-    return { kwh: kwh, ht: ht, taxes: taxes, cost: cost };
   }
 
   /** kWh_credites = min(production, consommation) when conso is provided */
@@ -404,24 +442,32 @@
     const years = eco > 0 ? reel / eco : Infinity;
 
     const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
-    const jourEl = $("kwhJour");
-    const kwhJourManual = !!(jourEl && jourEl.getAttribute("data-manual") === "1");
-    let kwhJour = kwhJourAuto(conso);
-    if (kwhJourManual && jourEl) {
-      const typed = parseFloat(String(jourEl.value).trim().replace(/\s/g, "").replace(",", "."));
-      if (isFinite(typed) && typed >= 0) kwhJour = typed;
+    const auto = autonomyChoice();
+    const consoJour = consoJourKwh();
+    const reserveKwh = consoJour == null ? NaN : consoJour * auto.days;
+    const surplusDay = consoJour == null || !isFinite(kWhDay) ? NaN : kWhDay - consoJour;
+    let fillState = "unknown";
+    let fillDays = NaN;
+    if (consoJour != null && isFinite(kWhDay)) {
+      if (!(reserveKwh > 0)) fillState = "none";
+      else if (!(surplusDay > 0)) fillState = "impossible";
+      else {
+        fillState = "ok";
+        fillDays = reserveKwh / surplusDay;
+      }
     }
-    const reserveDays = readRange("reserveDays", 0, 5, 0.5, 1);
-    const battPrice = readRange("battPrice", 600, 2000, 50, 1200);
-    const batt = batteryQuote(kwhJour, reserveDays, battPrice, taxesOn);
-    const project = isFinite(batt.cost) ? reel + batt.cost : NaN;
+    const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
+    const battPrice = battPricePerKwh();
+    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? reserveKwh * battPrice : NaN;
+    const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
-      kwhJour, kwhJourManual, reserveDays, kwhReserve: batt.kwh,
-      battPrice, battHT: batt.ht, battTaxes: batt.taxes, battCost: batt.cost, project,
+      consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
+      surplusDay, fillState, fillDays, shortfall,
+      battPrice, battCost, projectTotal,
       gridReady, gridStatus, cellSource: cell.source
     };
   }
@@ -712,46 +758,45 @@
       : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
     $("outPayback").textContent = "Coût réel ÷ économies/an ≈ " + yearText;
 
-    syncAutoKwhJour(r.conso);
-    if ($("reserveVal")) $("reserveVal").textContent = fmtDaysFr(r.reserveDays) + " j";
-    if ($("battPriceVal")) $("battPriceVal").textContent = fmtGroupedInt(r.battPrice) + " $";
-    if ($("outReserveEq")) {
-      $("outReserveEq").textContent = isFinite(r.kwhJour)
-        ? fmtShown(r.kwhJour, 2) + " kWh/j × " + fmtDaysFr(r.reserveDays) + " j"
-        : "—";
+    document.querySelectorAll(".load-range").forEach(function (el) {
+      const label = document.getElementById(el.id + "Val");
+      if (label) label.textContent = fmtNum(parseWh(el.value), 0) + " Wh";
+    });
+    const jourNum = $("consoJour");
+    if (jourNum) jourNum.textContent = fmtShown(r.consoJour, 2);
+    const jourWh = $("outConsoWh");
+    if (jourWh) jourWh.textContent = fmtShown(r.consoJour * 1000, 0) + " Wh";
+    if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
+    const autoInput = $("autoStop");
+    if (autoInput) {
+      autoInput.setAttribute("aria-valuenow", autoInput.value);
+      autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtShown(r.kwhReserve, 2);
-    if ($("outBattEq")) {
-      $("outBattEq").textContent = isFinite(r.battHT)
-        ? fmtShown(r.kwhReserve, 2) + " kWh × " + fmtGroupedInt(r.battPrice) + " $/kWh = " + fmtShownMoney(r.battHT) + " (HT)"
-        : "—";
+    if (reserveNum) reserveNum.textContent = fmtShown(r.reserveKwh, 2);
+    if ($("battPriceVal") && isFinite(r.battPrice)) {
+      $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
     }
-    const battNum = $("outBatt") && $("outBatt").querySelector(".prod-num");
-    if (battNum) battNum.textContent = fmtShownMoney(r.battCost);
-    if ($("outBattUnit")) {
-      $("outBattUnit").textContent = r.taxesOn ? "taxes incluses" : "hors taxes";
-    }
-    if ($("outProjectEq")) {
-      $("outProjectEq").textContent = isFinite(r.project)
-        ? fmtShownMoney(r.reel) + " + " + fmtShownMoney(r.battCost)
-        : "—";
-    }
-    if ($("lineSolar")) $("lineSolar").textContent = fmtShownMoney(r.reel);
-    if ($("lineBattery")) $("lineBattery").textContent = fmtShownMoney(r.battCost);
-    const projectNum = $("outProject") && $("outProject").querySelector(".prod-num");
-    if (projectNum) projectNum.textContent = fmtShownMoney(r.project);
-    syncScenarioUrl();
-  }
+    if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
+    if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("outProject")) $("outProject").textContent = fmtShownMoney(r.projectTotal);
 
-  /** Keep the daily field on annual ÷ 365 until the person edits it. */
-  function syncAutoKwhJour(conso) {
-    const el = $("kwhJour");
-    if (!el || el.getAttribute("data-manual") === "1") return;
-    if (typeof document !== "undefined" && document.activeElement === el) return;
-    const auto = kwhJourAuto(conso);
-    const next = isFinite(auto) ? trimNum(auto, 1) : "";
-    if (el.value !== next) el.value = next;
+    const fillNum = $("outFillNum");
+    const fillUnit = $("outFillUnit");
+    if (fillNum && fillUnit) {
+      let fillText = { num: "—", unit: "" };
+      if (r.fillState === "none") fillText = { num: "Aucune réserve", unit: "à remplir" };
+      else if (r.fillState === "impossible") fillText = { num: "Ne se remplit pas", unit: "" };
+      else if (r.fillState === "ok") fillText = fmtFillDuration(r.fillDays);
+      fillNum.textContent = fillText.num;
+      fillNum.classList.toggle("is-sentence", r.fillState === "none" || r.fillState === "impossible");
+      fillUnit.textContent = fillText.unit;
+      fillUnit.hidden = !fillText.unit;
+    }
+    const flag = $("permaFlag");
+    if (flag) flag.hidden = !r.shortfall;
+    syncScenarioUrl();
   }
 
   /** Integer-only area: paste/blur/change/input */
@@ -805,10 +850,7 @@
     taxes: true,
     subv: true,
     conso: DEFAULT_CONSO_KWH,
-    rate: DEFAULT_RATE_CENTS,
-    reserve: 1,
-    battPrice: 1200,
-    kwhJour: null
+    rate: DEFAULT_RATE_CENTS
   };
 
   function snapStep(n, min, max, step) {
@@ -896,25 +938,10 @@
         }
       }
     }
-    let reserve = d.reserve;
-    if (q.has("reserve")) {
-      const v = snapStep(q.get("reserve"), 0, 5, 0.5);
-      if (isFinite(v)) reserve = v;
-    }
-    let battPrice = d.battPrice;
-    if (q.has("battPrice")) {
-      const v = snapStep(q.get("battPrice"), 600, 2000, 50);
-      if (isFinite(v)) battPrice = v;
-    }
-    let kwhJour = d.kwhJour;
-    if (q.has("kwhJour")) {
-      const v = parseFloat(String(q.get("kwhJour")).trim().replace(",", "."));
-      if (isFinite(v) && v >= 0) kwhJour = v;
-    }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, reserve, battPrice, kwhJour };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate };
   }
 
-  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "reserve", "battPrice", "kwhJour"];
+  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -945,9 +972,6 @@
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
       p.set("rate", trimNum(s.rate, 3));
-      p.set("reserve", trimNum(s.reserve, 1));
-      p.set("battPrice", String(Math.round(s.battPrice)));
-      if (s.kwhJour != null) p.set("kwhJour", trimNum(s.kwhJour, 2));
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -962,9 +986,6 @@
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
-    if (s.reserve !== d.reserve) p.set("reserve", trimNum(s.reserve, 1));
-    if (s.battPrice !== d.battPrice) p.set("battPrice", String(Math.round(s.battPrice)));
-    if (s.kwhJour != null) p.set("kwhJour", trimNum(s.kwhJour, 2));
     return p.toString();
   }
 
@@ -981,16 +1002,6 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
-    if ($("reserveDays")) $("reserveDays").value = trimNum(s.reserve, 1);
-    if ($("battPrice")) $("battPrice").value = String(Math.round(s.battPrice));
-    if ($("kwhJour")) {
-      if (s.kwhJour != null) {
-        $("kwhJour").value = trimNum(s.kwhJour, 2);
-        $("kwhJour").setAttribute("data-manual", "1");
-      } else {
-        $("kwhJour").removeAttribute("data-manual");
-      }
-    }
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -1022,18 +1033,8 @@
       taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
-      rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
-      reserve: readRange("reserveDays", 0, 5, 0.5, d.reserve),
-      battPrice: readRange("battPrice", 600, 2000, 50, d.battPrice),
-      kwhJour: readManualKwhJour()
+      rate: isFinite(rateSnapped) ? rateSnapped : d.rate
     };
-  }
-
-  function readManualKwhJour() {
-    const el = $("kwhJour");
-    if (!el || el.getAttribute("data-manual") !== "1") return null;
-    const v = parseFloat(String(el.value).trim().replace(/\s/g, "").replace(",", "."));
-    return isFinite(v) && v >= 0 ? v : null;
   }
 
   function shareMode() {
@@ -1577,7 +1578,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "reserveDays", "battPrice"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -1592,17 +1593,6 @@
         scenarioSnapshot = true;
         requestAnimationFrame(function () { formatConsoInput(true); render(); });
       });
-    }
-    const kwhJour = $("kwhJour");
-    if (kwhJour) {
-      const markKwhJour = function () {
-        const raw = String(kwhJour.value).trim();
-        if (raw === "") kwhJour.removeAttribute("data-manual");
-        else kwhJour.setAttribute("data-manual", "1");
-        onScenarioEdit();
-      };
-      kwhJour.addEventListener("input", markKwhJour);
-      kwhJour.addEventListener("change", markKwhJour);
     }
     const showDetails = $("showDetails");
     if (showDetails) {
@@ -1626,10 +1616,35 @@
         applyNotes();
       });
     }
-    ["util", "deneige", "priceW", "tilt", "reserveDays", "battPrice"].forEach((id) => {
+    ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
+    ["autoStop", "battPrice"].forEach((id) => {
+      const el = $(id);
+      if (el) wireRangePointerDrag(el);
+    });
+    document.querySelectorAll(".load-range").forEach(function (el) {
+      el.addEventListener("input", onScenarioEdit);
+      el.addEventListener("change", onScenarioEdit);
+      wireRangePointerDrag(el);
+    });
+    const customLoads = $("customLoads");
+    if (customLoads) {
+      customLoads.addEventListener("input", function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains("custom-load-wh")) onScenarioEdit();
+      });
+      customLoads.addEventListener("click", function (e) {
+        const btn = e.target.closest ? e.target.closest(".custom-load-remove") : null;
+        if (!btn) return;
+        const row = btn.closest(".custom-load");
+        if (row) row.remove();
+        onScenarioEdit();
+      });
+    }
+    if ($("btnAddLoad")) {
+      $("btnAddLoad").addEventListener("click", function () { addCustomLoad(); });
+    }
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
     });
@@ -1678,6 +1693,27 @@
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
+    if ($("autoStop")) $("autoStop").value = String(AUTONOMY_DEFAULT_H);
+    if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+  }
+
+  function addCustomLoad() {
+    const host = $("customLoads");
+    if (!host) return;
+    const row = document.createElement("div");
+    row.className = "custom-load field";
+    row.innerHTML =
+      '<div class="custom-load-head">' +
+        '<input class="custom-load-name" type="text" maxlength="40" placeholder="Autre usage" autocomplete="off" aria-label="Nom de la consommation" />' +
+        '<button type="button" class="custom-load-remove" aria-label="Retirer cette ligne">×</button>' +
+      "</div>" +
+      '<div class="rate-box">' +
+        '<input class="custom-load-wh" type="number" min="0" step="1" inputmode="decimal" value="" placeholder="0" aria-label="Watt-heures par jour" />' +
+        "<span>Wh / j</span>" +
+      "</div>";
+    host.appendChild(row);
+    const wh = row.querySelector(".custom-load-wh");
+    if (wh) wh.focus();
   }
 
   function setGridFromPayload(data) {
@@ -1738,8 +1774,6 @@
     fmtMoneySig2,
     fmtShown,
     fmtShownMoney,
-    batteryQuote,
-    kwhJourAuto,
     validateBugReport,
     bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
