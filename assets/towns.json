@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 12,
-    "n_scaled": 92,
+    "n_full_grid": 17,
+    "n_scaled": 87,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T18:53:31.242Z"
+    "as_of_utc": "2026-09-23T19:41:59.717Z"
   },
   "towns": [
     {
@@ -48,7 +48,8 @@
       "lat": 48.5489,
       "lon": -71.6515,
       "ac_annual_s30": 1227.5816,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/alma.json"
     },
     {
       "id": "amos",
@@ -226,7 +227,8 @@
       "lat": 47.6945,
       "lon": -70.2262,
       "ac_annual_s30": 1291.8736,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/clermont.json"
     },
     {
       "id": "coaticook",
@@ -281,7 +283,8 @@
       "lat": 48.8832,
       "lon": -72.2337,
       "ac_annual_s30": 1215.8257,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/dolbeau-mistassini.json"
     },
     {
       "id": "drummondville",
@@ -784,7 +787,8 @@
       "lat": 48.406,
       "lon": -71.0692,
       "ac_annual_s30": 1233.1667,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saguenay.json"
     },
     {
       "id": "saint-constant",
@@ -828,7 +832,8 @@
       "lat": 48.5333,
       "lon": -71.0857,
       "ac_annual_s30": 1215.345,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-honore.json"
     },
     {
       "id": "saint-hyacinthe",
