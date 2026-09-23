@@ -1230,6 +1230,8 @@
   const BUG_MIN_FORM_MS = 2000;
   const BUG_ISSUES_URL =
     "https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report";
+  /* Keep in sync with the #bugModal.bug-dock breakpoint in assets/styles.css. */
+  const BUG_DOCK_QUERY = "(min-width: 900px)";
 
   function bugReportEndpoint() {
     if (typeof window !== "undefined" && window.__BUG_REPORT_ENDPOINT__) {
@@ -1331,9 +1333,61 @@
     if (closer) closer.focus();
   }
 
+  function bugDockViewport() {
+    try {
+      return !!(window.matchMedia && window.matchMedia(BUG_DOCK_QUERY).matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function setBugFabBlocked(blocked) {
+    const fab = $("bugFab");
+    if (!fab) return;
+    if (blocked) {
+      try { fab.inert = true; } catch (_) { fab.setAttribute("inert", ""); }
+    } else {
+      try { fab.inert = false; } catch (_) { fab.removeAttribute("inert"); }
+    }
+  }
+
+  function holdPageForModal() {
+    document.body.classList.add("modal-open");
+    const wrap = document.querySelector(".wrap");
+    if (wrap) {
+      wrap.setAttribute("aria-hidden", "true");
+      try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
+    }
+    setBugFabBlocked(true);
+  }
+
+  function releasePageForModal() {
+    document.body.classList.remove("modal-open");
+    const wrap = document.querySelector(".wrap");
+    if (wrap) {
+      wrap.removeAttribute("aria-hidden");
+      try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
+    }
+    setBugFabBlocked(false);
+  }
+
+  function syncBugChrome(open) {
+    const m = $("bugModal");
+    const fab = $("bugFab");
+    const dock = !!(open && bugDockViewport());
+    if (m) {
+      m.classList.toggle("bug-dock", dock);
+      if (open) m.setAttribute("aria-modal", dock ? "false" : "true");
+    }
+    if (fab) fab.setAttribute("aria-expanded", open ? "true" : "false");
+    return dock;
+  }
+
   function openBugReport(e) {
     if (e) e.preventDefault();
-    resetBugForm();
+    const m = $("bugModal");
+    const already = !!(m && !m.hidden && activeModalId === "bugModal");
+    if (!already) resetBugForm();
     openModal("bugModal");
     const field = $("bugText");
     if (field) {
@@ -1435,6 +1489,7 @@
   }
 
   function trapModalTab(e) {
+    if (activeModalId === "bugModal" && bugDockViewport()) return;
     const m = currentModal();
     if (!m || m.hidden || e.key !== "Tab") return;
     const list = modalFocusables();
@@ -1466,12 +1521,16 @@
     activeModalId = id;
     m.hidden = false;
     m.removeAttribute("aria-hidden");
-    document.body.classList.add("modal-open");
-    const wrap = document.querySelector(".wrap");
-    if (wrap) {
-      wrap.setAttribute("aria-hidden", "true");
-      try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
+    const bugOpen = id === "bugModal";
+    const dock = bugOpen && syncBugChrome(true);
+    if (!bugOpen) {
+      const bug = $("bugModal");
+      if (bug) bug.classList.remove("bug-dock");
+      const fab = $("bugFab");
+      if (fab) fab.setAttribute("aria-expanded", "false");
     }
+    if (dock) releasePageForModal();
+    else holdPageForModal();
     const closer = m.querySelector(".modal-close");
     if (id === "bugModal" && $("bugText")) {
       $("bugText").focus();
@@ -1505,12 +1564,8 @@
     else if (activeModalId === "bugModal") fallback = $("bugLink");
     else if (activeModalId === "fieldInfoModal") fallback = document.querySelector(".field-info-btn");
     hideModalEl(m);
-    document.body.classList.remove("modal-open");
-    const wrap = document.querySelector(".wrap");
-    if (wrap) {
-      wrap.removeAttribute("aria-hidden");
-      try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
-    }
+    if (m.id === "bugModal") syncBugChrome(false);
+    releasePageForModal();
     const back = infoOpener && document.contains(infoOpener) ? infoOpener : fallback;
     if (back && typeof back.focus === "function") back.focus();
     infoOpener = null;
@@ -1830,6 +1885,33 @@
     document.querySelectorAll(".bug-report").forEach((a) => {
       a.addEventListener("click", openBugReport);
     });
+    const bugFab = $("bugFab");
+    if (bugFab) {
+      bugFab.addEventListener("click", function (e) {
+        if (e) e.preventDefault();
+        const m = $("bugModal");
+        if (m && !m.hidden && activeModalId === "bugModal") {
+          closeInfo();
+          return;
+        }
+        openBugReport(e);
+      });
+    }
+    if (typeof window.matchMedia === "function") {
+      try {
+        const bugDockMq = window.matchMedia(BUG_DOCK_QUERY);
+        const onBugDockChange = function () {
+          if (activeModalId !== "bugModal") return;
+          const m = $("bugModal");
+          if (!m || m.hidden) return;
+          const dock = syncBugChrome(true);
+          if (dock) releasePageForModal();
+          else holdPageForModal();
+        };
+        if (bugDockMq.addEventListener) bugDockMq.addEventListener("change", onBugDockChange);
+        else if (bugDockMq.addListener) bugDockMq.addListener(onBugDockChange);
+      } catch (_) {}
+    }
     if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
@@ -1845,7 +1927,9 @@
       const el = $(id);
       if (!el) return;
       el.addEventListener("click", function (e) {
-        if (e.target === el) closeInfo();
+        if (e.target !== el) return;
+        if (id === "bugModal" && el.classList.contains("bug-dock")) return;
+        closeInfo();
       });
     });
     document.addEventListener("keydown", (e) => {

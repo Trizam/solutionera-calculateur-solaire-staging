@@ -454,8 +454,8 @@ const designRules =
   html.includes('id="editorNotes" hidden') &&
   html.includes("docs/DESIGN.md") &&
   !html.includes("Loi des deux chiffres") &&
-  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
-  /\.cards\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*stretch/.test(css) &&
+  /\.cards\s*\{[\s\S]{0,220}align-items:\s*stretch/.test(css) &&
   app.includes("function fmtShown") &&
   design.includes("Loi des deux chiffres") &&
   design.includes("result-pill") &&
@@ -1617,7 +1617,23 @@ console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PAS
 console.log(`  proxy validate min / no-token / CORS: ${bugMinPath && bugNoTokenPath && bugCors ? "PASS" : "FAIL"}`);
 console.log(`  api/bug-report Netlify handler: ${netlifyApiFn ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
+const bugDockUi =
+  html.includes('id="bugFab"') &&
+  html.includes('class="bug-fab"') &&
+  html.includes('aria-controls="bugModal"') &&
+  html.includes("Signaler un bug, une erreur de calcul ou une amélioration") &&
+  css.includes(".bug-fab") &&
+  css.includes("#bugModal.bug-dock") &&
+  css.includes("min-width: 900px") &&
+  css.includes("pointer-events: none") &&
+  app.includes('const BUG_DOCK_QUERY = "(min-width: 900px)"') &&
+  app.includes("function bugDockViewport") &&
+  app.includes("bug-dock") &&
+  app.includes('m.setAttribute("aria-modal", dock ? "false" : "true")') &&
+  app.includes("activeModalId === \"bugModal\" && bugDockViewport()") &&
+  !css.includes(".bug-modal");
 console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" : "FAIL"}`);
+console.log(`  bug dock desktop + bubble, other sheets unchanged: ${bugDockUi ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
@@ -2119,6 +2135,7 @@ const pass =
   netlifyApiFn &&
   footerOpen &&
   bugMobileCss &&
+  bugDockUi &&
   bugJsWired &&
   noTokenInFrontend &&
   bugDocs &&
