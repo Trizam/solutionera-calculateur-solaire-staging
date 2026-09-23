@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 17,
-    "n_scaled": 87,
+    "n_full_grid": 21,
+    "n_scaled": 83,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T19:41:59.717Z"
+    "as_of_utc": "2026-09-23T20:20:46.314Z"
   },
   "towns": [
     {
@@ -94,7 +94,8 @@
       "lat": 47.4443,
       "lon": -70.5054,
       "ac_annual_s30": 1259.7881,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/baie-saint-paul.json"
     },
     {
       "id": "beauceville",
@@ -193,7 +194,8 @@
       "lat": 46.9711,
       "lon": -71.0177,
       "ac_annual_s30": 1251.6635,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/chateau-richer.json"
     },
     {
       "id": "chelsea",
@@ -977,7 +979,8 @@
       "lat": 46.9729,
       "lon": -70.9627,
       "ac_annual_s30": 1241.4373,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-famille-de-lile-dorleans.json"
     },
     {
       "id": "sainte-julienne",
@@ -1032,7 +1035,8 @@
       "lat": 46.8866,
       "lon": -71.5166,
       "ac_annual_s30": 1255.5575,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/shannon.json"
     },
     {
       "id": "shawinigan",
