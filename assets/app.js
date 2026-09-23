@@ -20,6 +20,31 @@
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
+  /**
+   * Autonomy ladder, kWh/day in tenths (no electric heat).
+   * Rounded off-grid audits: phone ~0.02–0.05 → 0.1 so the first notch shows;
+   * laptop ~0.25 + router 24 h ~0.25; LED house ~0.5; TV ~0.4;
+   * well/pressure pump ~0.5–1.5; efficient fridge ~1–1.5; chest freezer ~0.8;
+   * one washer load ~0.5 (no dryer); modest electric cooking ~1–1.5.
+   * Full right stop ≈ 6.3 kWh/day. A Québec grid house is ~45 kWh/day.
+   */
+  /** 16px stroke icons, same language as the theme marks. Shown only on a visible row. */
+  function loadIcon(paths) {
+    return '<svg class="load-ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">' + paths + '</svg>';
+  }
+  const ICO_STROKE = ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
+  const DAILY_LOADS = [
+    { label: "Téléphone", tenths: 1, icon: loadIcon('<rect x="4.5" y="1.5" width="7" height="13" rx="1.5"' + ICO_STROKE + '/><path d="M7 12.25h2"' + ICO_STROKE + '/>') },
+    { label: "Ordinateur et Wi-Fi", tenths: 5, icon: loadIcon('<path d="M3.2 4h9.6v6.4H3.2zM1.8 11.6h12.4"' + ICO_STROKE + '/>') },
+    { label: "Éclairage", tenths: 5, icon: loadIcon('<circle cx="8" cy="6.1" r="3.15"' + ICO_STROKE + '/><path d="M6.55 9.15h2.9M6.8 10.7h2.4M7.1 12.15h1.8M7.35 13.5h1.3"' + ICO_STROKE + '/>') },
+    { label: "Télévision", tenths: 4, icon: loadIcon('<rect x="1.75" y="3" width="12.5" height="8" rx="1.25"' + ICO_STROKE + '/><path d="M6.25 13.35h3.5M8 11v2.35"' + ICO_STROKE + '/>') },
+    { label: "Pompe à eau", tenths: 8, icon: loadIcon('<path d="M8 1.7c1.8 2.3 3.5 4.15 3.5 6.15a3.5 3.5 0 0 1-7 0C4.5 5.85 6.2 4 8 1.7z"' + ICO_STROKE + '/>') },
+    { label: "Réfrigérateur", tenths: 12, icon: loadIcon('<rect x="3.75" y="1.5" width="8.5" height="13" rx="1.2"' + ICO_STROKE + '/><path d="M3.75 7h8.5M10.4 4.2v1.15M10.4 9.3v1.15"' + ICO_STROKE + '/>') },
+    { label: "Congélateur", tenths: 8, icon: loadIcon('<path d="M8 1.8v12.4M2.7 4.7 13.3 11.3M13.3 4.7 2.7 11.3"' + ICO_STROKE + '/>') },
+    { label: "Laveuse", tenths: 5, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="8.8" r="2.45"' + ICO_STROKE + '/><path d="M4.7 4.55h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') },
+    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') }
+  ];
+  const CONSO_EXTRA_MAX = 100;
   /** Draft installed-battery range until a real $/kWh band is chosen. */
   const BATT_PRICE_DEFAULT = 1200;
   /** Smooth reserve duration: 0 to 3 days, in hours. Default is one day. */
@@ -323,19 +348,108 @@
     return kWhAnnuel * (1 - (1 - d) * w);
   }
 
-  function parseWh(raw) {
-    const v = parseFloat(String(raw == null ? "" : raw).trim().replace(",", "."));
-    if (!isFinite(v) || v < 0) return 0;
-    return v;
+  /** kWh/j with one decimal, FR comma. Whole numbers drop the decimal (0, 1, 6,3). */
+  function fmtKwhDay(n) {
+    if (!isFinite(n)) return "—";
+    const rounded = Math.round(n * 10) / 10;
+    const whole = Math.abs(rounded - Math.round(rounded)) < 1e-9;
+    return rounded.toLocaleString("fr-CA", {
+      minimumFractionDigits: whole ? 0 : 1,
+      maximumFractionDigits: 1
+    });
   }
 
-  /** Daily consumption for the reserve (kWh/day): appliance sliders + custom lines. */
+  /** Free-text extra kWh/day → 0.1 steps, 0…100. Empty / invalid → 0. */
+  function clampExtraKwh(raw) {
+    const s = String(raw == null ? "" : raw).trim().replace(GROUP_SEP_RE, "").replace(",", ".");
+    if (s === "" || s === "." || s === "+" || s === "-") return 0;
+    const v = Number(s);
+    if (!isFinite(v) || v <= 0) return 0;
+    const snapped = Math.round(v * 10) / 10;
+    return snapped > CONSO_EXTRA_MAX ? CONSO_EXTRA_MAX : snapped;
+  }
+
+  /** Slider step 0…N plus optional extra kWh/day. Sum stays in tenths. */
+  function dailyLoadKwh(step, extra) {
+    const n = Math.max(0, Math.min(DAILY_LOADS.length, Math.round(Number(step) || 0)));
+    let tenths = 0;
+    for (let i = 0; i < n; i++) tenths += DAILY_LOADS[i].tenths;
+    tenths += Math.round(clampExtraKwh(extra) * 10);
+    return tenths / 10;
+  }
+
+  function dailyLoadStep() {
+    return readRange("consoJour", 0, DAILY_LOADS.length, 1, 0);
+  }
+
+  function consoExtraKwh() {
+    const el = $("consoExtra");
+    if (!el) return 0;
+    return clampExtraKwh(el.value);
+  }
+
+  function formatConsoExtraInput() {
+    const el = $("consoExtra");
+    if (!el) return;
+    if (String(el.value).trim() === "") return;
+    const v = clampExtraKwh(el.value);
+    el.value = v > 0 ? fmtKwhDay(v) : "";
+  }
+
+  function renderDailyLoadRows(step) {
+    const body = $("consoJourList");
+    const table = $("consoJourTable");
+    if (!body) return;
+    const n = Math.max(0, Math.min(DAILY_LOADS.length, step));
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      const load = DAILY_LOADS[i];
+      html += "<tr><th scope=\"row\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span></th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
+    }
+    body.innerHTML = html;
+    if (table) table.classList.toggle("is-empty", n === 0);
+  }
+
+  /** Ladder on the slider; total line adds the free kWh/day. Note vs December production. */
+  function updateConsoJourUi(prodDay) {
+    const step = dailyLoadStep();
+    const extra = consoExtraKwh();
+    const base = dailyLoadKwh(step, 0);
+    const total = dailyLoadKwh(step, extra);
+    const val = $("consoJourVal");
+    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh";
+    const maxEl = $("consoJourMax");
+    if (maxEl) maxEl.innerHTML = fmtKwhDay(dailyLoadKwh(DAILY_LOADS.length, 0)) + "&nbsp;kWh";
+    const slider = $("consoJour");
+    if (slider) {
+      const last = step > 0 ? DAILY_LOADS[step - 1].label : "";
+      slider.setAttribute(
+        "aria-valuetext",
+        step === 0
+          ? "0 kilowattheure par jour"
+          : fmtKwhDay(base) + " kilowattheures par jour, avec " + last
+      );
+    }
+    renderDailyLoadRows(step);
+    const totalEl = $("consoJourTotal");
+    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh";
+    const note = $("consoJourNote");
+    if (!note) return;
+    if (!(total > 0) || !isFinite(prodDay)) {
+      note.hidden = true;
+      note.textContent = "";
+      return;
+    }
+    note.hidden = false;
+    const prodTxt = fmtSig2(prodDay);
+    note.textContent = prodDay + 0.001 >= total
+      ? "Décembre produit " + prodTxt + " kWh/j. Cette cible est couverte."
+      : "Décembre produit " + prodTxt + " kWh/j. Cette cible dépasse la production du mois.";
+  }
+
+  /** Daily consumption for the reserve (kWh/day): ladder plus the free line. */
   function consoJourKwh() {
-    let wh = 0;
-    document.querySelectorAll(".load-range, .custom-load-wh").forEach(function (el) {
-      wh += parseWh(el.value);
-    });
-    return wh / 1000;
+    return dailyLoadKwh(dailyLoadStep(), consoExtraKwh());
   }
 
   function autonomyHours() {
@@ -749,6 +863,7 @@
       snowBox.hidden = !r.showVerticalRec;
       snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
+    updateConsoJourUi(r.kWhDay);
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
 
@@ -773,12 +888,6 @@
       : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
     $("outPayback").textContent = "Coût réel ÷ économies/an ≈ " + yearText;
 
-    document.querySelectorAll(".load-range").forEach(function (el) {
-      const label = document.getElementById(el.id + "Val");
-      if (label) label.textContent = fmtNum(parseWh(el.value), 0) + " Wh";
-    });
-    const jourNum = $("consoJour");
-    if (jourNum) jourNum.textContent = fmtShown(r.consoJour, 2);
     const jourWh = $("outConsoWh");
     if (jourWh) jourWh.textContent = fmtShown(r.consoJour * 1000, 0) + " Wh";
     if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
@@ -866,7 +975,9 @@
     taxes: true,
     subv: true,
     conso: DEFAULT_CONSO_KWH,
-    rate: DEFAULT_RATE_CENTS
+    rate: DEFAULT_RATE_CENTS,
+    consoJour: 0,
+    consoExtra: 0
   };
 
   function snapStep(n, min, max, step) {
@@ -954,15 +1065,22 @@
         }
       }
     }
+    let consoJour = d.consoJour;
+    if (q.has("consoJour")) {
+      const v = snapStep(q.get("consoJour"), 0, DAILY_LOADS.length, 1);
+      if (isFinite(v)) consoJour = v;
+    }
+    let consoExtra = d.consoExtra;
+    if (q.has("consoExtra")) consoExtra = clampExtraKwh(q.get("consoExtra"));
     let ville = d.ville;
     if (q.has("ville")) {
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -994,6 +1112,8 @@
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
       p.set("rate", trimNum(s.rate, 3));
+      p.set("consoJour", String(s.consoJour));
+      p.set("consoExtra", trimNum(s.consoExtra, 1));
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1009,6 +1129,8 @@
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
+    if (s.consoJour !== d.consoJour) p.set("consoJour", String(s.consoJour));
+    if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
     return p.toString();
   }
 
@@ -1025,6 +1147,8 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
+    if ($("consoJour")) $("consoJour").value = String(s.consoJour);
+    if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
@@ -1060,6 +1184,8 @@
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
+      consoJour: readRange("consoJour", 0, DAILY_LOADS.length, 1, d.consoJour),
+      consoExtra: consoExtraKwh(),
       ville: canonicalVille(selectedVille)
     };
   }
@@ -1605,7 +1731,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -1647,30 +1773,24 @@
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
+    if ($("consoJour")) wireRangePointerDrag($("consoJour"));
     ["autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
-    document.querySelectorAll(".load-range").forEach(function (el) {
-      el.addEventListener("input", onScenarioEdit);
-      el.addEventListener("change", onScenarioEdit);
-      wireRangePointerDrag(el);
-    });
-    const customLoads = $("customLoads");
-    if (customLoads) {
-      customLoads.addEventListener("input", function (e) {
-        if (e.target && e.target.classList && e.target.classList.contains("custom-load-wh")) onScenarioEdit();
+    const consoExtra = $("consoExtra");
+    if (consoExtra) {
+      consoExtra.addEventListener("input", onScenarioEdit);
+      consoExtra.addEventListener("change", function () {
+        scenarioSnapshot = true;
+        formatConsoExtraInput();
+        render();
       });
-      customLoads.addEventListener("click", function (e) {
-        const btn = e.target.closest ? e.target.closest(".custom-load-remove") : null;
-        if (!btn) return;
-        const row = btn.closest(".custom-load");
-        if (row) row.remove();
-        onScenarioEdit();
+      consoExtra.addEventListener("blur", function () {
+        scenarioSnapshot = true;
+        formatConsoExtraInput();
+        render();
       });
-    }
-    if ($("btnAddLoad")) {
-      $("btnAddLoad").addEventListener("click", function () { addCustomLoad(); });
     }
     document.querySelectorAll(".slider-row").forEach(function (row) {
       wireSliderRowDrag(row);
@@ -2056,25 +2176,6 @@
     }
   }
 
-  function addCustomLoad() {
-    const host = $("customLoads");
-    if (!host) return;
-    const row = document.createElement("div");
-    row.className = "custom-load field";
-    row.innerHTML =
-      '<div class="custom-load-head">' +
-        '<input class="custom-load-name" type="text" maxlength="40" placeholder="Autre usage" autocomplete="off" aria-label="Nom de la consommation" />' +
-        '<button type="button" class="custom-load-remove" aria-label="Retirer cette ligne">×</button>' +
-      "</div>" +
-      '<div class="rate-box">' +
-        '<input class="custom-load-wh" type="number" min="0" step="1" inputmode="decimal" value="" placeholder="0" aria-label="Watt-heures par jour" />' +
-        "<span>Wh / j</span>" +
-      "</div>";
-    host.appendChild(row);
-    const wh = row.querySelector(".custom-load-wh");
-    if (wh) wh.focus();
-  }
-
   function setGridFromPayload(data) {
     if (data && data.cells) {
       baseCells = data.cells;
@@ -2125,6 +2226,9 @@
     applyDeneigement,
     creditKwh,
     consoAnnuelleKwh,
+    dailyLoadKwh,
+    clampExtraKwh,
+    fmtKwhDay,
     parseGroupedInt,
     fmtGroupedInt,
     formatConsoInput,

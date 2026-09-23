@@ -355,131 +355,53 @@
     <div class="slot-need" data-slot="need">
     <section class="block mode-full-only" id="sec-auto" aria-labelledby="h-auto">
       <h2 id="h-auto">
-        <span>Combien consommez-vous par jour&nbsp;?</span>
+        <label for="consoJour">Combien veux-tu consommer par jour&nbsp;?</label>
         <button
           type="button"
           class="field-info-btn"
-          data-info="consojour"
+          data-info="conso-jour"
           aria-haspopup="dialog"
           aria-controls="fieldInfoModal"
-          aria-label="Aide : Consommation par jour"
+          aria-label="Aide : Consommation par jour en autonomie"
+          title="Aide : Consommation par jour en autonomie"
         >
           <span aria-hidden="true">ⓘ</span>
         </button>
       </h2>
-      <p class="hint">Chaque curseur est en watt-heures par jour. Mettez-les à zéro si vous n’utilisez que la ligne perso.</p>
-
-      <div class="field">
-        <label for="loadFridge">Réfrigérateur</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadFridgeVal">1&nbsp;000 Wh</div>
+      <div class="field field-conso-jour" id="field-conso-jour">
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh</div>
           <div class="slider-track">
-            <input class="load-range" id="loadFridge" type="range" min="0" max="3000" step="50" value="1000" />
-            <div class="slider-meta"><span>0</span><span>3&nbsp;000</span></div>
+            <input id="consoJour" type="range" min="0" max="9" step="1" value="0" aria-describedby="consoJourHint" />
+            <div class="slider-meta"><span>0</span><span id="consoJourMax">6,3&nbsp;kWh</span></div>
           </div>
         </div>
-      </div>
-      <div class="field">
-        <label for="loadFreezer">Congélateur</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadFreezerVal">800 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadFreezer" type="range" min="0" max="2500" step="50" value="800" />
-            <div class="slider-meta"><span>0</span><span>2&nbsp;500</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadLight">Éclairage</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadLightVal">200 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadLight" type="range" min="0" max="1500" step="25" value="200" />
-            <div class="slider-meta"><span>0</span><span>1&nbsp;500</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadWifi">Wi-Fi</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadWifiVal">120 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadWifi" type="range" min="0" max="400" step="10" value="120" />
-            <div class="slider-meta"><span>0</span><span>400</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadPhone">Téléphone</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadPhoneVal">15 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadPhone" type="range" min="0" max="80" step="5" value="15" />
-            <div class="slider-meta"><span>0</span><span>80</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadComputer">Ordinateur</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadComputerVal">200 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadComputer" type="range" min="0" max="1000" step="25" value="200" />
-            <div class="slider-meta"><span>0</span><span>1&nbsp;000</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadTv">Télévision</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadTvVal">250 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadTv" type="range" min="0" max="1200" step="25" value="250" />
-            <div class="slider-meta"><span>0</span><span>1&nbsp;200</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadPump">Pompe à eau</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadPumpVal">300 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadPump" type="range" min="0" max="2500" step="50" value="300" />
-            <div class="slider-meta"><span>0</span><span>2&nbsp;500</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadWasher">Laveuse</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadWasherVal">400 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadWasher" type="range" min="0" max="2000" step="50" value="400" />
-            <div class="slider-meta"><span>0</span><span>2&nbsp;000</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loadCook">Cuisson</label>
-        <div class="slider-row">
-          <div class="slider-val-left load-val" id="loadCookVal">600 Wh</div>
-          <div class="slider-track">
-            <input class="load-range" id="loadCook" type="range" min="0" max="3000" step="50" value="600" />
-            <div class="slider-meta"><span>0</span><span>3&nbsp;000</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="customLoads"></div>
-      <button type="button" class="btn btn-quiet" id="btnAddLoad">Ajouter une consommation</button>
-
-      <div class="result-pill" id="consoSum">
-        <div class="label">Consommation par jour</div>
-        <div class="big prod-line">
-          <span class="prod-num" id="consoJour">—</span>
-          <span class="prod-unit">kWh / j</span>
-        </div>
-        <p class="hint" id="outConsoWh">—</p>
+        <p class="hint" id="consoJourHint">En autonomie. Chaque cran vers la droite ajoute un usage.</p>
+        <table class="load-table is-empty" id="consoJourTable" aria-label="Usages inclus dans la consommation par jour">
+          <thead>
+            <tr>
+              <th scope="col">Usage</th>
+              <th scope="col">kWh / j</th>
+            </tr>
+          </thead>
+          <tbody id="consoJourList"></tbody>
+          <tbody>
+            <tr class="load-custom-row">
+              <th scope="row"><label for="consoExtra">Autre consommation</label></th>
+              <td>
+                <div class="load-custom">
+                  <input id="consoExtra" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" aria-label="Autre consommation en kilowattheures par jour" />
+                  <span>kWh / j</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="load-total-row">
+              <th scope="row">Total par jour</th>
+              <td id="consoJourTotal">0 kWh</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="calc-line" id="consoJourNote" hidden></p>
       </div>
     </section>
 
@@ -703,7 +625,8 @@
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
-        <li>Réserve&nbsp;: la consommation par jour est la somme des appareils (Wh / j) plus les lignes perso. Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
+        <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur pédagogique, de 0 à environ 6,3&nbsp;kWh/j (téléphone → cuisson), plus une ligne libre. Sans chauffage électrique. Ce n’est pas la consommation annuelle de la facture.</li>
+        <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée glissée (0 à 3 jours). Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
@@ -719,10 +642,10 @@
         <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
         <ul>
           <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
-          <li>Consommation par jour = somme des curseurs d’appareils (Wh / j) plus les lignes perso. Ce n’est pas la facture annuelle.</li>
+          <li>Consommation par jour = cran du curseur (0 à environ 6,3&nbsp;kWh/j) plus la ligne libre. Ce n’est pas la facture annuelle.</li>
           <li>Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise seulement le surplus de décembre.</li>
           <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
-          <li>La durée de réserve, le prix des batteries et les appareils ne vont pas dans l’URL de partage.</li>
+          <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. Le cran et la ligne libre, oui.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
       </aside>
@@ -919,13 +842,9 @@
   <template id="tpl-info-consojour">
     <span data-info-title>Consommation par jour</span>
     <div class="info-block">
-      <h4>Les curseurs</h4>
-      <p>Chaque ligne est un usage courant, en watt-heures par jour. Ce n’est pas un compteur&nbsp;: un ordre de grandeur pour dimensionner la réserve.</p>
-      <p>Le total en bas additionne toutes les lignes. Mettez les curseurs à zéro et ajoutez une ligne perso si vous connaissez déjà votre chiffre.</p>
-    </div>
-    <div class="info-block">
-      <h4>Pas la facture annuelle</h4>
-      <p>La consommation annuelle, à gauche, sert encore aux économies et au retour solaire. Elle ne change pas cette réserve.</p>
+      <h4>Un seul curseur</h4>
+      <p>Le curseur part de zéro. Chaque cran vers la droite ajoute un usage, du plus léger au plus lourd. La ligne libre ajoute des kWh/j absents de l’échelle.</p>
+      <p>Ce total dimensionne la réserve. Ce n’est pas la facture annuelle, qui sert encore aux économies et au retour solaire.</p>
     </div>
   </template>
   <template id="tpl-info-autostop">
@@ -976,7 +895,35 @@
       <h4>Pourquoi ça bouge</h4>
       <p>L’inclinaison influence aussi l’accumulation&nbsp;:<br>un toit plat (zéro degré) accumule très bien la neige<br>un toit 12/12 (quarante-cinq degrés) accumule la neige<br>une installation verticale (quatre-vingt-dix degrés) n’accumule aucune neige</p>
       <p>La production sous le curseur se met à jour en même temps.</p>
-      <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
+          <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
+    </div>
+  </template>
+  <template id="tpl-info-conso-jour">
+    <span data-info-title>Consommation par jour</span>
+    <div class="info-block">
+      <h4>En autonomie</h4>
+      <p>Le curseur part de zéro. Chaque cran vers la droite ajoute un usage, du plus léger au plus lourd.</p>
+      <p>Les kWh sont des ordres de grandeur pour une maison autonome efficace, <strong>sans chauffage électrique</strong> (bois ou autre). Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
+    </div>
+    <div class="info-block">
+      <h4>Ce que chaque cran ajoute</h4>
+      <ul>
+        <li>Téléphone — 0,1&nbsp;kWh/j</li>
+        <li>Ordinateur et Wi-Fi — 0,5&nbsp;kWh/j</li>
+        <li>Éclairage — 0,5&nbsp;kWh/j</li>
+        <li>Télévision — 0,4&nbsp;kWh/j</li>
+        <li>Pompe à eau — 0,8&nbsp;kWh/j</li>
+        <li>Réfrigérateur — 1,2&nbsp;kWh/j</li>
+        <li>Congélateur — 0,8&nbsp;kWh/j</li>
+        <li>Laveuse — 0,5&nbsp;kWh/j</li>
+        <li>Cuisson — 1,5&nbsp;kWh/j</li>
+      </ul>
+      <p>Tout à droite&nbsp;: environ 6,3&nbsp;kWh/j. Repères d’audits hors réseau, arrondis au 0,1&nbsp;kWh (frigo efficace ~1–1,5, pompe ~0,5–1,5, cuisson électrique modeste ~1–2).</p>
+    </div>
+    <div class="info-block">
+      <h4>Autre consommation</h4>
+      <p>La dernière ligne ajoute des kWh/j absents du curseur&nbsp;: internet satellite, thermopompe, outils, chauffe-eau.</p>
+      <p>Le total se compare à la production de décembre, la journée la plus difficile de l’année.</p>
     </div>
   </template>
 

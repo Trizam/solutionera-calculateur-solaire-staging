@@ -897,6 +897,109 @@ section.block > h2,
 .slot-yield {
   align-items: start;
 }
+.field-conso-jour {
+  margin-top: var(--section-hairline-pad);
+  padding-top: var(--section-hairline-pad);
+  border-top: 1px solid var(--section-hairline);
+}
+.load-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+}
+.load-table.is-empty thead {
+  display: none;
+}
+.load-table th,
+.load-table td {
+  text-align: left;
+  font-weight: 400;
+  padding: 0.34rem 0;
+  border-bottom: 1px dashed var(--border);
+  vertical-align: middle;
+}
+.load-table thead th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding-bottom: 0.2rem;
+}
+.load-table thead th:last-child,
+.load-table td {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+.load-table tbody td {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--green-dark);
+}
+.load-table th[scope="row"] {
+  color: var(--text);
+  padding-right: 0.75rem;
+}
+.load-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.load-ico {
+  flex: 0 0 auto;
+  display: block;
+  color: var(--green);
+}
+.load-table:not(.is-empty) thead th:first-child,
+.load-table:not(.is-empty) .load-custom-row th,
+.load-table:not(.is-empty) .load-total-row th {
+  padding-left: calc(16px + 0.45rem);
+}
+.load-custom-row th {
+  font-weight: 400;
+}
+.load-custom-row label {
+  font-weight: 400;
+  font-size: 0.9rem;
+  margin: 0;
+  color: var(--text);
+}
+.load-custom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+.load-custom input {
+  width: 4.75rem;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 16px; /* iOS: avoid auto-zoom on focus */
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  background: var(--input-bg);
+  color: var(--text);
+}
+.load-custom span {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.load-total-row th,
+.load-total-row td {
+  border-bottom: 0;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--green-dark);
+  padding-top: 0.55rem;
+}
+.load-table + .calc-line {
+  margin-top: 0.55rem;
+}
 .yield-auto {
   display: flex;
   flex-direction: column;

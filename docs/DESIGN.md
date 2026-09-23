@@ -63,7 +63,7 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
 | Rendement | Mesurage net et autonomie de décembre | Paire de boîtes vertes |
-| Besoin | Combien consommez-vous par jour ? | Somme des appareils, boîte verte en kWh/j |
+| Besoin | Combien veux-tu consommer par jour ? | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre |
 | Réserve | Combien de jours de réserve voulez-vous ? | Durée 0 à 3 jours, boîte verte en kWh |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte verte, flèche centrée |
 | Coût | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
@@ -71,12 +71,12 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | Retour | Valeur des panneaux | Trio `.card-kpi` |
 | Total | Coût total du projet | Panneaux (coût réel) + batteries, chiffre vert |
 
-La consommation du jour est la somme des curseurs d’appareils et des lignes perso. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
+La consommation du jour est le cran du curseur (téléphone jusqu’à la cuisson) plus la ligne libre. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
 
 Réserve (kWh) = consommation du jour × durée. Coût des batteries = réserve × prix $/kWh, sans taxes. LogisVert reste sur les panneaux. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
 
 Prix batterie : curseur 600–1 800 $/kWh, pas de 50, défaut 1 200. Durée : 0 à 72 h, pas de 0,25 h, défaut 24 h (1 jour). Durée nulle = pas de batterie.
 
-L’URL de partage ne contient que le scénario de toiture (superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif). La durée de réserve, le prix des batteries et les appareils n’y vont pas.
+L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus le cran du curseur et la ligne libre. La durée de réserve et le prix des batteries n’y vont pas.
 
 En mode webi, tout ce qui porte `.mode-full-only` est masqué : coût, retour, consommation du jour, réserve, remplissage, batterie, total.
