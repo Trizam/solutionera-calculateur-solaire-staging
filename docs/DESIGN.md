@@ -49,8 +49,8 @@ La réserve en kWh est plus fine que les crans de durée : sous 100 kWh elle s�
 
 Les cartes **4A**, **4B**, **5** et **6** sont l’équipe bleue. Même intensité, même transparence, même typo que la famille verte — seulement du côté bleu, pour l’autonomie.
 
-- Le fond de la carte a la même douceur que la boîte verte (`#d6e8f8`). Le titre, la pastille et les curseurs sont bleus.
-- La réserve reste une tuile claire, chiffre bleu.
+- La carte reste blanche, comme à gauche. Seule la teinte change : titre, pastille et curseur en bleu foncé, boîtes de réponse en bleu clair.
+- La réserve est une boîte bleu clair, chiffre bleu foncé, comme les boîtes vertes.
 - Le remplissage (surplus de décembre) reste vert.
 - Le total de la carte 6 reste une boîte verte (`.result-keep-green`), sous le calcul.
 

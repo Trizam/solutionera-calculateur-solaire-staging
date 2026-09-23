@@ -295,13 +295,10 @@ section.block.team-blue {
   --accent: #3d7eb8;
   --pill-end: #e7f2fb;
   --hover-soft: #c5dff3;
-  --muted: #4d6278;
-  /* Soft blue, same lightness as the green answer boxes. */
-  background: #d6e8f8;
-  border-color: #b7d0ea;
-  box-shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
+  --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
 }
 html[data-theme="dark"] section.block.team-blue {
+  --card: #182430;
   --green: #8ec4ea;
   --green-soft: #1a3348;
   --green-mid: #7eb6e0;
@@ -310,10 +307,7 @@ html[data-theme="dark"] section.block.team-blue {
   --accent: #7eb6e0;
   --pill-end: #152a3c;
   --hover-soft: #243e56;
-  --muted: #a9c0d4;
-  background: #1a3348;
-  border-color: #2c4d68;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+  --shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
 }
 /* Le total du projet reste une boîte verte, même dans une carte bleue. */
 .result-keep-green {
@@ -336,16 +330,6 @@ html[data-theme="dark"] .result-keep-green {
 }
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
-}
-/* Answer box stays a lighter tile on the blue card. The project total stays green. */
-section.block.team-blue .result-pill:not(.result-keep-green) {
-  background: linear-gradient(135deg, #f7fbfe, #ffffff);
-  border-color: #8fb4d4;
-}
-section.block.team-blue .slider-track input[type="range"]::-webkit-slider-runnable-track,
-section.block.team-blue .slider-track input[type="range"]::-moz-range-track {
-  background: #f7fbfe;
-  border-color: #8fb4d4;
 }
 .hint {
   font-size: 0.82rem;
@@ -2014,9 +1998,8 @@ section.block h2 .field-info-btn {
     --accent: #3d7eb8;
     --pill-end: #e7f2fb;
     --hover-soft: #c5dff3;
-    --muted: #4d6278;
-    background: #d6e8f8;
-    border-color: #b7d0ea;
+    --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
+    background: #ffffff;
     box-shadow: none;
   }
   html[data-theme="dark"] .result-keep-green {
