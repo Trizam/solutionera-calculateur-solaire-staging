@@ -282,6 +282,46 @@ section.block h2 > label,
 section.block h2 > span:not(.num) {
   min-width: 0;
 }
+/*
+ * Thème bleu des cartes d’autonomie (4A, 4B, remplissage, 5, 6).
+ * Même intensité que la famille verte. Règle : docs/DESIGN.md
+ */
+.theme-blue {
+  --green: #2a5f8f;
+  --green-soft: #d6e8f8;
+  --green-mid: #4f94c9;
+  --green-dark: #16324f;
+  --border: #c5d7ec;
+  --accent: #3d7eb8;
+  --pill-end: #e7f2fb;
+  --hover-soft: #c5dff3;
+  --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
+}
+/* Thème jaune des drapeaux. Même douceur que les boîtes verte et bleue. */
+.theme-yellow {
+  --flag-bg: #fff4cc;
+  --flag-bg-end: #fffbeb;
+  --flag-border: #ead98a;
+  --flag-text: #1a1a1a;
+  border: 1px solid var(--flag-border);
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
+}
+html[data-theme="dark"] .theme-blue {
+  --card: #182430;
+  --green: #8ec4ea;
+  --green-soft: #1a3348;
+  --green-mid: #7eb6e0;
+  --green-dark: #d6e8f8;
+  --border: #2c4d68;
+  --accent: #7eb6e0;
+  --pill-end: #152a3c;
+  --hover-soft: #243e56;
+  --shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+}
+html[data-autonomy="off"] .autonomy-rest {
+  display: none !important;
+}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -922,12 +962,9 @@ section.block > h2,
 .autonomy-snow {
   margin-top: 0.65rem;
   padding: 0.8rem 1rem;
-  border: 1px solid var(--flag-border);
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
   font-size: 0.86rem;
   line-height: 1.45;
-  color: var(--flag-text);
   text-align: start;
   overflow-wrap: break-word;
   hyphens: auto;
@@ -1068,10 +1105,7 @@ section.block > h2,
 .fill-shortfall {
   margin: 0.75rem 0 0;
   padding: 0.7rem 0.85rem;
-  border: 1px solid var(--flag-border);
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
-  color: var(--flag-text);
   font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.4;
@@ -1221,10 +1255,7 @@ section.block > h2,
 .kpi-note {
   margin: 0.65rem 0 0;
   padding: 0.7rem 0.85rem;
-  border: 1px solid var(--flag-border);
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
-  color: var(--flag-text);
   font-size: 0.86rem;
   font-weight: 400;
   line-height: 1.4;
@@ -1781,9 +1812,9 @@ html[data-theme="dark"] .bug-done {
   font-size: 0.84rem;
   white-space: normal;
 }
-#sec-reserve { --prod-gutter: 8.75rem; }
+#sec-reserve { --prod-gutter: 9.5rem; }
 #sec-reserve .slider-val-left {
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   white-space: normal;
   line-height: 1.15;
 }
@@ -1840,23 +1871,9 @@ section.block h2 .field-info-btn {
   margin-left: auto;
   align-self: center;
 }
-.project-total {
-  text-align: center;
-  padding: 0.35rem 0 0.15rem;
-}
-.project-total .kpi {
-  font-size: 1.7rem;
-  font-weight: 700;
-  color: var(--green-dark);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-.project-total .kpi-label {
-  margin-top: 0.2rem;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
 .project-note { text-align: center; }
+#sec-total .breakdown { margin-bottom: 0.85rem; }
+#sec-total .result-pill { margin-top: 0; }
 
 @media (min-width: 1100px) {
   html:not([data-mode="webi"]) .wrap { max-width: 1180px; }
@@ -1874,8 +1891,8 @@ section.block h2 .field-info-btn {
     row-gap: 1rem;
     align-items: stretch;
   }
-  html:not([data-mode="webi"]) .slot-size { grid-area: size; }
-  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; }
+  html:not([data-mode="webi"]) .slot-size { grid-area: size; align-self: start; }
+  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; align-self: start; }
   html:not([data-mode="webi"]) .slot-need { grid-area: need; }
   html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
   html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
@@ -1890,10 +1907,6 @@ section.block h2 .field-info-btn {
     flex-direction: column;
   }
   html:not([data-mode="webi"]) .slot-need { align-self: start; }
-  html:not([data-mode="webi"]) .slot-total .project-total {
-    margin-top: auto;
-    margin-bottom: auto;
-  }
   html:not([data-mode="webi"]) .flow-arrow {
     display: grid;
     place-items: center;
@@ -1957,6 +1970,19 @@ section.block h2 .field-info-btn {
     --pill-end: #e9f5ee;
     --thumb-ring: #ffffff;
     --modal-bg: #ffffff;
+  }
+  html[data-theme="dark"] .theme-blue {
+    --green: #2a5f8f;
+    --green-soft: #d6e8f8;
+    --green-mid: #4f94c9;
+    --green-dark: #16324f;
+    --border: #c5d7ec;
+    --accent: #3d7eb8;
+    --pill-end: #e7f2fb;
+    --hover-soft: #c5dff3;
+    --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
+    background: #ffffff;
+    box-shadow: none;
   }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
@@ -2078,9 +2104,7 @@ section.block h2 .field-info-btn {
   outline-offset: 2px;
 }
 .grid-status[hidden] {
-  /* Keep layout slot (visibility) instead of collapsing display */
-  visibility: hidden;
-  display: block !important;
+  display: none !important;
 }
 
 /* ~390px phones: hero/brand spacing + slider values stay clear of track/meta */
