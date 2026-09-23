@@ -1452,6 +1452,27 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   function expect(cond, msg) {
     if (!cond) fails.push(msg);
   }
+  function fullSearch(over) {
+    const s = Object.assign({
+      mode: "full",
+      area: 40,
+      unit: "m2",
+      util: 80,
+      orient: 180,
+      tilt: 30,
+      deneige: 20,
+      priceW: "3",
+      taxes: "1",
+      subv: "1",
+      conso: 17000,
+      rate: "12.811"
+    }, over || {});
+    const p = new URLSearchParams();
+    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+      p.set(key, String(s[key]));
+    });
+    return "?" + p.toString();
+  }
   const roundTrips = [
     ["", ""],
     ["?mode=webi", "?mode=webi"],
@@ -1460,25 +1481,25 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=full", ""],
     ["?mode=banana", ""],
     ["?foo=1", ""],
-    ["?area=40&unit=sqft", "?area=40&unit=sqft"],
-    ["?unit=pi2&area=100", "?area=100&unit=sqft"],
-    ["?unit=m2&area=40", ""],
+    ["?area=40&unit=sqft", fullSearch({ area: 40, unit: "sqft" })],
+    ["?unit=pi2&area=100", fullSearch({ area: 100, unit: "sqft" })],
+    ["?unit=m2&area=40", fullSearch()],
     [
       "?util=70&orient=90&tilt=45&deneige=0&priceW=3.5&taxes=0&subv=0&conso=12000&rate=9.53",
-      "?util=70&orient=90&tilt=45&deneige=0&priceW=3.5&taxes=0&subv=0&conso=12000&rate=9.53"
+      fullSearch({ util: 70, orient: 90, tilt: 45, deneige: 0, priceW: "3.5", taxes: "0", subv: "0", conso: 12000, rate: "9.53" })
     ],
-    ["?mode=webi&area=0&conso=0&orient=0", "?mode=webi&area=0&orient=0&conso=0"],
+    ["?mode=webi&area=0&conso=0&orient=0", fullSearch({ mode: "webi", area: 0, conso: 0, orient: 0 })],
     [
       "?tilt=31&orient=190&util=10&priceW=9&rate=nope&conso=abc",
-      "?util=60&orient=195&priceW=4.5"
+      fullSearch({ util: 60, orient: 195, priceW: "4.5" })
     ],
-    ["?taxes=off&subv=non&rate=9,53", "?taxes=0&subv=0&rate=9.53"],
+    ["?taxes=off&subv=non&rate=9,53", fullSearch({ taxes: "0", subv: "0", rate: "9.53" })],
     [
       "?orient=-15&tilt=90&deneige=100&util=100&priceW=2.5",
-      "?util=100&orient=345&tilt=90&deneige=100&priceW=2.5"
+      fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
     ],
-    ["?area=40.6&unit=m2", "?area=41"],
-    ["?mode=webi&tilt=31", "?mode=webi"]
+    ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
@@ -1507,13 +1528,17 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.el("conso").value === "17 000", "conso default grouped");
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
-  expect(live.history.replaceCount === 0, "default util does not rewrite");
+  const fullDefault = fullSearch();
+  expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
+  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+    expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
+  });
   fireInput(live, "util", "81");
   fireInput(live, "util", "82");
   fireInput(live, "util", "83");
   fireInput(live, "util", "84");
   fireInput(live, "util", "85");
-  expect(live.location.search === "?util=85", `live util → ${live.location.search}`);
+  expect(live.location.search === fullSearch({ util: 85 }), `live util → ${live.location.search}`);
   expect(live.location.hash === "#main", "live edit keeps hash");
   expect(live.history.pushCount === 0, "slider ticks do not push history");
   const afterSlider = live.history.replaceCount;
@@ -1526,7 +1551,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   live.el("unitSqft").dispatchEvent({ type: "click", target: live.el("unitSqft") });
   const sqftArea = String(Math.round(55 * 10.76391041671));
   expect(live.el("area").value === sqftArea, `unit click converts area to ${sqftArea}, got ${live.el("area").value}`);
-  expect(live.location.search === `?area=${sqftArea}&unit=sqft&util=85`, `live unit URL ${live.location.search}`);
+  expect(live.location.search === fullSearch({ area: sqftArea, unit: "sqft", util: 85 }), `live unit URL ${live.location.search}`);
   expect(!live.location.href.includes("secret"), "bug text stays out of the URL");
   const shared = await bootScenario(live.location.search, live.location.hash);
   expect(shared.el("area").value === sqftArea, "shared area");
@@ -1545,8 +1570,9 @@ const scenarioOk = await (async function runScenarioUrlTests() {
 
   const webi = await bootScenario("?mode=webi&priceW=4");
   expect(webi.api.displayMode === "webi", "webi mode kept");
+  expect(webi.location.search === fullSearch({ mode: "webi", priceW: "4" }), `partial webi link expands → ${webi.location.search}`);
   fireInput(webi, "deneige", "40");
-  expect(webi.location.search === "?mode=webi&deneige=40&priceW=4", `webi live ${webi.location.search}`);
+  expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
