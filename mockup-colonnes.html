@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Maquette — production solaire en bleu, batterie et autonomie en vert." />
+  <title>Maquette · Production bleue, batterie verte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="stylesheet" href="assets/mockup-colonnes.css" />
+</head>
+<body>
+  <a class="skip-link" href="#stage">Aller aux deux colonnes</a>
+  <div class="page">
+    <header class="top">
+      <img src="assets/logo-solution-era.png" alt="" width="44" height="44" decoding="async" />
+      <div>
+        <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
+        <div class="brand-sub">Maquette de thème <span class="chip">pas le calculateur</span></div>
+      </div>
+    </header>
+
+    <div class="stage" id="stage">
+      <section class="col col-solar" aria-labelledby="h-solar">
+        <div class="col-banner">
+          <div class="col-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="1.8" />
+              <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M5.1 18.9l1.6-1.6M17.3 6.7l1.6-1.6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="h-solar">Production solaire</h2>
+            <p>Tout le toit, dans le bleu</p>
+          </div>
+        </div>
+        <div class="col-body">
+          <div class="field">
+            <div class="label-row">
+              <label for="area">Superficie de toiture</label>
+            </div>
+            <div class="area-row">
+              <input id="area" type="number" min="0" step="1" inputmode="numeric" value="40" />
+              <span class="unit">m²</span>
+            </div>
+            <p class="hint">→ Versant le mieux orienté. Densité à 80&nbsp;% par défaut.</p>
+          </div>
+
+          <div class="field">
+            <div class="label-row">
+              <label for="util">Densité d’installation</label>
+              <span class="live" id="utilVal">80 %</span>
+            </div>
+            <div class="slider-track">
+              <input id="util" type="range" min="60" max="100" step="1" value="80" />
+            </div>
+            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
+
+          <div class="field">
+            <div class="label-row">
+              <label for="orient">Orientation</label>
+              <span class="live" id="orientVal">180° (Sud)</span>
+            </div>
+            <div class="slider-track">
+              <input id="orient" type="range" min="0" max="345" step="15" value="180" />
+            </div>
+            <div class="slider-meta"><span>0° Nord</span><span>345°</span></div>
+          </div>
+
+          <div class="field">
+            <div class="label-row">
+              <label for="tilt">Inclinaison</label>
+              <span class="live" id="tiltVal">30°</span>
+            </div>
+            <div class="slider-track">
+              <input id="tilt" type="range" min="0" max="90" step="15" value="30" />
+            </div>
+            <div class="slider-meta"><span>0°</span><span>90° vertical</span></div>
+          </div>
+
+          <div class="results" aria-live="polite">
+            <div class="pill">
+              <div class="k">Panneaux</div>
+              <div class="v" id="outPv">—</div>
+            </div>
+            <div class="pill">
+              <div class="k">Puissance</div>
+              <div class="v" id="outKw">—</div>
+              <span class="u">kWc</span>
+            </div>
+            <div class="pill pill-hero">
+              <div class="k">Mesurage net</div>
+              <div class="v" id="outKwh">—</div>
+              <span class="u">kWh / an</span>
+            </div>
+          </div>
+          <p class="hint" id="gridStatus">Chargement de la grille d’irradiation…</p>
+        </div>
+      </section>
+
+      <section class="col col-battery" aria-labelledby="h-battery">
+        <div class="col-banner">
+          <div class="col-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <rect x="2.5" y="7" width="16.5" height="10" rx="2" fill="none" stroke="#fff" stroke-width="1.8" />
+              <path d="M19 10h1.6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H19" fill="none" stroke="#fff" stroke-width="1.8" />
+              <path d="M6 12h4M8 10v4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="h-battery">Batterie et autonomie</h2>
+            <p>Tout l’hiver, dans le vert</p>
+          </div>
+        </div>
+        <div class="col-body">
+          <div class="field">
+            <div class="label-row">
+              <label for="deneige">Fréquence de déneigement</label>
+              <span class="live" id="deneigeVal">−14 %</span>
+            </div>
+            <div class="slider-track">
+              <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
+            </div>
+            <div class="slider-meta"><span>jamais</span><span>toujours</span></div>
+            <p class="hint">→ Le chiffre est la perte qui reste, pas l’effort. Il change aussi l’année, à gauche.</p>
+          </div>
+
+          <div class="field">
+            <div class="label-row">
+              <label for="battery">Capacité de batterie</label>
+              <span class="live" id="batteryVal">10 kWh</span>
+            </div>
+            <div class="slider-track">
+              <input id="battery" type="range" min="0" max="40" step="1" value="10" />
+            </div>
+            <div class="slider-meta"><span>0 kWh</span><span>40 kWh</span></div>
+          </div>
+
+          <div class="field">
+            <div class="label-row">
+              <label for="reserve">Réserve utilisable</label>
+              <span class="live" id="reserveVal">80 %</span>
+            </div>
+            <div class="slider-track">
+              <input id="reserve" type="range" min="50" max="100" step="5" value="80" />
+            </div>
+            <div class="slider-meta"><span>50&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
+
+          <div class="results" aria-live="polite">
+            <div class="pill">
+              <div class="k">Autonomie décembre</div>
+              <div class="v" id="outDay">—</div>
+              <span class="u">kWh / j</span>
+            </div>
+            <div class="pill">
+              <div class="k">Batterie utile</div>
+              <div class="v" id="outUsable">—</div>
+              <span class="u">kWh</span>
+            </div>
+            <div class="pill pill-hero">
+              <div class="k">Jours sans soleil</div>
+              <div class="v" id="outDays">—</div>
+              <span class="u">couverts par la batterie</span>
+            </div>
+          </div>
+
+          <div class="battery-row">
+            <div class="battery" aria-hidden="true">
+              <div class="battery-body"><div class="battery-fill" id="batteryFill"></div></div>
+              <div class="battery-cap"></div>
+            </div>
+            <p class="battery-caption" id="batteryCaption">Jauge sur 7 jours sans soleil</p>
+          </div>
+          <p class="formula" id="formula">—</p>
+          <p class="note" id="snowNote">
+            Tu ne déneiges pas à 100&nbsp;%. En pleine autonomie, des panneaux verticaux gardent décembre au-dessus de zéro.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <p class="foot">
+      Maquette seulement. Les kWh viennent de la grille Québec du calculateur (ville, PVWatts).
+      Les jours de batterie sont un ajout de cette page&nbsp;: capacité × réserve ÷ production de décembre par jour.
+      Le calculateur en ligne ne change pas.
+    </p>
+  </div>
+  <script src="assets/mockup-colonnes.js"></script>
+</body>
+</html>
