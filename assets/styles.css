@@ -1358,6 +1358,30 @@ html[data-theme="dark"] .bug-fab[aria-expanded="true"] {
   background: var(--green-mid);
   color: #102018;
 }
+.bug-done {
+  position: fixed;
+  z-index: 45;
+  left: max(1rem, env(safe-area-inset-left, 0px));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 3.25rem + 0.55rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.7rem 0.4rem 0.5rem;
+  border-radius: 999px;
+  background: var(--green-dark);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.28);
+  pointer-events: none;
+}
+.bug-done[hidden] { display: none !important; }
+html[data-theme="dark"] .bug-done {
+  background: var(--green);
+  color: #102018;
+}
 
 /* Info modal */
 .modal-backdrop {
@@ -1700,11 +1724,6 @@ html[data-theme="dark"] .bug-fab[aria-expanded="true"] {
   margin: 0 0 0.5rem;
 }
 .bug-form-status[hidden] { display: none; }
-.bug-success-msg {
-  font-weight: 700;
-  color: var(--green-dark);
-  font-size: 1rem;
-}
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 
 /* Desktop board — slots stay independent so a later mobile layout can reorder them. */
@@ -1907,7 +1926,7 @@ section.block h2 .field-info-btn {
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, .bug-fab, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, .bug-fab, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
   .board {
     display: block !important;

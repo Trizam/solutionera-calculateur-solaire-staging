@@ -963,10 +963,16 @@
     aria-haspopup="dialog"
     aria-label="Signaler un bug, une erreur de calcul ou une amélioration"
   >
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <path fill="currentColor" d="M5 4.75h14A2.25 2.25 0 0 1 21.25 7v7.25A2.25 2.25 0 0 1 19 16.5h-7.1L7.2 19.9a.7.7 0 0 1-1.12-.56V16.5H5A2.25 2.25 0 0 1 2.75 14.25V7A2.25 2.25 0 0 1 5 4.75z" />
+    <svg class="bug-fab-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path fill="currentColor" d="M20 8h-2.81a5.985 5.985 0 0 0-1.82-1.96L17 4.41 15.59 3l-2.17 2.17A5.99 5.99 0 0 0 12 5c-.53 0-1.04.07-1.42.17L8.41 3 7 4.41l1.63 1.63A5.985 5.985 0 0 0 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81a6.003 6.003 0 0 0 10.38 0H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z" />
     </svg>
   </button>
+  <div id="bugDone" class="bug-done" hidden role="status">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+    <span>Done</span>
+  </div>
   <div class="modal-backdrop info-sheet" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
     <div class="modal-card">
       <div class="modal-head">
@@ -992,14 +998,6 @@
         </div>
         <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
       </form>
-
-      <div id="bugSuccess" class="sheet-form" hidden>
-        <div class="modal-body">
-          <p class="bug-success-msg">Merci — signalement envoyé.</p>
-          <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
-        </div>
-        <button type="button" class="btn" id="btnBugOk">Fermer</button>
-      </div>
     </div>
   </div>
 

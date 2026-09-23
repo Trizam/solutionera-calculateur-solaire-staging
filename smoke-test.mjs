@@ -1635,6 +1635,24 @@ const bugDockUi =
   !css.includes(".bug-modal");
 console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  bug dock desktop + bubble, other sheets unchanged: ${bugDockUi ? "PASS" : "FAIL"}`);
+const bugWindowPolish =
+  html.includes('class="bug-fab-icon"') &&
+  html.includes("M20 8h-2.81") &&
+  !html.includes("M5 4.75h14") &&
+  html.includes('id="bugDone"') &&
+  html.includes(">Done<") &&
+  !html.includes('id="bugSuccess"') &&
+  !html.includes("btnBugOk") &&
+  css.includes(".bug-done") &&
+  css.includes(".bug-done, footer.bug") &&
+  app.includes("function showBugDone") &&
+  app.includes("function bugShortcutTarget") &&
+  app.includes("e.metaKey || e.ctrlKey") &&
+  app.includes('setTimeout(hideBugDone, 1000)') &&
+  !app.includes("function showBugSuccess") &&
+  bugDocsSrc.includes("Command+Entrée") &&
+  bugDocsSrc.includes("Done");
+console.log(`  bug icon, Done toast, Command+Enter: ${bugWindowPolish ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
@@ -2137,6 +2155,7 @@ const pass =
   footerOpen &&
   bugMobileCss &&
   bugDockUi &&
+  bugWindowPolish &&
   bugJsWired &&
   noTokenInFrontend &&
   bugDocs &&
