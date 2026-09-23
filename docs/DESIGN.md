@@ -10,8 +10,8 @@ Toute réponse principale s’affiche dans la famille verte (fond `--green-soft`
 
 - Une boîte `.result-pill` = une réponse. Le chiffre est grand, l’unité en dessous, le libellé au-dessus. Production, consommation du jour, réserve et temps de remplissage utilisent cette boîte.
 - Le trio de la carte valeur reste des `.card-kpi` : même famille, format plus petit.
-- Le coût total du projet est une boîte verte `.result-pill.result-keep-green` sous le détail. Les lignes `.breakdown` (panneaux, batteries) sont au-dessus. Elles ne remplacent pas ce chiffre.
-- Ne pas inventer une autre couleur de résultat, sauf la famille bleue des cartes d’autonomie.
+- Le coût total du projet est une boîte `.result-pill` sous le détail. Les lignes `.breakdown` (panneaux, batteries) sont au-dessus. Elles ne remplacent pas ce chiffre. Sur la carte 6, cette boîte suit le thème bleu.
+- Ne pas inventer une autre couleur de résultat. Le thème vert est celui de la page. Le thème bleu se pose avec `.theme-blue` sur une carte.
 
 ## 2. Hauteur des cartes et flèche
 
@@ -45,9 +45,9 @@ La boîte verte montre l’arrondi du **vrai** total, pas la somme des lignes d�
 
 La réserve en kWh est plus fine que les crans de durée : sous 100 kWh elle s’affiche au centième (au millième sous 0,1). Le mot à gauche du curseur reste le nom du cran.
 
-## 1 bis. Famille bleue
+## 1 bis. Thème bleu
 
-Les cartes **4A**, **4B**, **5** et **6** sont l’équipe bleue. Même intensité, même transparence, même typo que la famille verte — seulement du côté bleu, pour l’autonomie.
+Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`. Même intensité, même transparence, même typo que le thème vert — seulement la teinte change, pour l’autonomie.
 
 - La carte reste blanche, comme à gauche. Seule la teinte change : titre, pastille et curseur en bleu foncé, boîtes de réponse en bleu clair.
 - La réserve est une boîte bleu clair, chiffre bleu foncé, comme les boîtes vertes.

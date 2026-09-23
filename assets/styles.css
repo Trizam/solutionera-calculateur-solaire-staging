@@ -283,10 +283,10 @@ section.block h2 > span:not(.num) {
   min-width: 0;
 }
 /*
- * Famille bleue des cartes d’autonomie (4A, 4B, 5, 6).
+ * Thème bleu des cartes d’autonomie (4A, 4B, remplissage, 5, 6).
  * Même intensité que la famille verte. Règle : docs/DESIGN.md
  */
-.team-blue {
+.theme-blue {
   --green: #2a5f8f;
   --green-soft: #d6e8f8;
   --green-mid: #4f94c9;
@@ -297,7 +297,7 @@ section.block h2 > span:not(.num) {
   --hover-soft: #c5dff3;
   --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
 }
-html[data-theme="dark"] .team-blue {
+html[data-theme="dark"] .theme-blue {
   --card: #182430;
   --green: #8ec4ea;
   --green-soft: #1a3348;
@@ -308,25 +308,6 @@ html[data-theme="dark"] .team-blue {
   --pill-end: #152a3c;
   --hover-soft: #243e56;
   --shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
-}
-/* Le total du projet reste une boîte verte, même dans une carte bleue. */
-.result-keep-green {
-  --green: #2d6a4f;
-  --green-soft: #d8f3dc;
-  --green-mid: #52b788;
-  --green-dark: #1b4332;
-  --border: #cfe3d4;
-  --pill-end: #e9f5ee;
-  --muted: #5c6b5c;
-}
-html[data-theme="dark"] .result-keep-green {
-  --green: #52b788;
-  --green-soft: #1f3a2d;
-  --green-mid: #74c69d;
-  --green-dark: #d8f3dc;
-  --border: #2f4a3c;
-  --pill-end: #1a3026;
-  --muted: #9bb0a0;
 }
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
@@ -1989,7 +1970,7 @@ section.block h2 .field-info-btn {
     --thumb-ring: #ffffff;
     --modal-bg: #ffffff;
   }
-  html[data-theme="dark"] .team-blue {
+  html[data-theme="dark"] .theme-blue {
     --green: #2a5f8f;
     --green-soft: #d6e8f8;
     --green-mid: #4f94c9;
@@ -2001,15 +1982,6 @@ section.block h2 .field-info-btn {
     --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
     background: #ffffff;
     box-shadow: none;
-  }
-  html[data-theme="dark"] .result-keep-green {
-    --green: #2d6a4f;
-    --green-soft: #d8f3dc;
-    --green-mid: #52b788;
-    --green-dark: #1b4332;
-    --border: #cfe3d4;
-    --pill-end: #e9f5ee;
-    --muted: #5c6b5c;
   }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
