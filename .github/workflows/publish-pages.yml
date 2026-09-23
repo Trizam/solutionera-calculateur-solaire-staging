@@ -1,13 +1,18 @@
 name: publish-pages
 
-# GitHub Free only serves Pages from a public repository.
-# This turns the staging site back on from master / and asks for a build.
+# Pages must be enabled once in Settings (Source=GitHub Actions); workflow only publishes.
+
 on:
   workflow_dispatch:
   push:
     branches:
       - master
     paths:
+      - index.html
+      - favicon.ico
+      - favicon.png
+      - assets/**
+      - docs/DESIGN.md
       - .github/workflows/publish-pages.yml
 
 permissions:
@@ -15,40 +20,37 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  upload:
     runs-on: ubuntu-latest
     steps:
-      - name: Enable GitHub Pages from master
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO_TOKEN: ${{ secrets.BUG_REPORT_GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage public files
         run: |
           set -euo pipefail
-          repo="${{ github.repository }}"
+          mkdir -p _site/docs
+          cp index.html favicon.ico favicon.png _site/
+          cp -a assets _site/assets
+          cp docs/DESIGN.md _site/docs/DESIGN.md
 
-          pages_ready() {
-            gh api "repos/${repo}/pages" >/dev/null 2>&1
-          }
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
 
-          enable_pages() {
-            gh api --method POST "repos/${repo}/pages" \
-              -f build_type=legacy \
-              -f "source[branch]=master" \
-              -f "source[path]=/"
-          }
-
-          if pages_ready; then
-            echo "GitHub Pages is already enabled"
-          elif enable_pages; then
-            echo "Enabled GitHub Pages with the Actions token"
-          elif [ -n "${REPO_TOKEN}" ]; then
-            echo "Actions token cannot enable Pages. Trying the repository token."
-            GH_TOKEN="${REPO_TOKEN}" enable_pages
-            echo "Enabled GitHub Pages with the repository token"
-          else
-            echo "A repository admin has to open Settings, then Pages, and deploy from branch master, folder /."
-            exit 1
-          fi
-
-          gh api --method POST "repos/${repo}/pages/builds" || true
+  deploy:
+    needs: upload
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
