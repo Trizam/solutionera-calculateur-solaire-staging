@@ -1,16 +1,22 @@
 name: fetch-quebec-grids
 
-# Code only: once an hour, fetch the next PVWatts cells and commit them.
-# Stops by itself when all 104 town grids are full.
+# Code only. One PVWatts call every 4 seconds.
+# Each stretch lasts 45 minutes, commits, then starts the next stretch
+# until all 104 town grids are full.
 # Needs the repository secret NLR_API_KEY (NLR PVWatts). The key is never logged.
 on:
   schedule:
-    # Next fire is the minute written below, UTC, then every hour at that minute.
     - cron: "45 * * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/fetch-quebec-grids.yml
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: fetch-quebec-grids
@@ -19,6 +25,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 70
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +66,7 @@ jobs:
             echo "all town grids are already complete"
             exit 0
           fi
-          node scripts/fetch-quebec-towns.mjs --grids-only --budget 900 --exit-on-limit
+          node scripts/fetch-quebec-towns.mjs --grids-only --max-minutes 45
           node scripts/fetch-quebec-towns.mjs --status --short
 
       - name: Commit finished cells
@@ -73,3 +80,17 @@ jobs:
           status="$(node scripts/fetch-quebec-towns.mjs --status --short)"
           git commit -m "Fetch Quebec PVWatts grids (${status})."
           git push origin data/quebec-town-grids
+
+      - name: Start the next stretch
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status="$(node scripts/fetch-quebec-towns.mjs --status --short)"
+          echo "after ${status}"
+          if [ "${status}" = "104/104" ]; then
+            echo "all town grids are complete"
+            exit 0
+          fi
+          gh workflow run fetch-quebec-grids.yml --ref master

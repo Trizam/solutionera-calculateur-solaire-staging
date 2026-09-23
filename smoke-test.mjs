@@ -140,9 +140,10 @@ const fetchJobOk =
   fetchStatus.status === 0 &&
   fetchStatus.stdout.trim() === "8/104" &&
   fetchWorkflowText.includes("cron:") &&
-  fetchWorkflowText.includes("--budget 900") &&
+  fetchWorkflowText.includes("--max-minutes 45") &&
   fetchWorkflowText.includes("NLR_API_KEY") &&
-  fetchWorkflowText.includes("data/quebec-town-grids");
+  fetchWorkflowText.includes("data/quebec-town-grids") &&
+  readFileSync(fetchScript, "utf8").includes("const CALL_GAP_MS = 4000;");
 console.log(
   `  hourly PVWatts fetch job: ${fetchJobOk ? "PASS" : "FAIL"} status=${(fetchStatus.stdout || "").trim()} self=${fetchSelf.status}`
 );
