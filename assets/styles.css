@@ -1039,15 +1039,18 @@ section.block > h2,
   margin: 0.5rem 0 0;
   font-variant-numeric: tabular-nums;
 }
-.page-tools { margin: 0 0 1rem; }
-.page-tools .check,
 .editor-tools .check {
   background: var(--card);
   box-shadow: var(--shadow);
 }
-.editor-tools { margin: 0 0 1rem; }
+.editor-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
 .editor-notes {
-  margin-top: 0.75rem;
+  margin-top: 0.2rem;
   padding: 0.9rem 1rem 0.35rem;
   border: 1px dashed var(--border);
   border-radius: 12px;
@@ -1773,7 +1776,7 @@ section.block h2 .field-info-btn {
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
   .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
-  .modal-backdrop, .hint, .mode-badge, .page-tools, .editor-tools, .flow-arrow { display: none !important; }
+  .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
   .board {
     display: block !important;
     max-width: 100%;
