@@ -1312,6 +1312,149 @@ footer.bug .bug-ver { font-size: 0.72rem; }
 }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 
+/* Desktop board — slots stay independent so a later mobile layout can reorder them. */
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.board > .block,
+.board > .result-pair,
+.board > .result-pill {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.slot-fill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.flow-arrow { display: none; }
+.label-with-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+.prod-num.is-sentence {
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: normal;
+  line-height: 1.25;
+}
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: -0.35rem 22px 0.15rem;
+  pointer-events: none;
+}
+.slider-ticks i {
+  display: block;
+  width: 2px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--border);
+}
+section.block h2 .field-info-btn {
+  margin-left: auto;
+  align-self: center;
+}
+.project-total {
+  text-align: center;
+  padding: 0.35rem 0 0.15rem;
+}
+.project-total .kpi {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.project-total .kpi-label {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.project-note { text-align: center; }
+.perma-flag {
+  position: sticky;
+  top: 0.35rem;
+  z-index: 40;
+  margin: 0 0 0.85rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, var(--card));
+  box-shadow: var(--shadow);
+}
+.perma-flag p {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+.perma-flag[hidden] { display: none !important; }
+
+@media (min-width: 1100px) {
+  html:not([data-mode="webi"]) .wrap { max-width: 1180px; }
+  html:not([data-mode="webi"]) .board {
+    --board-gap: 3.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "size need"
+      "prod need"
+      "yield fill"
+      "cost batt"
+      "roi total";
+    column-gap: var(--board-gap);
+    row-gap: 1rem;
+    align-items: stretch;
+  }
+  html:not([data-mode="webi"]) .slot-size { grid-area: size; }
+  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; }
+  html:not([data-mode="webi"]) .slot-need { grid-area: need; }
+  html:not([data-mode="webi"]) .slot-yield { grid-area: yield; }
+  html:not([data-mode="webi"]) .slot-fill { grid-area: fill; }
+  html:not([data-mode="webi"]) .slot-cost { grid-area: cost; }
+  html:not([data-mode="webi"]) .slot-batt { grid-area: batt; }
+  html:not([data-mode="webi"]) .slot-roi { grid-area: roi; }
+  html:not([data-mode="webi"]) .slot-total { grid-area: total; }
+  html:not([data-mode="webi"]) .slot-need,
+  html:not([data-mode="webi"]) .slot-batt,
+  html:not([data-mode="webi"]) .slot-total {
+    display: flex;
+    flex-direction: column;
+  }
+  html:not([data-mode="webi"]) .slot-need .reserve-out {
+    margin-top: auto;
+  }
+  html:not([data-mode="webi"]) .slot-total .project-total {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+  html:not([data-mode="webi"]) .flow-arrow {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    left: calc(var(--board-gap) / -2);
+    top: 50%;
+    width: 1.85rem;
+    height: 1.85rem;
+    margin: 0;
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--green-dark);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+}
+
 @media print {
   #bugModal { display: none !important; }
 }
@@ -1325,7 +1468,14 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
   .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
-  .modal-backdrop, .hint, .mode-badge { display: none !important; }
+  .modal-backdrop, .hint, .mode-badge, .flow-arrow, .perma-flag { display: none !important; }
+  .board {
+    display: block !important;
+    max-width: 100%;
+  }
+  .board > .block,
+  .board > .result-pair,
+  .board > .result-pill { margin-bottom: 0.75rem; }
   html[data-theme="dark"] {
     color-scheme: light;
     --bg: #f7faf7;
