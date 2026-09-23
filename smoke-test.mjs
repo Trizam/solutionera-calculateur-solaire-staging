@@ -234,16 +234,40 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const htmlSansBrand = html
-  .replace(/DÉFI Autonomie Énergétique/g, "")
-  .replace(/Autonomie et neige/g, "")
-  .replace(/en autonomie/gi, "")
-  .replace(/<div class="label">Autonomie<\/div>/g, "")
-  .replace(/Autonomie \(décembre\)/g, "")
-  .replace(/pleine autonomie/gi, "")
-  .replace(/d’autonomie/gi, "")
-  .replace(/d'autonomie/gi, "");
-const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
+const design = readFileSync(join(__dirname, "docs/DESIGN.md"), "utf8");
+const reserveTag = html.slice(Math.max(0, html.indexOf('id="sec-reserve"') - 80), html.indexOf('id="sec-reserve"') + 24);
+const batteryUi =
+  html.includes("Combien coûte le solaire") &&
+  !html.includes("Combien ça coûte") &&
+  html.includes('id="sec-reserve"') &&
+  html.includes('id="sec-battery"') &&
+  html.includes('id="sec-project"') &&
+  html.includes("Combien de réserve voulez-vous") &&
+  html.includes("Combien consommez-vous par jour") &&
+  html.includes("Combien coûte la batterie") &&
+  html.includes("Combien coûte le projet au total") &&
+  html.includes('id="showDetails"') &&
+  html.includes("Je veux les détails") &&
+  html.includes('id="showNotes"') &&
+  html.includes("notes d’édition") &&
+  html.includes('id="editorNotes" hidden') &&
+  html.includes('id="outBatt"') &&
+  html.includes('id="outProject"') &&
+  html.includes('id="outProjectEq"') &&
+  html.includes("flow-arrow") &&
+  html.includes("docs/DESIGN.md") &&
+  /id="sec-battery"[\s\S]{0,4500}class="result-pill"[\s\S]{0,500}id="outBatt"/.test(html) &&
+  /id="outProjectEq"[\s\S]{0,900}id="lineSolar"[\s\S]{0,500}id="outProject"/.test(html) &&
+  /mode-full-only/.test(reserveTag) &&
+  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  /\.cards\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  /\.flow-arrow\s*\{[\s\S]{0,240}justify-content:\s*center/.test(css) &&
+  design.includes("Loi des deux chiffres") &&
+  design.includes("result-pill") &&
+  design.includes("Je veux les détails") &&
+  app.includes("function batteryQuote") &&
+  app.includes("kwhJour * days") &&
+  app.includes("function fmtShown");
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
@@ -286,7 +310,7 @@ const tiltSlider =
   !/<select\s+id="tilt"/.test(html) &&
   !html.includes("tilt-select-row") &&
   /\$\("tiltVal"\)\.textContent/.test(app) &&
-  /\["util", "deneige", "priceW", "tilt"\]/.test(app);
+  /\["util", "deneige", "priceW", "tilt"/.test(app);
 const subtitlePad =
   /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
   /section\.block\s*>\s*h2/.test(sliderScreen) &&
@@ -336,7 +360,8 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery cards + green result + design rules: ${batteryUi ? "PASS" : "FAIL"}`);
+console.log(`  info modal + tilt viz + gridStatus: ${infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -806,7 +831,7 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /kwNum\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
+  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
   html.includes(">kWc<") &&
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
@@ -1046,9 +1071,10 @@ const fmt14230 = fmtSig2(14230);
 const fmt14230Compact = fmt14230.replace(/\s/g, "");
 const fmt14230Ok = Math.abs(sig2Round(14230) - 14000) < 1e-9 && (fmt14230Compact === "14000" || /14\s*000/.test(fmt14230));
 const prodUsesSig2 =
-  app.includes("fmtSig2(r.kWhDay)") &&
-  app.includes("fmtSig2(r.kWh)") &&
-  app.includes("fmtSig2(r.kW)") &&
+  /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
+  app.includes("fmtShown(r.kWhDay, 2)") &&
+  app.includes("fmtShown(r.kWh, 0)") &&
+  app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1080,8 +1106,10 @@ const fmtMoneySig2Ok =
   !/15675/.test(fmtMoney15675Compact);
 const totalUsesSig2 =
   app.includes("function fmtMoneySig2") &&
-  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
-  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  app.includes("function fmtShownMoney") &&
+  /function fmtShownMoney\(n\)[\s\S]{0,280}return fmtMoneySig2\(n\)/.test(app) &&
+  /\$\("lineTotal"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
   !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
@@ -1465,12 +1493,16 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       taxes: "1",
       subv: "1",
       conso: 17000,
-      rate: "12.811"
+      rate: "12.811",
+      reserve: 1,
+      battPrice: 1200,
+      kwhJour: null
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "reserve", "battPrice"].forEach((key) => {
       p.set(key, String(s[key]));
     });
+    if (s.kwhJour != null && s.kwhJour !== "") p.set("kwhJour", String(s.kwhJour));
     return "?" + p.toString();
   }
   const roundTrips = [
@@ -1530,7 +1562,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "reserve", "battPrice"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -1573,6 +1605,32 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(webi.location.search === fullSearch({ mode: "webi", priceW: "4" }), `partial webi link expands → ${webi.location.search}`);
   fireInput(webi, "deneige", "40");
   expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
+
+  const batt = await bootScenario("?kwhJour=10&reserve=2&battPrice=1000&taxes=0");
+  const b = batt.api.calc();
+  expect(b.kwhJourManual === true, "manual daily kWh");
+  expect(Math.abs(b.kwhJour - 10) < 1e-9, `kwh/j 10 got ${b.kwhJour}`);
+  expect(b.reserveDays === 2, `2 days got ${b.reserveDays}`);
+  expect(Math.abs(b.kwhReserve - 20) < 1e-9, `20 kWh reserve got ${b.kwhReserve}`);
+  expect(b.battPrice === 1000, `battery price got ${b.battPrice}`);
+  expect(Math.abs(b.battHT - 20000) < 1e-6, `HT got ${b.battHT}`);
+  expect(Math.abs(b.battCost - 20000) < 1e-6, `no-tax cost got ${b.battCost}`);
+  expect(Math.abs(b.project - (b.reel + 20000)) < 1e-4, `project sum got ${b.project}`);
+  expect(batt.location.search === fullSearch({ kwhJour: "10", reserve: 2, battPrice: 1000, taxes: "0" }), `battery link → ${batt.location.search}`);
+
+  const auto = await bootScenario("");
+  const a = auto.api.calc();
+  const jour = 17000 / 365;
+  expect(Math.abs(a.kwhJour - jour) < 1e-9, `auto day got ${a.kwhJour}`);
+  expect(a.kwhJourManual === false, "auto day is not manual");
+  expect(a.reserveDays === 1, `default reserve got ${a.reserveDays}`);
+  expect(a.battPrice === 1200, `default batt price got ${a.battPrice}`);
+  const quote = auto.api.batteryQuote(jour, 1, 1200, true);
+  expect(Math.abs(a.battCost - quote.cost) < 1e-6, "quote matches calc");
+  expect(Math.abs(a.battHT - jour * 1200) < 1e-4, "HT is exact day × price");
+  expect(Math.abs(a.project - (a.reel + a.battCost)) < 1e-4, "default project is solar + battery");
+  expect(auto.el("showDetails").checked === false, "details off by default");
+  expect(auto.el("editorNotes").hidden === true, "editor notes hidden by default");
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -1623,7 +1681,7 @@ const pass =
   logisDefault &&
   logisCopy &&
   subvDefaultJs &&
-  noBattery &&
+  batteryUi &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&

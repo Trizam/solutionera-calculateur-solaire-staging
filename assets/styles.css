@@ -733,9 +733,26 @@ section.block > h2,
   color: var(--green-dark);
   line-height: 1.2;
 }
+/* Standalone answer: number over unit, same rhythm as the pairs. */
+.result-pill .big.prod-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+.result-pill .prod-unit {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+/*
+ * Card height is the card's own content. A neighbor on the left or the right
+ * must not stretch it (docs/DESIGN.md). Pairs line up on the top edge.
+ */
 .result-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 0.65rem;
   margin-top: 0.5rem;
 }
@@ -797,6 +814,45 @@ section.block > h2,
   margin: 0.5rem 0 0;
   font-variant-numeric: tabular-nums;
 }
+#outReserveEq,
+#outBattEq,
+#outProjectEq { text-align: center; }
+/* Down-arrow between stacked cards. Centered on the column axis. */
+section.block:has(+ .flow-arrow) { margin-bottom: 0.4rem; }
+.flow-arrow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 32px;
+  margin: 0 0 0.4rem;
+  color: var(--green);
+  pointer-events: none;
+}
+.flow-arrow svg { display: block; }
+.page-tools { margin: 0 0 1rem; }
+.page-tools .check,
+.editor-tools .check {
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.editor-tools { margin: 0 0 1rem; }
+.editor-notes {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem 0.35rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 0.88rem;
+}
+.editor-notes h2 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  color: var(--green-dark);
+}
+.editor-notes p { margin: 0 0 0.55rem; }
+.editor-notes ul { margin: 0 0 0.7rem; padding-left: 1.15rem; }
+.editor-notes li { margin: 0.25rem 0; }
+.editor-notes a { color: var(--green); }
 .breakdown {
   margin-top: 0.85rem;
   font-size: 0.9rem;
@@ -819,6 +875,7 @@ section.block > h2,
 .cards {
   display: grid;
   grid-template-columns: 1fr;
+  align-items: start;
   gap: 0.65rem;
   margin-top: 0.75rem;
 }
@@ -1318,7 +1375,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
   .btn, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
-  .modal-backdrop, .hint, .mode-badge { display: none !important; }
+  .modal-backdrop, .hint, .mode-badge, .page-tools, .editor-tools { display: none !important; }
   html[data-theme="dark"] {
     color-scheme: light;
     --bg: #f7faf7;
