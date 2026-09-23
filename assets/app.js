@@ -659,7 +659,7 @@
         ? String(Math.round(prevM2 * SQFT_PER_M2))
         : String(Math.round(prevM2));
     }
-    render();
+    onScenarioEdit();
   }
 
   /**
@@ -768,12 +768,42 @@
     return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate };
   }
 
-  function serializeScenario(s, mode) {
+  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
+
+  /** True after a control is used, or when the link already carries scenario values. */
+  let scenarioSnapshot = false;
+
+  function searchHasScenario(search) {
+    const q = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+    return SCENARIO_KEYS.some(function (key) { return q.has(key); });
+  }
+
+  function onScenarioEdit() {
+    scenarioSnapshot = true;
+    render();
+  }
+
+  function serializeScenario(s, mode, full) {
     const d = SCENARIO_DEFAULTS;
     const p = new URLSearchParams();
+    if (full) {
+      p.set("mode", mode === "webi" ? "webi" : "full");
+      p.set("area", String(s.area));
+      p.set("unit", s.unit === "sqft" ? "sqft" : "m2");
+      p.set("util", String(s.util));
+      p.set("orient", String(s.orient));
+      p.set("tilt", String(s.tilt));
+      p.set("deneige", String(s.deneige));
+      p.set("priceW", trimNum(s.priceW, 2));
+      p.set("taxes", s.taxes ? "1" : "0");
+      p.set("subv", s.subv ? "1" : "0");
+      p.set("conso", String(s.conso));
+      p.set("rate", trimNum(s.rate, 3));
+      return p.toString();
+    }
     if (mode === "webi") p.set("mode", "webi");
-  if (s.unit === "sqft" || s.area !== d.area) p.set("area", String(s.area));
-  if (s.unit === "sqft") p.set("unit", "sqft");
+    if (s.unit === "sqft" || s.area !== d.area) p.set("area", String(s.area));
+    if (s.unit === "sqft") p.set("unit", "sqft");
     if (s.util !== d.util) p.set("util", String(s.util));
     if (s.orient !== d.orient) p.set("orient", String(s.orient));
     if (s.tilt !== d.tilt) p.set("tilt", String(s.tilt));
@@ -841,7 +871,7 @@
   function syncScenarioUrl() {
     if (typeof history === "undefined" || !history || typeof history.replaceState !== "function") return;
     if (typeof location === "undefined" || !location) return;
-    const search = serializeScenario(readScenarioFromDom(), shareMode());
+    const search = serializeScenario(readScenarioFromDom(), shareMode(), scenarioSnapshot);
     const next = search ? "?" + search : "";
     if ((location.search || "") === next) return;
     const path = (location.pathname || "/") + next + (location.hash || "");
@@ -1378,15 +1408,16 @@
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate"].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      el.addEventListener("input", render);
-      el.addEventListener("change", render);
+      el.addEventListener("input", onScenarioEdit);
+      el.addEventListener("change", onScenarioEdit);
     });
     const conso = $("conso");
     if (conso) {
-      conso.addEventListener("input", function () { formatConsoInput(true); render(); });
-      conso.addEventListener("change", function () { formatConsoInput(false); render(); });
-      conso.addEventListener("blur", function () { formatConsoInput(false); render(); });
+      conso.addEventListener("input", function () { scenarioSnapshot = true; formatConsoInput(true); render(); });
+      conso.addEventListener("change", function () { scenarioSnapshot = true; formatConsoInput(false); render(); });
+      conso.addEventListener("blur", function () { scenarioSnapshot = true; formatConsoInput(false); render(); });
       conso.addEventListener("paste", function () {
+        scenarioSnapshot = true;
         requestAnimationFrame(function () { formatConsoInput(true); render(); });
       });
     }
@@ -1400,10 +1431,11 @@
     wireOrientDial();
     const area = $("area");
     if (area) {
-      area.addEventListener("input", () => { roundAreaInput(); render(); });
-      area.addEventListener("change", () => { roundAreaInput(); render(); });
-      area.addEventListener("blur", () => { roundAreaInput(); render(); });
+      area.addEventListener("input", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
+      area.addEventListener("change", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
+      area.addEventListener("blur", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
       area.addEventListener("paste", () => {
+        scenarioSnapshot = true;
         // After clipboard lands in the field, coerce to integer
         requestAnimationFrame(() => { roundAreaInput(); render(); });
       });
@@ -1439,6 +1471,7 @@
 
     let initialSearch = "";
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
+    scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
   }
 
