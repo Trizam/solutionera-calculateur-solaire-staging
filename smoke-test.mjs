@@ -863,6 +863,9 @@ const dayOk =
   kWhDecDay > 2 && kWhDecDay < 2.5 &&
   Math.abs(kWhDecNever) < 1e-9 &&
   kWhDecVertical > 10;
+const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-auto"'));
+const prodBHtml = html.slice(html.indexOf('id="sec-prod-b"'), html.indexOf('id="sec-yield"'));
+const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-cost"'));
 const recFn =
   app.includes("function recommendVerticalPanels") &&
   app.includes("showVerticalRec") &&
@@ -871,7 +874,17 @@ const recFn =
   html.includes("mettez les panneaux à la verticale") &&
   html.includes("décembre ne tombe pas à zéro") &&
   css.includes(".autonomy-snow") &&
-  /autonomy-snow\[hidden\]/.test(css);
+  /autonomy-snow\[hidden\]/.test(css) &&
+  yieldHtml.includes('id="autonomySnow"') &&
+  yieldHtml.indexOf('id="outKwhDay"') < yieldHtml.indexOf('id="autonomySnow"') &&
+  !prodBHtml.includes("autonomySnow");
+const shortfallInFill =
+  fillHtml.includes('id="permaFlag"') &&
+  fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
+  !html.includes("perma-flag") &&
+  css.includes(".fill-shortfall");
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
@@ -895,6 +908,7 @@ console.log(
   }`
 );
 console.log(`  boîte verticale sous autonomie (d<100 % et tilt<90°): ${recFn ? "PASS" : "FAIL"}`);
+console.log(`  décembre sous Temps pour remplir: ${shortfallInFill ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -1717,6 +1731,7 @@ const pass =
   dayOk &&
   snowCoverOk &&
   recFn &&
+  shortfallInFill &&
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
