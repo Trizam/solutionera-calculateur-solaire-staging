@@ -969,7 +969,7 @@
     unit: "m2",
     util: 80,
     orient: 180,
-    tilt: 30,
+    tilt: 45,
     deneige: Math.round(DEFAULT_DENEIGEMENT * 100),
     priceW: 3,
     taxes: true,
