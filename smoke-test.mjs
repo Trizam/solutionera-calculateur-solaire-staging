@@ -72,6 +72,61 @@ const cellCount = Object.keys(grid.cells).reduce(
 const cellsOk = cellCount === 168;
 console.log(`  cells count ${cellCount} (expect 168): ${cellsOk ? "PASS" : "FAIL"}`);
 
+function townDataReport() {
+  const path = join(__dirname, "assets", "towns.json");
+  if (!existsSync(path)) return { ok: false, detail: "missing assets/towns.json" };
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    return { ok: false, detail: "towns.json invalid JSON" };
+  }
+  const towns = doc && Array.isArray(doc.towns) ? doc.towns : [];
+  const problems = [];
+  if (towns.length !== 104) problems.push("count " + towns.length);
+  const ids = new Set();
+  let mrc = 0;
+  let eq = 0;
+  const names = towns.map((t) => t.name);
+  const sorted = names.slice().sort((a, b) => String(a).localeCompare(String(b), "fr-CA", { sensitivity: "base" }));
+  if (names.join("\n") !== sorted.join("\n")) problems.push("not fr-CA sorted");
+  towns.forEach((t) => {
+    if (!t.id || ids.has(t.id)) problems.push("id " + t.id);
+    ids.add(t.id);
+    if (t.type === "MRC") mrc += 1;
+    else if (t.type === "Equivalent") eq += 1;
+    else problems.push("type " + t.name);
+    if (!(t.lat >= 44 && t.lat <= 63 && t.lon >= -80 && t.lon <= -56)) problems.push("coords " + t.name);
+    if (!isFinite(Number(t.ac_annual_s30)) || Number(t.ac_annual_s30) < 600 || Number(t.ac_annual_s30) > 1800) {
+      problems.push("s30 " + t.name + "=" + t.ac_annual_s30);
+    }
+    if (t.grid !== "full" && t.grid !== "scaled") problems.push("grid " + t.name);
+    if (t.grid === "full") {
+      const rel = t.grid_file || ("assets/town-grids/" + t.id + ".json");
+      const file = join(__dirname, rel);
+      if (!existsSync(file)) problems.push("missing grid file " + t.name);
+      else {
+        try {
+          const g = JSON.parse(readFileSync(file, "utf8"));
+          if (g.scaled === true) problems.push("full marked scaled " + t.name);
+          const n = Object.keys(g.cells || {}).reduce((acc, tilt) => acc + Object.keys(g.cells[tilt] || {}).length, 0);
+          if (n !== 168) problems.push("cells " + n + " " + t.name);
+        } catch (_) {
+          problems.push("bad grid " + t.name);
+        }
+      }
+    }
+  });
+  if (mrc !== 87 || eq !== 17) problems.push(`MRC=${mrc} Equivalent=${eq}`);
+  const qc = towns.find((t) => t.id === "quebec");
+  if (!qc || Math.abs(Number(qc.ac_annual_s30) - 1254.8064) > 0.01) problems.push("québec s30");
+  if (qc && (qc.lat !== 46.813 || qc.lon !== -71.208)) problems.push("québec coords");
+  return { ok: problems.length === 0, detail: problems.slice(0, 8).join("; ") };
+}
+const townData = townDataReport();
+const townDataOk = townData.ok;
+console.log(`  towns.json 104 places, S/30, grids: ${townDataOk ? "PASS" : "FAIL"} ${townData.detail}`);
+
 /** Same W-by-tilt model as app.js */
 function winterWFromTilt(tilt) {
   const t = Number(tilt);
@@ -913,12 +968,18 @@ const htmlSplit1A =
 const htmlSplit1B =
   html.includes('<span class="num">1B</span>') &&
   html.includes("Combien d'énergie électrique vais-je produire") &&
-  html.includes("Ville de Québec") &&
+  html.includes('id="ville"') &&
+  html.includes('id="villeBtn"') &&
+  html.includes('id="villeList"') &&
+  html.includes("1&nbsp;kWc") &&
+  html.includes("kWh/kWc") &&
+  html.includes("plein sud, 30°") &&
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
   html.includes("kWh / j déc") &&
-  html.includes("±&nbsp;4") &&
+  !html.includes("±&nbsp;4") &&
+  !html.includes("+/- 4") &&
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
   html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
   html.indexOf('id="tilt"') < html.indexOf("field-deneige");
@@ -1629,6 +1690,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   function fullSearch(over) {
     const s = Object.assign({
       mode: "full",
+      ville: "quebec",
       area: 40,
       unit: "m2",
       util: 80,
@@ -1642,7 +1704,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       rate: "12.811"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -1673,7 +1735,10 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
     ],
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
-    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })]
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })],
+    ["?ville=alma", fullSearch({ ville: "alma" })],
+    ["?ville=quebec", fullSearch()],
+    ["?ville=../x", fullSearch()]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
@@ -1704,7 +1769,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -1766,6 +1831,7 @@ const pass =
   !bad &&
   annualOk &&
   cellsOk &&
+  townDataOk &&
   wTiltOk &&
   hasFetch &&
   hasFallback &&

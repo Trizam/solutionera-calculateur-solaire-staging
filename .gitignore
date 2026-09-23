@@ -2,3 +2,7 @@
 assets/bug-config.json
 .dev.vars
 .netlify
+
+# PVWatts resume cache and fetcher log (published data is assets/towns.json + town-grids/)
+scripts/.pvwatts-cache/
+scripts/fetch-quebec-towns.log

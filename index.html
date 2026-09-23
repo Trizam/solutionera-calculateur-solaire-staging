@@ -171,7 +171,7 @@
       <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
       <div class="field" id="field-loc">
         <div class="label-row field-info-wrap">
-          <span class="field-label" id="locLabel">Localisation</span>
+          <label class="field-label" id="locLabel" for="villeBtn">Localisation</label>
           <button
             type="button"
             class="field-info-btn"
@@ -184,10 +184,26 @@
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        <div class="loc-fixed" role="group" aria-labelledby="locLabel">
-          <span class="loc-value">Ville de Québec</span>
+        <div class="town-picker" id="townPicker">
+          <button
+            type="button"
+            id="villeBtn"
+            class="town-btn"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-controls="villeList"
+            aria-describedby="locHint"
+          >
+            <span class="town-name" id="villeName">Québec</span>
+            <span class="town-yield" id="villeYield">1&nbsp;255 kWh/kWc</span>
+            <span class="town-caret" aria-hidden="true"></span>
+          </button>
+          <ul id="villeList" class="town-list" role="listbox" tabindex="-1" hidden aria-labelledby="locLabel"></ul>
+          <select id="ville" class="town-native" tabindex="-1" aria-hidden="true">
+            <option value="quebec" selected>Québec</option>
+          </select>
         </div>
-        <p class="hint">→ Irradiation ancrée sur Québec (ville) · le reste du QC : ±&nbsp;4&nbsp;%.</p>
+        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 30°.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -682,7 +698,7 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: grille d’irradiation fixe ville de Québec, NREL/PVWatts (le reste du Québec peut être +/- 4&nbsp;% de productivité).</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 30° en kWh/kWc pour 1&nbsp;kWc.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -730,8 +746,8 @@
       <div class="modal-body" id="infoDesc">
         <div class="info-block">
           <h4>Grille d’irradiation</h4>
-          <p>Estimation annuelle NREL/PVWatts, grille fixe ancrée sur Québec (ville).</p>
-          <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
+          <p>Estimation PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%. La ville choisie fournit le productible sud 30° pour 1&nbsp;kWc.</p>
+          <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kWc annuel. Québec a une grille complète. Ailleurs, grille complète ou grille de Québec mise à l’échelle du rapport sud 30° mesuré.</p>
         </div>
         <div class="info-block">
           <h4>Déneigement (W)</h4>
@@ -848,9 +864,10 @@
   <template id="tpl-info-loc">
     <span data-info-title>Localisation</span>
     <div class="info-block">
-      <h4>Ville de Québec</h4>
-      <p>La grille d’irradiation est fixe, ancrée sur Québec (ville), NREL/PVWatts.</p>
-      <p>Ailleurs au Québec, la productivité peut varier d’environ ±&nbsp;4&nbsp;%.</p>
+      <h4>Ville et productible</h4>
+      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique.</p>
+      <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>30°</strong> (kWh par kW crête).</p>
+      <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu reste une mesure PVWatts.</p>
     </div>
   </template>
   <template id="tpl-info-orient">
