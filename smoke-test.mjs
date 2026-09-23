@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { inflateSync } from "zlib";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { spawnSync } from "child_process";
 import { runInNewContext } from "vm";
 import {
   validateBugPayload,
@@ -126,6 +127,23 @@ function townDataReport() {
 const townData = townDataReport();
 const townDataOk = townData.ok;
 console.log(`  towns.json 104 places, S/30, grids: ${townDataOk ? "PASS" : "FAIL"} ${townData.detail}`);
+
+const fetchScript = join(__dirname, "scripts", "fetch-quebec-towns.mjs");
+const fetchWorkflowPath = join(__dirname, ".github", "workflows", "fetch-quebec-grids.yml");
+const fetchSelf = spawnSync(process.execPath, [fetchScript, "--self-check"], { encoding: "utf8" });
+const fetchStatus = spawnSync(process.execPath, [fetchScript, "--status", "--short"], { encoding: "utf8" });
+const fetchWorkflowText = existsSync(fetchWorkflowPath) ? readFileSync(fetchWorkflowPath, "utf8") : "";
+const fetchJobOk =
+  fetchSelf.status === 0 &&
+  fetchStatus.status === 0 &&
+  fetchStatus.stdout.trim() === "8/104" &&
+  fetchWorkflowText.includes("cron:") &&
+  fetchWorkflowText.includes("--budget 900") &&
+  fetchWorkflowText.includes("NLR_API_KEY") &&
+  fetchWorkflowText.includes("data/quebec-town-grids");
+console.log(
+  `  hourly PVWatts fetch job: ${fetchJobOk ? "PASS" : "FAIL"} status=${(fetchStatus.stdout || "").trim()} self=${fetchSelf.status}`
+);
 
 /** Same W-by-tilt model as app.js */
 function winterWFromTilt(tilt) {
@@ -1884,6 +1902,7 @@ const pass =
   annualOk &&
   cellsOk &&
   townDataOk &&
+  fetchJobOk &&
   wTiltOk &&
   hasFetch &&
   hasFallback &&
