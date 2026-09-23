@@ -45,6 +45,11 @@
     { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') }
   ];
   const CONSO_EXTRA_MAX = 100;
+  /** Draft installed-battery range until a real $/kWh band is chosen. */
+  const BATT_PRICE_DEFAULT = 1200;
+  /** Smooth reserve duration: 0 to 3 days, in hours. Default is one day. */
+  const AUTONOMY_MAX_H = 72;
+  const AUTONOMY_DEFAULT_H = 24;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -103,10 +108,23 @@
     return AZ_LABELS[key] || (key + "°");
   }
 
-  /** Runtime grid: cells[tilt][az] = { ac_annual, ... } — annual kWh only from grid */
+  /** Runtime grid: cells[tilt][az] = { ac_annual, W_winter, ac_dec } */
   let gridCells = null;
+  let baseCells = null;
   let gridReady = false;
   let gridStatus = "loading"; // loading | ready | error
+  let gridIsScaled = false;
+  let activeTownId = null;
+  let gridToken = 0;
+  const DEFAULT_VILLE = "quebec";
+  let selectedVille = DEFAULT_VILLE;
+  let townCatalog = [];
+  let townByIdMap = null;
+  let quebecS30 = FALLBACK_S30.ac_annual;
+  let townListOpen = false;
+  let townActiveIndex = -1;
+  let townTypeBuffer = "";
+  let townTypeTimer = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -121,7 +139,7 @@
     return n.toLocaleString("fr-CA", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
 
-  /** Magnitude-round to 2 significant figures (display only). 14230 → 14000, 874 → 870, 12.53 → 13. */
+  /** Affichage des résultats. Règles : docs/DESIGN.md */
   function sig2Round(n) {
     const x = Number(n);
     if (!isFinite(x)) return NaN;
@@ -162,10 +180,47 @@
       maximumFractionDigits: whole ? 0 : 2
     });
   }
+  /** View preference. Absent checkbox = rounded display (the default). */
+  function detailsOn() {
+    const el = $("showDetails");
+    return !!(el && el.checked);
+  }
+
+  /** Result number: 2 sig figs, or `digits` decimals when details are on. */
+  function fmtShown(n, digits) {
+    if (!isFinite(n)) return "—";
+    if (detailsOn()) return fmtNum(n, digits);
+    return fmtSig2(n);
+  }
+
+  /** Result money: 2 sig figs, or cents when details are on. */
+  function fmtShownMoney(n) {
+    if (!isFinite(n)) return "—";
+    if (detailsOn()) return fmtMoney(n);
+    return fmtMoneySig2(n);
+  }
+
   function fmtYears(n) {
     if (!isFinite(n) || n <= 0) return "—";
     if (n > 100) return "> 100 ans";
-    return "~ " + fmtNum(n, 1) + " ans";
+    if (detailsOn()) return "~ " + fmtNum(n, 1) + " ans";
+    return "~ " + fmtSig2(n) + " ans";
+  }
+
+  function prefGet(key) {
+    try {
+      if (typeof localStorage === "undefined") return null;
+      return localStorage.getItem(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function prefSet(key, value) {
+    try {
+      if (typeof localStorage === "undefined") return;
+      localStorage.setItem(key, value);
+    } catch (_) {}
   }
 
   /** Grouping spaces used by FR locales (regular, NBSP, NNBSP, thin). */
@@ -274,7 +329,7 @@
     const a = String(az);
     if (gridCells && gridCells[t] && gridCells[t][a]) {
       const c = gridCells[t][a];
-      const decRaw = c.ac_monthly && c.ac_monthly.dec;
+      const decRaw = c.ac_dec != null ? c.ac_dec : (c.ac_monthly && c.ac_monthly.dec);
       const ac_dec = isFinite(Number(decRaw)) ? Number(decRaw) : FALLBACK_S30.ac_dec;
       return { ac_annual: c.ac_annual, W_winter: c.W_winter, ac_dec: ac_dec, source: "grid" };
     }
@@ -392,6 +447,62 @@
       : "Décembre produit " + prodTxt + " kWh/j. Cette cible dépasse la production du mois.";
   }
 
+  /** Daily consumption for the reserve (kWh/day): ladder plus the free line. */
+  function consoJourKwh() {
+    return dailyLoadKwh(dailyLoadStep(), consoExtraKwh());
+  }
+
+  function autonomyHours() {
+    const el = $("autoStop");
+    const h = el ? parseFloat(el.value) : AUTONOMY_DEFAULT_H;
+    if (!isFinite(h) || h <= 0) return 0;
+    return Math.min(AUTONOMY_MAX_H, h);
+  }
+
+  /** Friendly duration for the left of the reserve slider. Display only. */
+  function fmtAutonomyHours(hours) {
+    const h = Number(hours);
+    if (!isFinite(h) || h < 0.125) return "aucune";
+    const totalMin = Math.round(h * 60 / 15) * 15;
+    if (totalMin < 60) return totalMin + " min";
+    const wholeH = Math.floor(totalMin / 60);
+    const mins = totalMin % 60;
+    const days = Math.floor(wholeH / 24);
+    const remH = wholeH % 24;
+    if (days === 0) {
+      if (mins === 0) return wholeH === 1 ? "1 heure" : wholeH + " heures";
+      return wholeH + " h " + mins;
+    }
+    const dayWord = days === 1 ? "1 jour" : days + " jours";
+    if (remH === 0 && mins === 0) return dayWord;
+    if (remH === 12 && mins === 0) return dayWord + " et demi";
+    if (mins === 0) return dayWord + " " + (remH === 1 ? "1 heure" : remH + " h");
+    return dayWord + " " + remH + " h " + mins;
+  }
+
+  function autonomyChoice() {
+    const hours = autonomyHours();
+    return { days: hours / 24, label: fmtAutonomyHours(hours) };
+  }
+
+  function battPricePerKwh() {
+    const el = $("battPrice");
+    if (!el) return NaN;
+    const v = parseFloat(el.value);
+    return isFinite(v) ? v : NaN;
+  }
+
+  /** Fill duration at the December daily rate. Display only. */
+  function fmtFillDuration(days) {
+    if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
+    if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
+    const minutes = days * 24 * 60;
+    if (minutes < 90) return { num: fmtShown(minutes, 0), unit: "min · décembre" };
+    const hours = days * 24;
+    if (hours < 48) return { num: fmtShown(hours, 1), unit: "h · décembre" };
+    return { num: fmtShown(days, 1), unit: "jours · décembre" };
+  }
+
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
   function consoAnnuelleKwh() {
     const el = $("conso");
@@ -458,12 +569,33 @@
     const years = eco > 0 ? reel / eco : Infinity;
 
     const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
+    const auto = autonomyChoice();
+    const consoJour = consoJourKwh();
+    const reserveKwh = consoJour == null ? NaN : consoJour * auto.days;
+    const surplusDay = consoJour == null || !isFinite(kWhDay) ? NaN : kWhDay - consoJour;
+    let fillState = "unknown";
+    let fillDays = NaN;
+    if (consoJour != null && isFinite(kWhDay)) {
+      if (!(reserveKwh > 0)) fillState = "none";
+      else if (!(surplusDay > 0)) fillState = "impossible";
+      else {
+        fillState = "ok";
+        fillDays = reserveKwh / surplusDay;
+      }
+    }
+    const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
+    const battPrice = battPricePerKwh();
+    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? reserveKwh * battPrice : NaN;
+    const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, nPv, table, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
       conso, kWhCredites, ecoClamped,
       HT, TTC, taxes, subv, reel, eco, years,
-      gridReady, gridStatus, cellSource: cell.source
+      consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
+      surplusDay, fillState, fillDays, shortfall,
+      battPrice, battCost, projectTotal,
+      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
     };
   }
 
@@ -678,7 +810,9 @@
       if (btn && !btn._wired) {
         btn._wired = true;
         btn.addEventListener("click", function () {
-          loadGrid().then(function () { render(); });
+          loadGrid().then(function () {
+            return ensureTownGrid(selectedVille);
+          }).then(function () { render(); });
         });
       }
     } else {
@@ -695,23 +829,26 @@
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
-      $("deneigeLive").innerHTML = "−" + fmtSig2(lossPct) + "&nbsp;%";
+      $("deneigeLive").innerHTML = detailsOn()
+        ? ("−" + fmtNum(lossPct, 1) + "&nbsp;%")
+        : ("−" + fmtSig2(lossPct) + "&nbsp;%");
     }
     if ($("tiltVal")) $("tiltVal").textContent = Math.round(Number(r.tilt)) + "°";
     updateTiltViz(r.tilt);
     updateOrientDial(r.az);
     if ($("tiltWLabel")) {
-      $("tiltWLabel").innerHTML = fmtSig2(r.W * 100) + "&nbsp;%";
+      const wPct = r.W * 100;
+      $("tiltWLabel").innerHTML = (detailsOn() ? fmtNum(wPct, 1) : fmtSig2(r.W * 100)) + "&nbsp;%";
     }
     updateGridStatusUi();
 
     if ($("outKwhDay")) {
       const dayNum = $("outKwhDay").querySelector(".prod-num");
-      if (dayNum) dayNum.textContent = fmtSig2(r.kWhDay);
+      if (dayNum) dayNum.textContent = fmtShown(r.kWhDay, 2);
     }
     if ($("outKwh")) {
       const yearNum = $("outKwh").querySelector(".prod-num");
-      if (yearNum) yearNum.textContent = fmtSig2(r.kWh);
+      if (yearNum) yearNum.textContent = fmtShown(r.kWh, 0);
     }
     if ($("outPv")) {
       const pvNum = $("outPv").querySelector(".prod-num");
@@ -719,7 +856,7 @@
     }
     if ($("outKw")) {
       const kwNum = $("outKw").querySelector(".prod-num");
-      if (kwNum) kwNum.textContent = fmtSig2(r.kW);
+      if (kwNum) kwNum.textContent = fmtShown(r.kW, 2);
     }
     const snowBox = $("autonomySnow");
     if (snowBox) {
@@ -728,26 +865,61 @@
     }
     updateConsoJourUi(r.kWhDay);
     $("outLight").textContent =
-      fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
+      fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
 
-    $("lineHT").textContent = fmtMoney(r.HT);
-    $("lineTaxes").textContent = r.taxesOn ? fmtMoney(r.taxes) : "—";
-    $("lineSubv").textContent = r.subvOn ? ("− " + fmtMoney(r.subv)) : "—";
-    $("lineTotal").textContent = fmtMoneySig2(r.reel);
+    $("lineHT").textContent = fmtShownMoney(r.HT);
+    $("lineTaxes").textContent = r.taxesOn ? fmtShownMoney(r.taxes) : "—";
+    $("lineSubv").textContent = r.subvOn ? ("− " + fmtShownMoney(r.subv)) : "—";
+    $("lineTotal").textContent = fmtShownMoney(r.reel);
 
-    $("outEcoYear").textContent = "≈ " + fmtMoney(r.eco) + " / an";
+    $("outEcoYear").textContent = "≈ " + fmtShownMoney(r.eco) + " / an";
     if ($("outEcoFormula")) {
       $("outEcoFormula").textContent = r.ecoClamped
         ? "Crédit (plafonné à la conso) × tarif"
         : "Production × tarif";
     }
-    $("kpiReel").textContent = fmtMoneySig2(r.reel);
-    $("kpiEco").textContent = fmtMoney(r.eco);
+    $("kpiReel").textContent = fmtShownMoney(r.reel);
+    $("kpiEco").textContent = fmtShownMoney(r.eco);
     const note = $("kpiEcoNote");
     if (note) note.hidden = !r.ecoClamped;
     $("kpiYears").textContent = fmtYears(r.years);
-    $("outPayback").textContent =
-      "Coût réel ÷ économies/an ≈ " + (isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 1) + " ans" : "—");
+    const yearText = !isFinite(r.years) || r.years <= 0
+      ? "—"
+      : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
+    $("outPayback").textContent = "Coût réel ÷ économies/an ≈ " + yearText;
+
+    const jourWh = $("outConsoWh");
+    if (jourWh) jourWh.textContent = fmtShown(r.consoJour * 1000, 0) + " Wh";
+    if ($("autoStopVal")) $("autoStopVal").textContent = r.autonomyLabel;
+    const autoInput = $("autoStop");
+    if (autoInput) {
+      autoInput.setAttribute("aria-valuenow", autoInput.value);
+      autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
+    }
+    const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
+    if (reserveNum) reserveNum.textContent = fmtShown(r.reserveKwh, 2);
+    if ($("battPriceVal") && isFinite(r.battPrice)) {
+      $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
+    }
+    if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
+    if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtShownMoney(r.battCost);
+    if ($("outProject")) $("outProject").textContent = fmtShownMoney(r.projectTotal);
+
+    const fillNum = $("outFillNum");
+    const fillUnit = $("outFillUnit");
+    if (fillNum && fillUnit) {
+      let fillText = { num: "—", unit: "" };
+      if (r.fillState === "none") fillText = { num: "Aucune réserve", unit: "à remplir" };
+      else if (r.fillState === "impossible") fillText = { num: "Ne se remplit pas", unit: "" };
+      else if (r.fillState === "ok") fillText = fmtFillDuration(r.fillDays);
+      fillNum.textContent = fillText.num;
+      fillNum.classList.toggle("is-sentence", r.fillState === "none" || r.fillState === "impossible");
+      fillUnit.textContent = fillText.unit;
+      fillUnit.hidden = !fillText.unit;
+    }
+    const flag = $("permaFlag");
+    if (flag) flag.hidden = !r.shortfall;
     syncScenarioUrl();
   }
 
@@ -792,6 +964,7 @@
    * Area is the number on screen; unit=sqft does not convert it.
    */
   const SCENARIO_DEFAULTS = {
+    ville: "quebec",
     area: 40,
     unit: "m2",
     util: 80,
@@ -899,10 +1072,15 @@
     }
     let consoExtra = d.consoExtra;
     if (q.has("consoExtra")) consoExtra = clampExtraKwh(q.get("consoExtra"));
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, consoJour, consoExtra };
+    let ville = d.ville;
+    if (q.has("ville")) {
+      const raw = String(q.get("ville") || "").trim().toLowerCase();
+      if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
+    }
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
   }
 
-  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -922,6 +1100,7 @@
     const p = new URLSearchParams();
     if (full) {
       p.set("mode", mode === "webi" ? "webi" : "full");
+      p.set("ville", s.ville || d.ville);
       p.set("area", String(s.area));
       p.set("unit", s.unit === "sqft" ? "sqft" : "m2");
       p.set("util", String(s.util));
@@ -938,6 +1117,7 @@
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
+    if (s.ville && s.ville !== d.ville) p.set("ville", s.ville);
     if (s.unit === "sqft" || s.area !== d.area) p.set("area", String(s.area));
     if (s.unit === "sqft") p.set("unit", "sqft");
     if (s.util !== d.util) p.set("util", String(s.util));
@@ -969,6 +1149,9 @@
     $("rate").value = trimNum(s.rate, 3);
     if ($("consoJour")) $("consoJour").value = String(s.consoJour);
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
+    selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
+    if ($("ville")) $("ville").value = selectedVille;
+    paintTownButton();
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -1002,7 +1185,8 @@
       conso: isFinite(conso) ? conso : 0,
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
       consoJour: readRange("consoJour", 0, DAILY_LOADS.length, 1, d.consoJour),
-      consoExtra: consoExtraKwh()
+      consoExtra: consoExtraKwh(),
+      ville: canonicalVille(selectedVille)
     };
   }
 
@@ -1547,7 +1731,7 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -1563,11 +1747,37 @@
         requestAnimationFrame(function () { formatConsoInput(true); render(); });
       });
     }
+    const showDetails = $("showDetails");
+    if (showDetails) {
+      showDetails.checked = prefGet("solar-details") === "1";
+      showDetails.addEventListener("change", function () {
+        prefSet("solar-details", showDetails.checked ? "1" : "0");
+        render();
+      });
+    }
+    const showNotes = $("showNotes");
+    const editorNotes = $("editorNotes");
+    if (showNotes) {
+      showNotes.checked = prefGet("solar-notes") === "1";
+      const applyNotes = function () {
+        if (editorNotes) editorNotes.hidden = !showNotes.checked;
+        showNotes.setAttribute("aria-expanded", showNotes.checked ? "true" : "false");
+      };
+      applyNotes();
+      showNotes.addEventListener("change", function () {
+        prefSet("solar-notes", showNotes.checked ? "1" : "0");
+        applyNotes();
+      });
+    }
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
     if ($("consoJour")) wireRangePointerDrag($("consoJour"));
+    ["autoStop", "battPrice"].forEach((id) => {
+      const el = $(id);
+      if (el) wireRangePointerDrag(el);
+    });
     const consoExtra = $("consoExtra");
     if (consoExtra) {
       consoExtra.addEventListener("input", onScenarioEdit);
@@ -1622,19 +1832,358 @@
       });
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeInfo();
+      if (e.key === "Escape") {
+        if (townListOpen) {
+          closeTownList(true);
+          return;
+        }
+        closeInfo();
+      }
       trapModalTab(e);
     });
+
+    wireTownPicker();
 
     let initialSearch = "";
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
+    if ($("autoStop")) $("autoStop").value = String(AUTONOMY_DEFAULT_H);
+    if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+  }
+
+  function townById(id) {
+    if (!townByIdMap) return null;
+    return townByIdMap[id] || null;
+  }
+
+  function canonicalVille(id) {
+    const v = String(id == null ? "" : id).trim().toLowerCase();
+    if (!/^[a-z0-9-]{1,80}$/.test(v)) return DEFAULT_VILLE;
+    if (townCatalog.length && !townById(v)) return DEFAULT_VILLE;
+    return v;
+  }
+
+  function fmtYield(n) {
+    if (!isFinite(Number(n))) return "—";
+    return fmtGroupedInt(Math.round(Number(n))).replace(/ /g, "\u00A0") + " kWh/kWc";
+  }
+
+  function foldTownName(s) {
+    return String(s || "")
+      .replace(/œ/g, "oe")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function paintTownButton() {
+    const town = townById(selectedVille);
+    const nameEl = $("villeName");
+    const yieldEl = $("villeYield");
+    if (nameEl) nameEl.textContent = town ? town.name : (selectedVille === DEFAULT_VILLE ? "Québec" : selectedVille);
+    if (yieldEl) {
+      yieldEl.textContent = town
+        ? fmtYield(town.ac_annual_s30)
+        : (selectedVille === DEFAULT_VILLE ? fmtYield(quebecS30) : "—");
+    }
+    const btn = $("villeBtn");
+    if (btn) btn.setAttribute("aria-expanded", townListOpen ? "true" : "false");
+    const list = $("villeList");
+    if (!list || typeof list.querySelectorAll !== "function") return;
+    list.querySelectorAll('[role="option"]').forEach(function (li) {
+      const on = li.getAttribute("data-id") === selectedVille;
+      li.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+
+  function setTownActive(index) {
+    const list = $("villeList");
+    if (!list || !townCatalog.length) return;
+    const n = townCatalog.length;
+    townActiveIndex = ((index % n) + n) % n;
+    const options = typeof list.querySelectorAll === "function"
+      ? list.querySelectorAll('[role="option"]')
+      : [];
+    for (let i = 0; i < options.length; i++) {
+      options[i].classList.toggle("is-active", i === townActiveIndex);
+    }
+    const active = options[townActiveIndex];
+    if (active) {
+      list.setAttribute("aria-activedescendant", active.id || "");
+      if (typeof active.scrollIntoView === "function") {
+        try { active.scrollIntoView({ block: "nearest" }); } catch (_) {}
+      }
+    }
+  }
+
+  function moveTownActive(delta) {
+    if (townActiveIndex < 0) {
+      const current = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+      setTownActive(current < 0 ? 0 : current);
+      return;
+    }
+    setTownActive(townActiveIndex + delta);
+  }
+
+  function openTownList() {
+    const list = $("villeList");
+    const btn = $("villeBtn");
+    if (!list || !townCatalog.length) return;
+    townListOpen = true;
+    list.hidden = false;
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    const idx = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+    setTownActive(idx < 0 ? 0 : idx);
+    try { list.focus(); } catch (_) {}
+  }
+
+  function closeTownList(focusBtn) {
+    const list = $("villeList");
+    const btn = $("villeBtn");
+    townListOpen = false;
+    townActiveIndex = -1;
+    if (list) {
+      list.hidden = true;
+      list.removeAttribute("aria-activedescendant");
+    }
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    if (focusBtn && btn) {
+      try { btn.focus(); } catch (_) {}
+    }
+  }
+
+  function typeTown(ch) {
+    townTypeBuffer += foldTownName(ch);
+    if (townTypeTimer) clearTimeout(townTypeTimer);
+    townTypeTimer = setTimeout(function () { townTypeBuffer = ""; }, 700);
+    const q = townTypeBuffer;
+    const idx = townCatalog.findIndex(function (t) { return foldTownName(t.name).indexOf(q) === 0; });
+    if (idx >= 0) setTownActive(idx);
+  }
+
+  function commitTownActive() {
+    const town = townCatalog[townActiveIndex];
+    if (town) pickTown(town.id);
+    else closeTownList(true);
+  }
+
+  async function pickTown(id) {
+    selectedVille = canonicalVille(id);
+    if ($("ville")) $("ville").value = selectedVille;
+    paintTownButton();
+    closeTownList(true);
+    scenarioSnapshot = true;
+    syncScenarioUrl();
+    const pending = ensureTownGrid(selectedVille);
+    render();
+    try {
+      await pending;
+    } finally {
+      render();
+    }
+  }
+
+  function renderTownList() {
+    const list = $("villeList");
+    const sel = $("ville");
+    if (!list || !sel || typeof document.createElement !== "function") return;
+    list.textContent = "";
+    sel.textContent = "";
+    townCatalog.forEach(function (town) {
+      const opt = document.createElement("option");
+      opt.value = town.id;
+      opt.textContent = town.name;
+      if (town.id === selectedVille) opt.selected = true;
+      sel.appendChild(opt);
+
+      const li = document.createElement("li");
+      li.className = "town-option";
+      li.setAttribute("role", "option");
+      li.id = "ville-opt-" + town.id;
+      li.setAttribute("data-id", town.id);
+      li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
+      const name = document.createElement("span");
+      name.className = "town-name";
+      name.textContent = town.name;
+      const yieldEl = document.createElement("span");
+      yieldEl.className = "town-yield";
+      yieldEl.textContent = fmtYield(town.ac_annual_s30);
+      li.appendChild(name);
+      li.appendChild(yieldEl);
+      li.addEventListener("mousedown", function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        pickTown(town.id);
+      });
+      list.appendChild(li);
+    });
+    sel.value = selectedVille;
+    paintTownButton();
+  }
+
+  function wireTownPicker() {
+    const btn = $("villeBtn");
+    if (!btn || btn._townWired) return;
+    btn._townWired = true;
+    btn.addEventListener("click", function () {
+      if (townListOpen) closeTownList(false);
+      else openTownList();
+    });
+    btn.addEventListener("keydown", function (e) {
+      if (!e) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (e.preventDefault) e.preventDefault();
+        if (!townListOpen) openTownList();
+        else moveTownActive(e.key === "ArrowDown" ? 1 : -1);
+      } else if (e.key === "Escape" && townListOpen) {
+        if (e.preventDefault) e.preventDefault();
+        closeTownList(true);
+      }
+    });
+    const list = $("villeList");
+    if (list) {
+      list.addEventListener("keydown", function (e) {
+        if (!e) return;
+        if (e.key === "ArrowDown") { if (e.preventDefault) e.preventDefault(); moveTownActive(1); }
+        else if (e.key === "ArrowUp") { if (e.preventDefault) e.preventDefault(); moveTownActive(-1); }
+        else if (e.key === "Home") { if (e.preventDefault) e.preventDefault(); setTownActive(0); }
+        else if (e.key === "End") { if (e.preventDefault) e.preventDefault(); setTownActive(townCatalog.length - 1); }
+        else if (e.key === "Enter" || e.key === " ") { if (e.preventDefault) e.preventDefault(); commitTownActive(); }
+        else if (e.key === "Escape") { if (e.preventDefault) e.preventDefault(); closeTownList(true); }
+        else if (e.key === "Tab") closeTownList(false);
+        else if (e.key && e.key.length === 1 && /\S/.test(e.key)) {
+          if (e.preventDefault) e.preventDefault();
+          typeTown(e.key);
+        }
+      });
+    }
+    document.addEventListener("click", function (e) {
+      if (!townListOpen) return;
+      const picker = $("townPicker");
+      const target = e && e.target;
+      if (picker && target && typeof picker.contains === "function" && picker.contains(target)) return;
+      closeTownList(false);
+    });
+  }
+
+  function scaleGrid(cells, scale) {
+    const out = {};
+    Object.keys(cells).forEach(function (tilt) {
+      out[tilt] = {};
+      Object.keys(cells[tilt]).forEach(function (az) {
+        const c = cells[tilt][az];
+        const decRaw = c.ac_dec != null ? c.ac_dec : (c.ac_monthly && c.ac_monthly.dec);
+        const dec = Number(decRaw);
+        out[tilt][az] = {
+          ac_annual: Number(c.ac_annual) * scale,
+          W_winter: c.W_winter,
+          ac_dec: (isFinite(dec) ? dec : FALLBACK_S30.ac_dec) * scale
+        };
+      });
+    });
+    return out;
+  }
+
+  async function fetchTownGridFile(town) {
+    const file = town.grid_file || ("assets/town-grids/" + town.id + ".json");
+    const res = await fetch(file, { cache: "force-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!data || !data.cells || data.scaled === true) throw new Error("pas une grille PVWatts complète");
+    const n = Object.keys(data.cells).reduce(function (acc, tilt) {
+      return acc + Object.keys(data.cells[tilt] || {}).length;
+    }, 0);
+    if (n < 168) throw new Error("grille incomplète");
+    return data.cells;
+  }
+
+  function applyScaledTown(town, token) {
+    const s30 = Number(town && town.ac_annual_s30);
+    if (!(isFinite(s30) && s30 > 0 && isFinite(quebecS30) && quebecS30 > 0)) return false;
+    if (token !== gridToken) return false;
+    gridCells = scaleGrid(baseCells, s30 / quebecS30);
+    gridReady = true;
+    gridStatus = "ready";
+    gridIsScaled = true;
+    activeTownId = town.id;
+    return true;
+  }
+
+  async function ensureTownGrid(id) {
+    const token = ++gridToken;
+    const useId = canonicalVille(id || selectedVille);
+    if (!baseCells) return;
+    const town = townById(useId);
+    const useQuebec = !town || useId === DEFAULT_VILLE ||
+      (town.grid === "full" && String(town.grid_file || "").indexOf("quebec-full-grid") !== -1);
+    if (useQuebec) {
+      if (token !== gridToken) return;
+      gridCells = baseCells;
+      gridReady = true;
+      gridStatus = "ready";
+      gridIsScaled = false;
+      activeTownId = DEFAULT_VILLE;
+      return;
+    }
+    if (town.grid === "full") {
+      applyScaledTown(town, token);
+      gridStatus = "loading";
+      lastGridUiStatus = null;
+      updateGridStatusUi();
+      try {
+        const cells = await fetchTownGridFile(town);
+        if (token !== gridToken) return;
+        gridCells = cells;
+        gridReady = true;
+        gridStatus = "ready";
+        gridIsScaled = false;
+        activeTownId = useId;
+        return;
+      } catch (err) {
+        console.warn("Grille complète indisponible — échelle sud 30°", useId, err);
+        if (token !== gridToken) return;
+        if (applyScaledTown(town, token)) return;
+      }
+    }
+    if (token !== gridToken) return;
+    if (applyScaledTown(town, token)) return;
+    gridCells = baseCells;
+    gridReady = true;
+    gridStatus = "ready";
+    gridIsScaled = false;
+    activeTownId = DEFAULT_VILLE;
+  }
+
+  async function loadTowns() {
+    try {
+      const res = await fetch("assets/towns.json", { cache: "force-cache" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.towns)) return;
+      const towns = data.towns.filter(function (t) { return t && t.id && t.name; });
+      if (!towns.length) return;
+      towns.sort(function (a, b) {
+        return String(a.name).localeCompare(String(b.name), "fr-CA", { sensitivity: "base" });
+      });
+      townCatalog = towns;
+      townByIdMap = {};
+      towns.forEach(function (t) { townByIdMap[t.id] = t; });
+      if (data.meta && isFinite(Number(data.meta.quebec_s30))) quebecS30 = Number(data.meta.quebec_s30);
+      selectedVille = canonicalVille(selectedVille);
+      renderTownList();
+    } catch (err) {
+      console.warn("Liste des villes non chargée", err);
+    }
   }
 
   function setGridFromPayload(data) {
     if (data && data.cells) {
-      gridCells = data.cells;
+      baseCells = data.cells;
+      if (!gridCells) {
+        gridCells = baseCells;
+        activeTownId = DEFAULT_VILLE;
+        gridIsScaled = false;
+      }
       gridReady = true;
       gridStatus = "ready";
       return true;
@@ -1691,6 +2240,8 @@
     sig2Round,
     fmtSig2,
     fmtMoneySig2,
+    fmtShown,
+    fmtShownMoney,
     validateBugReport,
     bugReportEndpoint,
     parseDisplayMode: displayModeApi && displayModeApi.parseDisplayMode,
@@ -1745,7 +2296,9 @@
     loadBuildId();
     wireUi();
     render();
+    await loadTowns();
     await loadGrid();
+    await ensureTownGrid(selectedVille);
     render();
   });
 

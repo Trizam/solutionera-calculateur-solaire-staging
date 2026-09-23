@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Smoke — Calculateur Solaire version 0.2 · grille QC + W-by-tilt */
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { inflateSync } from "zlib";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { runInNewContext } from "vm";
@@ -70,6 +71,61 @@ const cellCount = Object.keys(grid.cells).reduce(
 );
 const cellsOk = cellCount === 168;
 console.log(`  cells count ${cellCount} (expect 168): ${cellsOk ? "PASS" : "FAIL"}`);
+
+function townDataReport() {
+  const path = join(__dirname, "assets", "towns.json");
+  if (!existsSync(path)) return { ok: false, detail: "missing assets/towns.json" };
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    return { ok: false, detail: "towns.json invalid JSON" };
+  }
+  const towns = doc && Array.isArray(doc.towns) ? doc.towns : [];
+  const problems = [];
+  if (towns.length !== 104) problems.push("count " + towns.length);
+  const ids = new Set();
+  let mrc = 0;
+  let eq = 0;
+  const names = towns.map((t) => t.name);
+  const sorted = names.slice().sort((a, b) => String(a).localeCompare(String(b), "fr-CA", { sensitivity: "base" }));
+  if (names.join("\n") !== sorted.join("\n")) problems.push("not fr-CA sorted");
+  towns.forEach((t) => {
+    if (!t.id || ids.has(t.id)) problems.push("id " + t.id);
+    ids.add(t.id);
+    if (t.type === "MRC") mrc += 1;
+    else if (t.type === "Equivalent") eq += 1;
+    else problems.push("type " + t.name);
+    if (!(t.lat >= 44 && t.lat <= 63 && t.lon >= -80 && t.lon <= -56)) problems.push("coords " + t.name);
+    if (!isFinite(Number(t.ac_annual_s30)) || Number(t.ac_annual_s30) < 600 || Number(t.ac_annual_s30) > 1800) {
+      problems.push("s30 " + t.name + "=" + t.ac_annual_s30);
+    }
+    if (t.grid !== "full" && t.grid !== "scaled") problems.push("grid " + t.name);
+    if (t.grid === "full") {
+      const rel = t.grid_file || ("assets/town-grids/" + t.id + ".json");
+      const file = join(__dirname, rel);
+      if (!existsSync(file)) problems.push("missing grid file " + t.name);
+      else {
+        try {
+          const g = JSON.parse(readFileSync(file, "utf8"));
+          if (g.scaled === true) problems.push("full marked scaled " + t.name);
+          const n = Object.keys(g.cells || {}).reduce((acc, tilt) => acc + Object.keys(g.cells[tilt] || {}).length, 0);
+          if (n !== 168) problems.push("cells " + n + " " + t.name);
+        } catch (_) {
+          problems.push("bad grid " + t.name);
+        }
+      }
+    }
+  });
+  if (mrc !== 87 || eq !== 17) problems.push(`MRC=${mrc} Equivalent=${eq}`);
+  const qc = towns.find((t) => t.id === "quebec");
+  if (!qc || Math.abs(Number(qc.ac_annual_s30) - 1254.8064) > 0.01) problems.push("québec s30");
+  if (qc && (qc.lat !== 46.813 || qc.lon !== -71.208)) problems.push("québec coords");
+  return { ok: problems.length === 0, detail: problems.slice(0, 8).join("; ") };
+}
+const townData = townDataReport();
+const townDataOk = townData.ok;
+console.log(`  towns.json 104 places, S/30, grids: ${townDataOk ? "PASS" : "FAIL"} ${townData.detail}`);
 
 /** Same W-by-tilt model as app.js */
 function winterWFromTilt(tilt) {
@@ -220,12 +276,144 @@ const orientLabel =
 const orient24 = (html.match(/option value="/g) || []).length >= 24;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
+/** RGBA PNG (8-bit, non-interlaced). Used to prove the mark is not pre-cropped. */
+function readPngRgba(path) {
+  const buf = readFileSync(path);
+  if (buf.length < 8 || buf.toString("hex", 0, 8) !== "89504e470d0a1a0a") {
+    throw new Error(`not a png: ${path}`);
+  }
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  let interlace = 0;
+  const idats = [];
+  while (offset < buf.length) {
+    const len = buf.readUInt32BE(offset);
+    const type = buf.toString("ascii", offset + 4, offset + 8);
+    const data = buf.subarray(offset + 8, offset + 8 + len);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      interlace = data[12];
+    } else if (type === "IDAT") {
+      idats.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+    offset += 12 + len;
+  }
+  if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
+    throw new Error(`unsupported png ${path}: bit=${bitDepth} color=${colorType} interlace=${interlace}`);
+  }
+  const raw = inflateSync(Buffer.concat(idats));
+  const bpp = 4;
+  const stride = width * bpp;
+  const rgba = Buffer.alloc(height * stride);
+  let i = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = raw[i++];
+    const row = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const v = raw[i++];
+      const left = x >= bpp ? rgba[row + x - bpp] : 0;
+      const up = y > 0 ? rgba[row - stride + x] : 0;
+      const ul = y > 0 && x >= bpp ? rgba[row - stride + x - bpp] : 0;
+      let outByte = v;
+      if (filter === 1) outByte = (v + left) & 255;
+      else if (filter === 2) outByte = (v + up) & 255;
+      else if (filter === 3) outByte = (v + ((left + up) >> 1)) & 255;
+      else if (filter === 4) {
+        const p = left + up - ul;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - ul);
+        const pred = pa <= pb && pa <= pc ? left : pb <= pc ? up : ul;
+        outByte = (v + pred) & 255;
+      } else if (filter !== 0) {
+        throw new Error(`bad png filter ${filter}`);
+      }
+      rgba[row + x] = outByte;
+    }
+  }
+  return { width, height, rgba };
+}
+
+/** A cropped disc has a long flat side. A real circle only stays flat for a few pixels. */
+function logoDiscIntact(path) {
+  const { width, height, rgba } = readPngRgba(path);
+  if (width !== height || width < 64) return false;
+  const alphaAt = (x, y) => rgba[(y * width + x) * 4 + 3];
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  let any = false;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (alphaAt(x, y) > 20) {
+        any = true;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!any) return false;
+  const margin = Math.min(minX, minY, width - 1 - maxX, height - 1 - maxY);
+  const longestFlat = (vals) => {
+    let best = 1;
+    let cur = 1;
+    for (let i = 1; i < vals.length; i++) {
+      if (vals[i] === vals[i - 1]) {
+        cur += 1;
+        if (cur > best) best = cur;
+      } else {
+        cur = 1;
+      }
+    }
+    return best;
+  };
+  const rights = [];
+  for (let y = 0; y < height; y++) {
+    let right = -1;
+    for (let x = width - 1; x >= 0; x--) {
+      if (alphaAt(x, y) > 128) {
+        right = x;
+        break;
+      }
+    }
+    if (right >= 0) rights.push(right);
+  }
+  const flat = longestFlat(rights);
+  // ~14px padding on a 240 canvas. A clipped export touches the edge or stays flat for ~100 rows.
+  return margin >= 8 && flat <= 20;
+}
+
+const logoBlocks = css.match(/\.brand-logo\b[^{]*\{[^}]*\}/g) || [];
+const logoCssOk =
+  logoBlocks.length >= 1 &&
+  logoBlocks.every(
+    (block) =>
+      !/border-radius\s*:/.test(block) &&
+      !/overflow\s*:\s*hidden/.test(block) &&
+      !/object-fit\s*:\s*(cover|fill)/.test(block) &&
+      !/image-rendering\s*:/.test(block) &&
+      !/padding\s*:/.test(block)
+  ) &&
+  logoBlocks.some((block) => /object-fit\s*:\s*contain/.test(block));
+const logoPngOk =
+  logoDiscIntact(join(__dirname, "assets/logo-solution-era.png")) &&
+  logoDiscIntact(join(__dirname, "favicon.png"));
 const logoOk =
-  (html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg")) &&
-  css.includes(".brand-logo") &&
-  /border-radius:\s*50%/.test(css) &&
-  !/\.brand-logo[\s\S]{0,220}border-radius:\s*10px/.test(css) &&
-  css.includes("overflow: visible");
+  html.includes("logo-solution-era.png") &&
+  html.includes('class="brand-logo"') &&
+  logoCssOk &&
+  logoPngOk;
 const taxes15 = html.includes("15&nbsp;%") || html.includes("15 %");
 const logisDefault = /id="subv"[^>]*checked/.test(html) || /id="subv" checked/.test(html);
 const logisCopy =
@@ -234,16 +422,40 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const htmlSansBrand = html
-  .replace(/DÉFI Autonomie Énergétique/g, "")
-  .replace(/Autonomie et neige/g, "")
-  .replace(/en autonomie/gi, "")
-  .replace(/<div class="label">Autonomie<\/div>/g, "")
-  .replace(/Autonomie \(décembre\)/g, "")
-  .replace(/pleine autonomie/gi, "")
-  .replace(/d’autonomie/gi, "")
-  .replace(/d'autonomie/gi, "");
-const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
+const design = readFileSync(join(__dirname, "docs/DESIGN.md"), "utf8");
+const designRules =
+  html.includes("Combien coûte le solaire") &&
+  html.includes('id="showDetails"') &&
+  html.includes("Je veux les détails") &&
+  html.includes('id="showNotes"') &&
+  html.includes('id="editorNotes" hidden') &&
+  html.includes("docs/DESIGN.md") &&
+  !html.includes("Loi des deux chiffres") &&
+  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  /\.cards\s*\{[\s\S]{0,220}align-items:\s*start/.test(css) &&
+  app.includes("function fmtShown") &&
+  design.includes("Loi des deux chiffres") &&
+  design.includes("result-pill") &&
+  design.includes("Je veux les détails") &&
+  design.includes("seule") &&
+  !design.includes("répétées dans le commentaire");
+const batteryColumn =
+  html.includes('data-slot="need"') &&
+  html.includes('data-slot="fill"') &&
+  html.includes('data-slot="batt"') &&
+  html.includes('data-slot="total"') &&
+  html.includes('id="consoJour"') &&
+  html.includes('id="autoStop"') &&
+  html.includes('id="battPrice"') &&
+  html.includes('id="permaFlag"') &&
+  html.includes('id="sec-yield"') &&
+  !/id="sec-yield"[^>]*mode-full-only/.test(html) &&
+  /mode-full-only[^>]*id="sec-auto"/.test(html) &&
+  /mode-full-only[^>]*id="sec-fill"/.test(html) &&
+  /mode-full-only[^>]*id="sec-batt"/.test(html) &&
+  /mode-full-only[^>]*id="sec-total"/.test(html) &&
+  /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
@@ -286,7 +498,7 @@ const tiltSlider =
   !/<select\s+id="tilt"/.test(html) &&
   !html.includes("tilt-select-row") &&
   /\$\("tiltVal"\)\.textContent/.test(app) &&
-  /\["util", "deneige", "priceW", "tilt"\]/.test(app);
+  /\["util", "deneige", "priceW", "tilt"/.test(app);
 const subtitlePad =
   /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
   /section\.block\s*>\s*h2/.test(sliderScreen) &&
@@ -336,7 +548,7 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery column + design rules + info modal + tilt viz + gridStatus: ${batteryColumn && designRules && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -790,12 +1002,18 @@ const htmlSplit1A =
 const htmlSplit1B =
   html.includes('<span class="num">1B</span>') &&
   html.includes("Combien d'énergie électrique vais-je produire") &&
-  html.includes("Ville de Québec") &&
+  html.includes('id="ville"') &&
+  html.includes('id="villeBtn"') &&
+  html.includes('id="villeList"') &&
+  html.includes("1&nbsp;kWc") &&
+  html.includes("kWh/kWc") &&
+  html.includes("plein sud, 30°") &&
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
   html.includes("kWh / j déc") &&
-  html.includes("±&nbsp;4") &&
+  !html.includes("±&nbsp;4") &&
+  !html.includes("+/- 4") &&
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
   html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
   html.indexOf('id="tilt"') < html.indexOf("field-deneige");
@@ -840,7 +1058,7 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /kwNum\.textContent = fmtSig2\(r\.kW\)/.test(app) &&
+  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
   html.includes(">kWc<") &&
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
@@ -890,6 +1108,9 @@ const dayOk =
   kWhDecDay > 2 && kWhDecDay < 2.5 &&
   Math.abs(kWhDecNever) < 1e-9 &&
   kWhDecVertical > 10;
+const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-auto"'));
+const prodBHtml = html.slice(html.indexOf('id="sec-prod-b"'), html.indexOf('id="sec-yield"'));
+const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-cost"'));
 const recFn =
   app.includes("function recommendVerticalPanels") &&
   app.includes("showVerticalRec") &&
@@ -898,7 +1119,17 @@ const recFn =
   html.includes("mettez les panneaux à la verticale") &&
   html.includes("décembre ne tombe pas à zéro") &&
   css.includes(".autonomy-snow") &&
-  /autonomy-snow\[hidden\]/.test(css);
+  /autonomy-snow\[hidden\]/.test(css) &&
+  yieldHtml.includes('id="autonomySnow"') &&
+  yieldHtml.indexOf('id="outKwhDay"') < yieldHtml.indexOf('id="autonomySnow"') &&
+  !prodBHtml.includes("autonomySnow");
+const shortfallInFill =
+  fillHtml.includes('id="permaFlag"') &&
+  fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
+  !html.includes("perma-flag") &&
+  css.includes(".fill-shortfall");
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
@@ -922,6 +1153,7 @@ console.log(
   }`
 );
 console.log(`  boîte verticale sous autonomie (d<100 % et tilt<90°): ${recFn ? "PASS" : "FAIL"}`);
+console.log(`  décembre sous Temps pour remplir: ${shortfallInFill ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -1080,9 +1312,10 @@ const fmt14230 = fmtSig2(14230);
 const fmt14230Compact = fmt14230.replace(/\s/g, "");
 const fmt14230Ok = Math.abs(sig2Round(14230) - 14000) < 1e-9 && (fmt14230Compact === "14000" || /14\s*000/.test(fmt14230));
 const prodUsesSig2 =
-  app.includes("fmtSig2(r.kWhDay)") &&
-  app.includes("fmtSig2(r.kWh)") &&
-  app.includes("fmtSig2(r.kW)") &&
+  /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
+  app.includes("fmtShown(r.kWhDay, 2)") &&
+  app.includes("fmtShown(r.kWh, 0)") &&
+  app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1114,8 +1347,10 @@ const fmtMoneySig2Ok =
   !/15675/.test(fmtMoney15675Compact);
 const totalUsesSig2 =
   app.includes("function fmtMoneySig2") &&
-  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
-  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  app.includes("function fmtShownMoney") &&
+  /function fmtShownMoney\(n\)[\s\S]{0,280}return fmtMoneySig2\(n\)/.test(app) &&
+  /\$\("lineTotal"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
   !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
@@ -1489,6 +1724,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   function fullSearch(over) {
     const s = Object.assign({
       mode: "full",
+      ville: "quebec",
       area: 40,
       unit: "m2",
       util: 80,
@@ -1504,7 +1740,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       consoExtra: "0"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -1537,7 +1773,10 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
-    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })]
+    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })],
+    ["?ville=alma", fullSearch({ ville: "alma" })],
+    ["?ville=quebec", fullSearch()],
+    ["?ville=../x", fullSearch()]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
@@ -1579,7 +1818,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -1623,6 +1862,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   fireInput(webi, "deneige", "40");
   expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
 
+  const prefs = await bootScenario("");
+  expect(prefs.el("showDetails").checked === false, "details off by default");
+  expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
+  expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
+  expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
   }
@@ -1635,6 +1880,7 @@ const pass =
   !bad &&
   annualOk &&
   cellsOk &&
+  townDataOk &&
   wTiltOk &&
   hasFetch &&
   hasFallback &&
@@ -1672,7 +1918,8 @@ const pass =
   logisDefault &&
   logisCopy &&
   subvDefaultJs &&
-  noBattery &&
+  batteryColumn &&
+  designRules &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&
@@ -1760,6 +2007,7 @@ const pass =
   dayOk &&
   snowCoverOk &&
   recFn &&
+  shortfallInFill &&
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
