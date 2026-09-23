@@ -1109,7 +1109,7 @@ section.block > h2,
 .card-kpi {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   background: var(--green-soft);
   border-radius: 12px;
   padding: 0.85rem 0.7rem;
