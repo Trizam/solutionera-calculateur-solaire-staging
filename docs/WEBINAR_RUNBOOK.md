@@ -15,7 +15,7 @@ Variantes **uniquement** via `?mode=` — **pas** de second repo ni de second si
 |--------|----------------|
 | **absent** (URL nue) | **Mode complet** (défaut) — toutes les sections actuelles : toit/production + coût + valeur/résultats |
 | `full` | Alias du défaut — même UI complète |
-| `webi` | **Uniquement `#sec-prod` + `#sec-prod-b`** — 1A taille (PV + kWc) puis 1B production (kWh/an + kWh/j déc). Coût, valeur/KPI, PDF, hero, mentions masqués |
+| `webi` | **Uniquement `#sec-prod` + `#sec-prod-b`** — 1A taille (PV + kWc) puis 1B production (production annuelle kWh/kWc, puis kWh/an + kWh/j déc). Coût, valeur/KPI, PDF, hero, mentions masqués |
 | `webinar` | Alias de `webi` |
 | autre valeur | Traité comme **full** |
 
@@ -25,7 +25,7 @@ En mode webi, un petit badge FR « Mode webi » apparaît près du sous-titre (p
 
 **v1 — allowlist honnête :** le mode complet affiche **tout le calculateur déjà en page**. Le mode webi **ne montre que** les blocs pédagogiques 1A + 1B :
 
-- **visible en `webi` :** marque + `#sec-prod` (1A : superficie, densité → qté PV + kWc) + `#sec-prod-b` (1B : localisation QC, orientation, inclinaison, déneige → Mesurage Net kWh/an + Autonomie kWh/j déc) + pied de bug
+- **visible en `webi` :** marque + `#sec-prod` (1A : superficie, densité → qté PV + kWc) + `#sec-prod-b` (1B : localisation QC, orientation, inclinaison, déneige → production annuelle kWh/kWc, puis Mesurage Net kWh/an + Autonomie kWh/j déc) + pied de bug
 - **masqués en `webi` :** hero, `#sec-cost`, `#sec-value` (KPI + PDF), `#sec-auto`, `#sec-reserve`, `#sec-fill`, `#sec-batt`, `#sec-total`, `aside.disclaimers`, modales info/tarif
 
 ---
