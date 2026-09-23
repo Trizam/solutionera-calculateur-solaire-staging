@@ -111,6 +111,8 @@ function townDataReport() {
           if (g.scaled === true) problems.push("full marked scaled " + t.name);
           const n = Object.keys(g.cells || {}).reduce((acc, tilt) => acc + Object.keys(g.cells[tilt] || {}).length, 0);
           if (n !== 168) problems.push("cells " + n + " " + t.name);
+          const s45 = g.cells && g.cells["45"] && g.cells["45"]["180"];
+          if (!s45 || !(Number(s45.ac_annual) > 0)) problems.push("s45 " + t.name);
         } catch (_) {
           problems.push("bad grid " + t.name);
         }
@@ -1010,7 +1012,8 @@ const htmlSplit1B =
   html.includes('id="villeList"') &&
   html.includes("1&nbsp;kWc") &&
   html.includes("kWh/kWc") &&
-  html.includes("plein sud, 30°") &&
+  html.includes("plein sud, 45°") &&
+  !html.includes("plein sud, 30°") &&
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
@@ -1020,6 +1023,41 @@ const htmlSplit1B =
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
   html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
   html.indexOf('id="tilt"') < html.indexOf("field-deneige");
+function menuYieldReport() {
+  const problems = [];
+  const grid = JSON.parse(readFileSync(join(__dirname, "assets/quebec-full-grid.json"), "utf8"));
+  const q45 = Number(grid.cells["45"]["180"].ac_annual);
+  if (Math.round(q45) !== 1270) problems.push("québec s45 " + q45);
+  const towns = JSON.parse(readFileSync(join(__dirname, "assets/towns.json"), "utf8"));
+  const q30 = Number(towns.meta.quebec_s30);
+  const acton = towns.towns.find((t) => t.id === "acton-vale");
+  const montreal = towns.towns.find((t) => t.id === "montreal");
+  const mGrid = JSON.parse(readFileSync(join(__dirname, "assets/town-grids/montreal.json"), "utf8"));
+  const measured = Number(mGrid.cells["45"]["180"].ac_annual);
+  const scaledActon = q45 * (Number(acton.ac_annual_s30) / q30);
+  const scaledMontreal = q45 * (Number(montreal.ac_annual_s30) / q30);
+  if (Math.round(scaledActon) !== 1248) problems.push("acton scaled45 " + scaledActon);
+  if (Math.round(measured) !== 1326) problems.push("montréal s45 " + measured);
+  if (Math.round(measured) === Math.round(scaledMontreal)) problems.push("montréal measured equals scaled");
+  if (!html.includes("1&nbsp;270 kWh/kWc")) problems.push("placeholder");
+  if (!html.includes("productible sud 45°")) problems.push("copy 45");
+  if (html.includes("productible sud 30°")) problems.push("copy still sud 30");
+  if (!html.includes("rapport sud 30°")) problems.push("scaling copy removed");
+  if (!html.includes("inclinaison <strong>45°</strong>")) problems.push("help tilt");
+  if (html.includes("inclinaison <strong>30°</strong>")) problems.push("help still 30");
+  const codeOk =
+    app.includes("function menuYieldAnnual") &&
+    app.includes('southAnnual(cells, "45", "180")') &&
+    app.includes("q45 * (s30 / quebecS30)") &&
+    app.includes("function loadMenuFullGrids") &&
+    app.includes("function refreshTownYields") &&
+    !app.includes("fmtYield(town.ac_annual_s30)") &&
+    !app.includes("fmtYield(quebecS30)");
+  if (!codeOk) problems.push("app menu yield");
+  return { ok: problems.length === 0, detail: problems.join("; ") };
+}
+const menuYield = menuYieldReport();
+const menuYieldOk = menuYield.ok;
 const secCostIdx = html.indexOf('id="sec-cost"');
 const secValueIdx = html.indexOf('id="sec-value"');
 const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
@@ -1139,6 +1177,7 @@ console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && 
 console.log(`  webi hides non-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
 console.log(`  step 1 split 1A superficie/densité → PV+kWc: ${htmlSplit1A ? "PASS" : "FAIL"}`);
 console.log(`  step 1B localisation QC / orient / tilt / déneige: ${htmlSplit1B ? "PASS" : "FAIL"}`);
+console.log(`  menu yield sud 45° (QC 1 270, scale keeps sud 30°): ${menuYieldOk ? "PASS" : "FAIL"} ${menuYield.detail}`);
 console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
 console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
@@ -1996,6 +2035,7 @@ const pass =
   htmlAllowlist &&
   htmlSplit1A &&
   htmlSplit1B &&
+  menuYieldOk &&
   htmlProdBVisible &&
   cssHidesFull &&
   cssHidesWebiOnly &&
