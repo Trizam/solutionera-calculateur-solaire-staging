@@ -63,7 +63,7 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
 | Rendement | Mesurage net et autonomie de décembre | Paire de boîtes vertes |
-| Besoin **4A** | Combien veux-tu consommer par jour ? | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre |
+| Besoin **4A** | Combien d'autonomie je veux | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre |
 | Réserve **4B** | Combien de jours de réserve voulez-vous ? | Durée 0 à 3 jours, boîte verte en kWh |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte verte, flèche centrée |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
