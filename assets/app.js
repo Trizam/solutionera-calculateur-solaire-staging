@@ -9,7 +9,9 @@
   const DAYS_IN_DEC = 31;
 
   const PANEL_KW_PER_M2 = 0.20;
-  /** Pedagogical panel size: 400 W → nPV = kW / 0.4 (40 m² × 80 % → 16 PV / 6,4 kWc). */
+  /** Standard pedagogical panel footprint (not used for kWc). */
+  const PANEL_M2 = 2;
+  /** Implied module wattage: 2 m² × 0,20 kW/m² → 400 W. Kept for docs / export. */
   const PANEL_W = 400;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
@@ -287,8 +289,9 @@
     // v0.2: W from tilt model (not per-cell orientation W)
     const W = winterWFromTilt(tilt);
 
-    const kW = m2 * util * PANEL_KW_PER_M2;
-    const nPv = kW > 0 ? Math.round((kW * 1000) / PANEL_W) : NaN;
+    const usedM2 = m2 * util;
+    const kW = usedM2 * PANEL_KW_PER_M2;
+    const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
     const kWhAnnuel = table * kW;
     const kWh = applyDeneigement(kWhAnnuel, deneige, W);
     const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
@@ -562,8 +565,14 @@
       const yearNum = $("outKwh").querySelector(".prod-num");
       if (yearNum) yearNum.textContent = fmtSig2(r.kWh);
     }
-    if ($("outPv")) $("outPv").textContent = isFinite(r.nPv) ? fmtNum(r.nPv, 0) : "—";
-    if ($("outKw")) $("outKw").textContent = fmtSig2(r.kW);
+    if ($("outPv")) {
+      const pvNum = $("outPv").querySelector(".prod-num");
+      if (pvNum) pvNum.textContent = isFinite(r.nPv) ? fmtNum(r.nPv, 0) : "—";
+    }
+    if ($("outKw")) {
+      const kwNum = $("outKw").querySelector(".prod-num");
+      if (kwNum) kwNum.textContent = fmtSig2(r.kW);
+    }
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtMoney(r.HT) + " (HT)";
 
@@ -1289,6 +1298,7 @@
     roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
+      PANEL_M2,
       PANEL_W,
       DAYS_IN_DEC,
       TAX_MULT,
