@@ -37,7 +37,7 @@ Ce qui ne passe pas par cette loi :
 
 - La valeur d’un champ que la personne est en train de régler (curseur, superficie, tarif saisi, Wh d’un appareil). Elle doit voir le chiffre qu’elle a choisi.
 - Un compte d’objets déjà entier (nombre de panneaux).
-- Le productible en bas de 1B (kWh/kWc). Il suit l’entier du menu des villes, pour qu’on compare le même chiffre après orientation, inclinaison et déneigement.
+- La production annuelle en bas de 1B (kWh/kWc). Elle suit l’entier du menu des villes, pour qu’on compare le même chiffre après orientation, inclinaison et déneigement.
 
 La boîte verte montre l’arrondi du **vrai** total, pas la somme des lignes déjà arrondies. Deux lignes arrondies peuvent donc ne pas retomber pile sur le total. C’est voulu.
 

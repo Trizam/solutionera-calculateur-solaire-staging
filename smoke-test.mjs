@@ -1136,7 +1136,7 @@ const shortfallInFill =
 const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
 const productiblePill =
   prodBHtml.includes('id="outKwhKwc"') &&
-  prodBHtml.includes(">Productible<") &&
+  prodBHtml.includes(">Production annuelle<") &&
   prodBHtml.includes(">kWh/kWc<") &&
   prodBHtml.includes("kilowatt-crête installé") &&
   prodBHtml.indexOf('id="deneige"') < prodBHtml.indexOf('id="outKwhKwc"') &&
@@ -1157,7 +1157,7 @@ console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FA
 console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
 console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
 console.log(`  1A deux boîtes PV (2 m²) + kWc (indépendant): ${prodKwC ? "PASS" : "FAIL"}`);
-console.log(`  1B productible kWh/kWc en bas (défaut ${kWhPerKwcDefault.toFixed(1)}): ${productiblePill ? "PASS" : "FAIL"}`);
+console.log(`  1B production annuelle kWh/kWc en bas (défaut ${kWhPerKwcDefault.toFixed(1)}): ${productiblePill ? "PASS" : "FAIL"}`);
 console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
 console.log(
   `  décembre C-by-tilt 0→1, 45→1, 60→2/3, 75→1/3, 90→0: ${snowCoverOk ? "PASS" : "FAIL"} ` +

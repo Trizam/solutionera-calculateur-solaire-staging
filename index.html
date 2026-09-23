@@ -320,7 +320,7 @@
         </div>
       </div>
       <div class="result-pill">
-        <div class="label">Productible</div>
+        <div class="label">Production annuelle</div>
         <div class="big prod-line" id="outKwhKwc">
           <span class="prod-num">—</span>
           <span class="prod-unit">kWh/kWc</span>
@@ -622,7 +622,7 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 30° en kWh/kWc pour 1&nbsp;kWc. La boîte Productible en bas de 1B reprend ce chiffre après l’orientation, l’inclinaison et le déneigement.</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 30° en kWh/kWc pour 1&nbsp;kWc. La boîte Production annuelle en bas de 1B reprend ce chiffre après l’orientation, l’inclinaison et le déneigement.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -796,7 +796,7 @@
       <h4>Ville et productible</h4>
       <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique.</p>
       <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>30°</strong> (kWh par kW crête).</p>
-      <p>La boîte <strong>Productible</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé, après l’orientation, l’inclinaison et le déneigement choisis.</p>
+      <p>La boîte <strong>Production annuelle</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé, après l’orientation, l’inclinaison et le déneigement choisis.</p>
       <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu reste une mesure PVWatts.</p>
     </div>
   </template>
