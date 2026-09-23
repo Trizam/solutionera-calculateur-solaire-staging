@@ -282,6 +282,71 @@ section.block h2 > label,
 section.block h2 > span:not(.num) {
   min-width: 0;
 }
+/*
+ * Famille bleue des cartes d’autonomie (4A, 4B, 5, 6).
+ * Même intensité que la famille verte. Règle : docs/DESIGN.md
+ */
+section.block.team-blue {
+  --green: #2a5f8f;
+  --green-soft: #d6e8f8;
+  --green-mid: #4f94c9;
+  --green-dark: #16324f;
+  --border: #c5d7ec;
+  --accent: #3d7eb8;
+  --pill-end: #e7f2fb;
+  --hover-soft: #c5dff3;
+  --muted: #4d6278;
+  /* Soft blue, same lightness as the green answer boxes. */
+  background: #d6e8f8;
+  border-color: #b7d0ea;
+  box-shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
+}
+html[data-theme="dark"] section.block.team-blue {
+  --green: #8ec4ea;
+  --green-soft: #1a3348;
+  --green-mid: #7eb6e0;
+  --green-dark: #d6e8f8;
+  --border: #2c4d68;
+  --accent: #7eb6e0;
+  --pill-end: #152a3c;
+  --hover-soft: #243e56;
+  --muted: #a9c0d4;
+  background: #1a3348;
+  border-color: #2c4d68;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+}
+/* Le total du projet reste une boîte verte, même dans une carte bleue. */
+.result-keep-green {
+  --green: #2d6a4f;
+  --green-soft: #d8f3dc;
+  --green-mid: #52b788;
+  --green-dark: #1b4332;
+  --border: #cfe3d4;
+  --pill-end: #e9f5ee;
+  --muted: #5c6b5c;
+}
+html[data-theme="dark"] .result-keep-green {
+  --green: #52b788;
+  --green-soft: #1f3a2d;
+  --green-mid: #74c69d;
+  --green-dark: #d8f3dc;
+  --border: #2f4a3c;
+  --pill-end: #1a3026;
+  --muted: #9bb0a0;
+}
+html[data-autonomy="off"] .autonomy-rest {
+  display: none !important;
+}
+/* Answer box stays a lighter tile on the blue card. The project total stays green. */
+section.block.team-blue .result-pill:not(.result-keep-green) {
+  background: linear-gradient(135deg, #f7fbfe, #ffffff);
+  border-color: #8fb4d4;
+}
+section.block.team-blue .slider-track input[type="range"]::-webkit-slider-runnable-track,
+section.block.team-blue .slider-track input[type="range"]::-moz-range-track {
+  background: #f7fbfe;
+  border-color: #8fb4d4;
+}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -1781,9 +1846,9 @@ html[data-theme="dark"] .bug-done {
   font-size: 0.84rem;
   white-space: normal;
 }
-#sec-reserve { --prod-gutter: 8.75rem; }
+#sec-reserve { --prod-gutter: 9.5rem; }
 #sec-reserve .slider-val-left {
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   white-space: normal;
   line-height: 1.15;
 }
@@ -1840,23 +1905,9 @@ section.block h2 .field-info-btn {
   margin-left: auto;
   align-self: center;
 }
-.project-total {
-  text-align: center;
-  padding: 0.35rem 0 0.15rem;
-}
-.project-total .kpi {
-  font-size: 1.7rem;
-  font-weight: 700;
-  color: var(--green-dark);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-.project-total .kpi-label {
-  margin-top: 0.2rem;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
 .project-note { text-align: center; }
+#sec-total .breakdown { margin-bottom: 0.85rem; }
+#sec-total .result-pill { margin-top: 0; }
 
 @media (min-width: 1100px) {
   html:not([data-mode="webi"]) .wrap { max-width: 1180px; }
@@ -1874,8 +1925,8 @@ section.block h2 .field-info-btn {
     row-gap: 1rem;
     align-items: stretch;
   }
-  html:not([data-mode="webi"]) .slot-size { grid-area: size; }
-  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; }
+  html:not([data-mode="webi"]) .slot-size { grid-area: size; align-self: start; }
+  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; align-self: start; }
   html:not([data-mode="webi"]) .slot-need { grid-area: need; }
   html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
   html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
@@ -1890,10 +1941,6 @@ section.block h2 .field-info-btn {
     flex-direction: column;
   }
   html:not([data-mode="webi"]) .slot-need { align-self: start; }
-  html:not([data-mode="webi"]) .slot-total .project-total {
-    margin-top: auto;
-    margin-bottom: auto;
-  }
   html:not([data-mode="webi"]) .flow-arrow {
     display: grid;
     place-items: center;
@@ -1957,6 +2004,29 @@ section.block h2 .field-info-btn {
     --pill-end: #e9f5ee;
     --thumb-ring: #ffffff;
     --modal-bg: #ffffff;
+  }
+  html[data-theme="dark"] section.block.team-blue {
+    --green: #2a5f8f;
+    --green-soft: #d6e8f8;
+    --green-mid: #4f94c9;
+    --green-dark: #16324f;
+    --border: #c5d7ec;
+    --accent: #3d7eb8;
+    --pill-end: #e7f2fb;
+    --hover-soft: #c5dff3;
+    --muted: #4d6278;
+    background: #d6e8f8;
+    border-color: #b7d0ea;
+    box-shadow: none;
+  }
+  html[data-theme="dark"] .result-keep-green {
+    --green: #2d6a4f;
+    --green-soft: #d8f3dc;
+    --green-mid: #52b788;
+    --green-dark: #1b4332;
+    --border: #cfe3d4;
+    --pill-end: #e9f5ee;
+    --muted: #5c6b5c;
   }
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
@@ -2078,9 +2148,7 @@ section.block h2 .field-info-btn {
   outline-offset: 2px;
 }
 .grid-status[hidden] {
-  /* Keep layout slot (visibility) instead of collapsing display */
-  visibility: hidden;
-  display: block !important;
+  display: none !important;
 }
 
 /* ~390px phones: hero/brand spacing + slider values stay clear of track/meta */

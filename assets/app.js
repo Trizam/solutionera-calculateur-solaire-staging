@@ -5,7 +5,8 @@
   // Tiny S/30 fallback if fetch fails (file:// or offline without cache)
   // Used for ANY missing cell so calc never stays blank forever
   const FALLBACK_S30 = { ac_annual: 1254.8064, W_winter: 0.173323, ac_dec: 53.274 };
-  const DEFAULT_DENEIGEMENT = 0.20;
+  /** Default: the snow is always cleared off the panels. */
+  const DEFAULT_DENEIGEMENT = 1;
   const DAYS_IN_DEC = 31;
 
   const PANEL_KW_PER_M2 = 0.20;
@@ -47,9 +48,31 @@
   const CONSO_EXTRA_MAX = 100;
   /** Draft installed-battery range until a real $/kWh band is chosen. */
   const BATT_PRICE_DEFAULT = 1200;
-  /** Smooth reserve duration: 0 to 3 days, in hours. Default is one day. */
-  const AUTONOMY_MAX_H = 72;
-  const AUTONOMY_DEFAULT_H = 24;
+  /**
+   * Reserve duration stops. The left label is the stop name.
+   * The kWh reserve stays exact (finer than these names).
+   * 24 h and « 1 jour » are the same stop. Default is 1 jour.
+   */
+  const RESERVE_STOPS = [
+    { hours: 0, label: "0" },
+    { hours: 5 / 60, label: "5 min" },
+    { hours: 15 / 60, label: "15 min" },
+    { hours: 30 / 60, label: "30 min" },
+    { hours: 45 / 60, label: "45 min" },
+    { hours: 1, label: "1 heure" },
+    { hours: 2, label: "2 heures" },
+    { hours: 4, label: "4 heures" },
+    { hours: 6, label: "6 heures" },
+    { hours: 8, label: "8 heures" },
+    { hours: 12, label: "12 heures" },
+    { hours: 24, label: "1 jour" },
+    { hours: 30, label: "1 jour et quart" },
+    { hours: 36, label: "1 jour et demi" },
+    { hours: 48, label: "2 jours" },
+    { hours: 60, label: "2 jours et demi" },
+    { hours: 72, label: "3 jours" }
+  ];
+  const RESERVE_DEFAULT_INDEX = 11;
   const SQFT_PER_M2 = 10.76391041671;
 
   /** Clear FR labels — degree first, named cardinals only: N° (Cardinal) */
@@ -459,37 +482,45 @@
     return dailyLoadKwh(dailyLoadStep(), consoExtraKwh());
   }
 
-  function autonomyHours() {
+  function reserveStopIndex() {
     const el = $("autoStop");
-    const h = el ? parseFloat(el.value) : AUTONOMY_DEFAULT_H;
-    if (!isFinite(h) || h <= 0) return 0;
-    return Math.min(AUTONOMY_MAX_H, h);
+    const max = RESERVE_STOPS.length - 1;
+    if (!el) return RESERVE_DEFAULT_INDEX;
+    const n = Math.round(parseFloat(el.value));
+    if (!isFinite(n)) return RESERVE_DEFAULT_INDEX;
+    if (n < 0) return 0;
+    if (n > max) return max;
+    return n;
   }
 
-  /** Friendly duration for the left of the reserve slider. Display only. */
-  function fmtAutonomyHours(hours) {
-    const h = Number(hours);
-    if (!isFinite(h) || h < 0.125) return "aucune";
-    const totalMin = Math.round(h * 60 / 15) * 15;
-    if (totalMin < 60) return totalMin + " min";
-    const wholeH = Math.floor(totalMin / 60);
-    const mins = totalMin % 60;
-    const days = Math.floor(wholeH / 24);
-    const remH = wholeH % 24;
-    if (days === 0) {
-      if (mins === 0) return wholeH === 1 ? "1 heure" : wholeH + " heures";
-      return wholeH + " h " + mins;
-    }
-    const dayWord = days === 1 ? "1 jour" : days + " jours";
-    if (remH === 0 && mins === 0) return dayWord;
-    if (remH === 12 && mins === 0) return dayWord + " et demi";
-    if (mins === 0) return dayWord + " " + (remH === 1 ? "1 heure" : remH + " h");
-    return dayWord + " " + remH + " h " + mins;
+  function reserveStop() {
+    return RESERVE_STOPS[reserveStopIndex()];
+  }
+
+  function autonomyHours() {
+    return reserveStop().hours;
   }
 
   function autonomyChoice() {
-    const hours = autonomyHours();
-    return { days: hours / 24, label: fmtAutonomyHours(hours) };
+    const stop = reserveStop();
+    return { days: stop.hours / 24, label: stop.label };
+  }
+
+  /** Reserve kWh: finer than the duration names. Display only. */
+  function fmtReserveKwh(n) {
+    if (!isFinite(n)) return "—";
+    if (n === 0) return detailsOn() ? fmtNum(0, 2) : "0";
+    if (detailsOn()) return fmtNum(n, 2);
+    const abs = Math.abs(n);
+    if (abs < 0.1) return fmtNum(n, 3);
+    if (abs < 100) return fmtNum(n, 2);
+    return fmtSig2(n);
+  }
+
+  /** Duration 0 hides the rest of the autonomy column. One notch shows it all. */
+  function syncAutonomyColumn(hours) {
+    if (!document.documentElement) return;
+    document.documentElement.setAttribute("data-autonomy", hours > 0 ? "on" : "off");
   }
 
   function battPricePerKwh() {
@@ -914,7 +945,8 @@
       autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtShown(r.reserveKwh, 2);
+    if (reserveNum) reserveNum.textContent = fmtReserveKwh(r.reserveKwh);
+    syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
     }
@@ -1394,6 +1426,23 @@
     return dock;
   }
 
+  function focusBugField() {
+    const field = $("bugText");
+    if (!field || typeof field.focus !== "function") return;
+    const place = function () {
+      try {
+        field.focus();
+        const len = typeof field.value === "string" ? field.value.length : 0;
+        if (typeof field.setSelectionRange === "function") field.setSelectionRange(len, len);
+      } catch (_) {}
+    };
+    place();
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(function () { requestAnimationFrame(place); });
+    }
+    if (typeof setTimeout === "function") setTimeout(place, 30);
+  }
+
   function openBugReport(e) {
     if (e) e.preventDefault();
     hideBugDone();
@@ -1401,10 +1450,7 @@
     const already = !!(m && !m.hidden && activeModalId === "bugModal");
     if (!already) resetBugForm();
     openModal("bugModal");
-    const field = $("bugText");
-    if (field) {
-      try { field.focus(); } catch (_) {}
-    }
+    focusBugField();
   }
 
   function buildBugPayload() {
@@ -1545,7 +1591,7 @@
     else holdPageForModal();
     const closer = m.querySelector(".modal-close");
     if (id === "bugModal" && $("bugText")) {
-      $("bugText").focus();
+      focusBugField();
     } else if (closer) {
       closer.focus();
     }
@@ -1966,8 +2012,16 @@
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
-    if ($("autoStop")) $("autoStop").value = String(AUTONOMY_DEFAULT_H);
+    if ($("autoStop")) {
+      $("autoStop").min = "0";
+      $("autoStop").max = String(RESERVE_STOPS.length - 1);
+      $("autoStop").step = "1";
+      $("autoStop").value = String(RESERVE_DEFAULT_INDEX);
+    }
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+    try {
+      if (location.hash === "#bugModal") openBugReport();
+    } catch (_) {}
   }
 
   function townById(id) {
@@ -2634,6 +2688,8 @@
     recommendVerticalPanels,
     sig2Round,
     fmtSig2,
+    fmtReserveKwh,
+    RESERVE_STOPS,
     fmtMoneySig2,
     fmtShown,
     fmtShownMoney,
@@ -2718,6 +2774,7 @@
   });
   window.addEventListener("hashchange", () => {
     if (location.hash === "#main") focusSkipTarget();
+    if (location.hash === "#bugModal") openBugReport();
   });
 
 })();

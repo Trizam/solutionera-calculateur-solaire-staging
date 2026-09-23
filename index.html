@@ -323,21 +323,21 @@
           </button>
         </div>
         <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−14&nbsp;%</div>
+          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−0&nbsp;%</div>
           <div class="slider-track">
-            <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
+            <input id="deneige" type="range" min="0" max="100" step="1" value="100" />
             <div class="slider-meta"><span>jamais</span><span>toujours</span></div>
           </div>
         </div>
       </div>
       <div class="result-pill">
-        <div class="label">Production annuelle</div>
+        <div class="label">Efficacité de l’installation</div>
         <div class="big prod-line" id="outKwhKwc">
           <span class="prod-num">—</span>
-          <span class="prod-unit">kWh/kWc</span>
+          <span class="prod-unit">kWh/kWc/An</span>
         </div>
       </div>
-      <p class="hint">→ Kilowattheures par kilowatt-crête installé, après l’orientation, l’inclinaison et le déneigement.</p>
+      <p class="hint">→ Kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement.</p>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
     </section>
 
@@ -365,11 +365,46 @@
       </div>
     </div>
 
-    <!-- 4A · Autonomie -->
+    <!-- 4A · Réserve (durée). 4B · consommation, en dessous. -->
     <div class="slot-need" data-slot="need">
-    <section class="block mode-full-only" id="sec-auto" aria-labelledby="h-auto">
-      <h2 id="h-auto">
+    <section class="block mode-full-only team-blue" id="sec-reserve" aria-labelledby="h-reserve">
+      <h2 id="h-reserve">
         <span class="num">4A</span>
+        <span>Combien de jours de réserve voulez-vous&nbsp;?</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="autostop"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Durée de réserve"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="field">
+        <label for="autoStop">Durée</label>
+        <div class="slider-row">
+          <div class="slider-val-left" id="autoStopVal">1 jour</div>
+          <div class="slider-track">
+            <input id="autoStop" type="range" min="0" max="16" step="1" value="11" aria-valuemin="0" aria-valuemax="16" aria-valuenow="11" aria-valuetext="1 jour" />
+            <div class="slider-meta"><span>0</span><span>3 jours</span></div>
+          </div>
+        </div>
+        <p class="hint">Crans fixes, de 0 à 3 jours. À 0, la colonne autonomie disparaît.</p>
+      </div>
+      <div class="reserve-out result-pill autonomy-rest" id="reserveOut">
+        <div class="label">Réserve</div>
+        <div class="big prod-line" id="outReserve">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="block mode-full-only team-blue autonomy-rest" id="sec-auto" aria-labelledby="h-auto">
+      <h2 id="h-auto">
+        <span class="num">4B</span>
         <label for="consoJour">Combien d'autonomie je veux</label>
         <button
           type="button"
@@ -419,45 +454,9 @@
         <p class="calc-line" id="consoJourNote" hidden></p>
       </div>
     </section>
-
-    <!-- 4B · Réserve -->
-    <section class="block mode-full-only" id="sec-reserve" aria-labelledby="h-reserve">
-      <h2 id="h-reserve">
-        <span class="num">4B</span>
-        <span>Combien de jours de réserve voulez-vous&nbsp;?</span>
-        <button
-          type="button"
-          class="field-info-btn"
-          data-info="autostop"
-          aria-haspopup="dialog"
-          aria-controls="fieldInfoModal"
-          aria-label="Aide : Durée de réserve"
-        >
-          <span aria-hidden="true">ⓘ</span>
-        </button>
-      </h2>
-      <div class="field">
-        <label for="autoStop">Durée</label>
-        <div class="slider-row">
-          <div class="slider-val-left" id="autoStopVal">1 jour</div>
-          <div class="slider-track">
-            <input id="autoStop" type="range" min="0" max="72" step="0.25" value="24" aria-valuemin="0" aria-valuemax="72" aria-valuenow="24" aria-valuetext="1 jour" />
-            <div class="slider-meta"><span>aucune</span><span>3 jours</span></div>
-          </div>
-        </div>
-        <p class="hint">Le curseur glisse librement, de rien jusqu’à 3 jours.</p>
-      </div>
-      <div class="reserve-out result-pill" id="reserveOut">
-        <div class="label">Réserve</div>
-        <div class="big prod-line" id="outReserve">
-          <span class="prod-num">—</span>
-          <span class="prod-unit">kWh</span>
-        </div>
-      </div>
-    </section>
     </div>
 
-    <section class="result-pill mode-full-only slot-fill" id="sec-fill" data-slot="fill" aria-labelledby="h-fill">
+    <section class="result-pill mode-full-only slot-fill autonomy-rest" id="sec-fill" data-slot="fill" aria-labelledby="h-fill">
       <div class="flow-arrow" aria-hidden="true">
         <svg viewBox="0 0 32 32" width="18" height="18">
           <path d="M5 16h18M16 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
@@ -523,7 +522,7 @@
     </section>
 
     <!-- 5 · Batteries -->
-    <section class="block mode-full-only slot-batt" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
+    <section class="block mode-full-only slot-batt team-blue autonomy-rest" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
       <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -602,7 +601,7 @@
     </section>
 
     <!-- 6 · Coût total du projet -->
-    <section class="block mode-full-only slot-total" id="sec-total" data-slot="total" aria-labelledby="h-total">
+    <section class="block mode-full-only slot-total team-blue autonomy-rest" id="sec-total" data-slot="total" aria-labelledby="h-total">
       <h2 id="h-total">
         <span class="num">6</span>
         <span>Coût total du projet</span>
@@ -617,13 +616,16 @@
           <span aria-hidden="true">ⓘ</span>
         </button>
       </h2>
-      <div class="project-total">
-        <div class="kpi" id="outProject">—</div>
-        <div class="kpi-label">Panneaux + batteries</div>
-      </div>
       <div class="breakdown">
         <div class="line"><span>Panneaux (coût réel)</span><span id="lineProjectSolar">—</span></div>
         <div class="line"><span>Batteries</span><span id="lineProjectBatt">—</span></div>
+      </div>
+      <div class="result-pill result-keep-green" id="projectOut">
+        <div class="label">Coût total</div>
+        <div class="big prod-line">
+          <span class="prod-num" id="outProject">—</span>
+          <span class="prod-unit">panneaux + batteries</span>
+        </div>
       </div>
       <p class="hint project-note">Le retour à gauche ne compte que les panneaux.</p>
     </section>
@@ -640,13 +642,13 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Production annuelle en bas de 1B reprend ce chiffre après l’orientation, l’inclinaison et le déneigement.</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, après l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
         <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur pédagogique, de 0 à environ 6,3&nbsp;kWh/j (téléphone → cuisson), plus une ligne libre. Sans chauffage électrique. Ce n’est pas la consommation annuelle de la facture.</li>
-        <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée glissée (0 à 3 jours). Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
+        <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée choisie (crans de 0 à 3 jours). À 0, la colonne autonomie (4B, remplissage, batteries, total) disparaît. Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
@@ -667,7 +669,7 @@
         <ul>
           <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
           <li>Consommation par jour = cran du curseur (0 à environ 6,3&nbsp;kWh/j) plus la ligne libre. Ce n’est pas la facture annuelle.</li>
-          <li>Réserve = cette consommation × la durée glissée (0 à 3 jours). Le remplissage utilise seulement le surplus de décembre.</li>
+          <li>Réserve = cette consommation × un cran de durée (0, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À 0, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
           <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. Le cran et la ligne libre, oui.</li>
           <li>Ombrage : plus tard.</li>
@@ -815,7 +817,7 @@
       <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique. La liste se déroule et se fait défiler.</p>
       <p>Écrire un nom filtre les villes. Une MRC ou une région administrative filtre aussi, même si ces noms ne s’affichent pas&nbsp;: le menu ne montre que les villes.</p>
       <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
-      <p>La boîte <strong>Production annuelle</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé, après l’orientation, l’inclinaison et le déneigement choisis.</p>
+      <p>La boîte <strong>Efficacité de l’installation</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement choisis.</p>
       <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu est le productible sud 45° pour 1&nbsp;kWc : la cellule mesurée si la grille est complète, sinon la cellule sud 45° de Québec à l’échelle de ce rapport.</p>
     </div>
   </template>
@@ -877,8 +879,10 @@
     <span data-info-title>Durée de réserve</span>
     <div class="info-block">
       <h4>Le curseur</h4>
-      <p>Il glisse librement de aucune durée jusqu’à 3 jours. Le mot à gauche est le temps choisi&nbsp;: 3 heures, 7 heures, 1 jour et demi.</p>
-      <p>Réserve = consommation par jour × cette durée.<br>Aucune = 0 kWh.</p>
+      <p>Les crans sont&nbsp;: 0, 5 min, 15 min, 30 min, 45 min, 1 heure, 2 heures, 4 heures, 6 heures, 8 heures, 12 heures, 1 jour (24 h), 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours.</p>
+      <p>Le mot à gauche est le cran. La réserve en kWh, à côté, suit ce cran de plus près.</p>
+      <p>À 0, le reste de la colonne autonomie disparaît. Un cran plus haut, elle revient en entier.</p>
+      <p>Réserve = consommation par jour × cette durée.</p>
     </div>
   </template>
   <template id="tpl-info-remplissage">
