@@ -513,6 +513,9 @@ const tiltSlider =
   /id="tilt"[^>]*min="0"/.test(html) &&
   /id="tilt"[^>]*max="90"/.test(html) &&
   /id="tilt"[^>]*step="15"/.test(html) &&
+  /id="tilt"[^>]*value="45"/.test(html) &&
+  html.includes('id="tiltVal">45°') &&
+  /tilt:\s*45/.test(app) &&
   html.includes('id="tiltVal"') &&
   html.includes("tilt-gutter") &&
   html.includes("tiltViz") &&
@@ -1750,7 +1753,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       unit: "m2",
       util: 80,
       orient: 180,
-      tilt: 30,
+      tilt: 45,
       deneige: 20,
       priceW: "3",
       taxes: "1",
@@ -1784,7 +1787,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&area=0&conso=0&orient=0", fullSearch({ mode: "webi", area: 0, conso: 0, orient: 0 })],
     [
       "?tilt=31&orient=190&util=10&priceW=9&rate=nope&conso=abc",
-      fullSearch({ util: 60, orient: 195, priceW: "4.5" })
+      fullSearch({ util: 60, orient: 195, tilt: 30, priceW: "4.5" })
     ],
     ["?taxes=off&subv=non&rate=9,53", fullSearch({ taxes: "0", subv: "0", rate: "9.53" })],
     [
@@ -1792,7 +1795,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
     ],
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
-    ["?mode=webi&tilt=31", fullSearch({ mode: "webi" })],
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
@@ -1820,6 +1823,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(sqM2 - 40 / 10.76391041671) < 1e-6, `40 sqft m2=${sqM2}`);
 
   const live = await bootScenario("", "#main");
+  expect(live.el("tilt").value === "45", "default roof inclination is 45°");
   expect(live.location.search === "", "bare URL stays bare");
   expect(live.el("subv").checked === true, "LogisVert default on");
   expect(live.el("taxes").checked === true, "taxes default on");
