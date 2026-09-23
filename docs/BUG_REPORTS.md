@@ -1,6 +1,6 @@
 # Signalements visiteurs (L1)
 
-Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le lien du footer et la bulle en bas à gauche ouvrent le signalement (description requise, nom optionnel). Sur un écran d’au moins 900px, la fenêtre flotte en bas à gauche et la page reste utilisable. Sur un plus petit écran, c’est la même feuille pleine page que les autres fenêtres. Le navigateur POSTe vers un **proxy HTTPS create-only** ; le token reste côté serveur.
+Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le lien du footer et le bouton insecte en bas à gauche ouvrent le signalement (description requise, nom optionnel). Dans cette fenêtre, Command+Entrée ou Ctrl+Entrée envoie. Après un envoi réussi, la fenêtre se ferme et une pastille « Done » avec une coche reste une seconde. Sur un écran d’au moins 900px, la fenêtre flotte en bas à gauche et la page reste utilisable. Sur un plus petit écran, c’est la même feuille pleine page que les autres fenêtres. Le navigateur POSTe vers un **proxy HTTPS create-only** ; le token reste côté serveur.
 
 ## Review Fred
 
