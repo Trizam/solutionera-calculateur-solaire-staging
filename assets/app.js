@@ -94,10 +94,23 @@
     return AZ_LABELS[key] || (key + "°");
   }
 
-  /** Runtime grid: cells[tilt][az] = { ac_annual, ... } — annual kWh only from grid */
+  /** Runtime grid: cells[tilt][az] = { ac_annual, W_winter, ac_dec } */
   let gridCells = null;
+  let baseCells = null;
   let gridReady = false;
   let gridStatus = "loading"; // loading | ready | error
+  let gridIsScaled = false;
+  let activeTownId = null;
+  let gridToken = 0;
+  const DEFAULT_VILLE = "quebec";
+  let selectedVille = DEFAULT_VILLE;
+  let townCatalog = [];
+  let townByIdMap = null;
+  let quebecS30 = FALLBACK_S30.ac_annual;
+  let townListOpen = false;
+  let townActiveIndex = -1;
+  let townTypeBuffer = "";
+  let townTypeTimer = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -265,7 +278,7 @@
     const a = String(az);
     if (gridCells && gridCells[t] && gridCells[t][a]) {
       const c = gridCells[t][a];
-      const decRaw = c.ac_monthly && c.ac_monthly.dec;
+      const decRaw = c.ac_dec != null ? c.ac_dec : (c.ac_monthly && c.ac_monthly.dec);
       const ac_dec = isFinite(Number(decRaw)) ? Number(decRaw) : FALLBACK_S30.ac_dec;
       return { ac_annual: c.ac_annual, W_winter: c.W_winter, ac_dec: ac_dec, source: "grid" };
     }
@@ -412,7 +425,7 @@
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
       battPrice, battCost, projectTotal,
-      gridReady, gridStatus, cellSource: cell.source
+      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
     };
   }
 
@@ -627,7 +640,9 @@
       if (btn && !btn._wired) {
         btn._wired = true;
         btn.addEventListener("click", function () {
-          loadGrid().then(function () { render(); });
+          loadGrid().then(function () {
+            return ensureTownGrid(selectedVille);
+          }).then(function () { render(); });
         });
       }
     } else {
@@ -771,6 +786,7 @@
    * Area is the number on screen; unit=sqft does not convert it.
    */
   const SCENARIO_DEFAULTS = {
+    ville: "quebec",
     area: 40,
     unit: "m2",
     util: 80,
@@ -869,10 +885,15 @@
         }
       }
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate };
+    let ville = d.ville;
+    if (q.has("ville")) {
+      const raw = String(q.get("ville") || "").trim().toLowerCase();
+      if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
+    }
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville };
   }
 
-  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -892,6 +913,7 @@
     const p = new URLSearchParams();
     if (full) {
       p.set("mode", mode === "webi" ? "webi" : "full");
+      p.set("ville", s.ville || d.ville);
       p.set("area", String(s.area));
       p.set("unit", s.unit === "sqft" ? "sqft" : "m2");
       p.set("util", String(s.util));
@@ -906,6 +928,7 @@
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
+    if (s.ville && s.ville !== d.ville) p.set("ville", s.ville);
     if (s.unit === "sqft" || s.area !== d.area) p.set("area", String(s.area));
     if (s.unit === "sqft") p.set("unit", "sqft");
     if (s.util !== d.util) p.set("util", String(s.util));
@@ -933,6 +956,9 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
+    selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
+    if ($("ville")) $("ville").value = selectedVille;
+    paintTownButton();
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -964,7 +990,8 @@
       taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
-      rate: isFinite(rateSnapped) ? rateSnapped : d.rate
+      rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
+      ville: canonicalVille(selectedVille)
     };
   }
 
@@ -1573,9 +1600,17 @@
       });
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeInfo();
+      if (e.key === "Escape") {
+        if (townListOpen) {
+          closeTownList(true);
+          return;
+        }
+        closeInfo();
+      }
       trapModalTab(e);
     });
+
+    wireTownPicker();
 
     let initialSearch = "";
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
@@ -1586,9 +1621,338 @@
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
   }
 
+  function townById(id) {
+    if (!townByIdMap) return null;
+    return townByIdMap[id] || null;
+  }
+
+  function canonicalVille(id) {
+    const v = String(id == null ? "" : id).trim().toLowerCase();
+    if (!/^[a-z0-9-]{1,80}$/.test(v)) return DEFAULT_VILLE;
+    if (townCatalog.length && !townById(v)) return DEFAULT_VILLE;
+    return v;
+  }
+
+  function fmtYield(n) {
+    if (!isFinite(Number(n))) return "—";
+    return fmtGroupedInt(Math.round(Number(n))).replace(/ /g, "\u00A0") + " kWh/kWc";
+  }
+
+  function foldTownName(s) {
+    return String(s || "")
+      .replace(/œ/g, "oe")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function paintTownButton() {
+    const town = townById(selectedVille);
+    const nameEl = $("villeName");
+    const yieldEl = $("villeYield");
+    if (nameEl) nameEl.textContent = town ? town.name : (selectedVille === DEFAULT_VILLE ? "Québec" : selectedVille);
+    if (yieldEl) {
+      yieldEl.textContent = town
+        ? fmtYield(town.ac_annual_s30)
+        : (selectedVille === DEFAULT_VILLE ? fmtYield(quebecS30) : "—");
+    }
+    const btn = $("villeBtn");
+    if (btn) btn.setAttribute("aria-expanded", townListOpen ? "true" : "false");
+    const list = $("villeList");
+    if (!list || typeof list.querySelectorAll !== "function") return;
+    list.querySelectorAll('[role="option"]').forEach(function (li) {
+      const on = li.getAttribute("data-id") === selectedVille;
+      li.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+
+  function setTownActive(index) {
+    const list = $("villeList");
+    if (!list || !townCatalog.length) return;
+    const n = townCatalog.length;
+    townActiveIndex = ((index % n) + n) % n;
+    const options = typeof list.querySelectorAll === "function"
+      ? list.querySelectorAll('[role="option"]')
+      : [];
+    for (let i = 0; i < options.length; i++) {
+      options[i].classList.toggle("is-active", i === townActiveIndex);
+    }
+    const active = options[townActiveIndex];
+    if (active) {
+      list.setAttribute("aria-activedescendant", active.id || "");
+      if (typeof active.scrollIntoView === "function") {
+        try { active.scrollIntoView({ block: "nearest" }); } catch (_) {}
+      }
+    }
+  }
+
+  function moveTownActive(delta) {
+    if (townActiveIndex < 0) {
+      const current = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+      setTownActive(current < 0 ? 0 : current);
+      return;
+    }
+    setTownActive(townActiveIndex + delta);
+  }
+
+  function openTownList() {
+    const list = $("villeList");
+    const btn = $("villeBtn");
+    if (!list || !townCatalog.length) return;
+    townListOpen = true;
+    list.hidden = false;
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    const idx = townCatalog.findIndex(function (t) { return t.id === selectedVille; });
+    setTownActive(idx < 0 ? 0 : idx);
+    try { list.focus(); } catch (_) {}
+  }
+
+  function closeTownList(focusBtn) {
+    const list = $("villeList");
+    const btn = $("villeBtn");
+    townListOpen = false;
+    townActiveIndex = -1;
+    if (list) {
+      list.hidden = true;
+      list.removeAttribute("aria-activedescendant");
+    }
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    if (focusBtn && btn) {
+      try { btn.focus(); } catch (_) {}
+    }
+  }
+
+  function typeTown(ch) {
+    townTypeBuffer += foldTownName(ch);
+    if (townTypeTimer) clearTimeout(townTypeTimer);
+    townTypeTimer = setTimeout(function () { townTypeBuffer = ""; }, 700);
+    const q = townTypeBuffer;
+    const idx = townCatalog.findIndex(function (t) { return foldTownName(t.name).indexOf(q) === 0; });
+    if (idx >= 0) setTownActive(idx);
+  }
+
+  function commitTownActive() {
+    const town = townCatalog[townActiveIndex];
+    if (town) pickTown(town.id);
+    else closeTownList(true);
+  }
+
+  async function pickTown(id) {
+    selectedVille = canonicalVille(id);
+    if ($("ville")) $("ville").value = selectedVille;
+    paintTownButton();
+    closeTownList(true);
+    scenarioSnapshot = true;
+    syncScenarioUrl();
+    const pending = ensureTownGrid(selectedVille);
+    render();
+    try {
+      await pending;
+    } finally {
+      render();
+    }
+  }
+
+  function renderTownList() {
+    const list = $("villeList");
+    const sel = $("ville");
+    if (!list || !sel || typeof document.createElement !== "function") return;
+    list.textContent = "";
+    sel.textContent = "";
+    townCatalog.forEach(function (town) {
+      const opt = document.createElement("option");
+      opt.value = town.id;
+      opt.textContent = town.name;
+      if (town.id === selectedVille) opt.selected = true;
+      sel.appendChild(opt);
+
+      const li = document.createElement("li");
+      li.className = "town-option";
+      li.setAttribute("role", "option");
+      li.id = "ville-opt-" + town.id;
+      li.setAttribute("data-id", town.id);
+      li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
+      const name = document.createElement("span");
+      name.className = "town-name";
+      name.textContent = town.name;
+      const yieldEl = document.createElement("span");
+      yieldEl.className = "town-yield";
+      yieldEl.textContent = fmtYield(town.ac_annual_s30);
+      li.appendChild(name);
+      li.appendChild(yieldEl);
+      li.addEventListener("mousedown", function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        pickTown(town.id);
+      });
+      list.appendChild(li);
+    });
+    sel.value = selectedVille;
+    paintTownButton();
+  }
+
+  function wireTownPicker() {
+    const btn = $("villeBtn");
+    if (!btn || btn._townWired) return;
+    btn._townWired = true;
+    btn.addEventListener("click", function () {
+      if (townListOpen) closeTownList(false);
+      else openTownList();
+    });
+    btn.addEventListener("keydown", function (e) {
+      if (!e) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (e.preventDefault) e.preventDefault();
+        if (!townListOpen) openTownList();
+        else moveTownActive(e.key === "ArrowDown" ? 1 : -1);
+      } else if (e.key === "Escape" && townListOpen) {
+        if (e.preventDefault) e.preventDefault();
+        closeTownList(true);
+      }
+    });
+    const list = $("villeList");
+    if (list) {
+      list.addEventListener("keydown", function (e) {
+        if (!e) return;
+        if (e.key === "ArrowDown") { if (e.preventDefault) e.preventDefault(); moveTownActive(1); }
+        else if (e.key === "ArrowUp") { if (e.preventDefault) e.preventDefault(); moveTownActive(-1); }
+        else if (e.key === "Home") { if (e.preventDefault) e.preventDefault(); setTownActive(0); }
+        else if (e.key === "End") { if (e.preventDefault) e.preventDefault(); setTownActive(townCatalog.length - 1); }
+        else if (e.key === "Enter" || e.key === " ") { if (e.preventDefault) e.preventDefault(); commitTownActive(); }
+        else if (e.key === "Escape") { if (e.preventDefault) e.preventDefault(); closeTownList(true); }
+        else if (e.key === "Tab") closeTownList(false);
+        else if (e.key && e.key.length === 1 && /\S/.test(e.key)) {
+          if (e.preventDefault) e.preventDefault();
+          typeTown(e.key);
+        }
+      });
+    }
+    document.addEventListener("click", function (e) {
+      if (!townListOpen) return;
+      const picker = $("townPicker");
+      const target = e && e.target;
+      if (picker && target && typeof picker.contains === "function" && picker.contains(target)) return;
+      closeTownList(false);
+    });
+  }
+
+  function scaleGrid(cells, scale) {
+    const out = {};
+    Object.keys(cells).forEach(function (tilt) {
+      out[tilt] = {};
+      Object.keys(cells[tilt]).forEach(function (az) {
+        const c = cells[tilt][az];
+        const decRaw = c.ac_dec != null ? c.ac_dec : (c.ac_monthly && c.ac_monthly.dec);
+        const dec = Number(decRaw);
+        out[tilt][az] = {
+          ac_annual: Number(c.ac_annual) * scale,
+          W_winter: c.W_winter,
+          ac_dec: (isFinite(dec) ? dec : FALLBACK_S30.ac_dec) * scale
+        };
+      });
+    });
+    return out;
+  }
+
+  async function fetchTownGridFile(town) {
+    const file = town.grid_file || ("assets/town-grids/" + town.id + ".json");
+    const res = await fetch(file, { cache: "force-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!data || !data.cells || data.scaled === true) throw new Error("pas une grille PVWatts complète");
+    const n = Object.keys(data.cells).reduce(function (acc, tilt) {
+      return acc + Object.keys(data.cells[tilt] || {}).length;
+    }, 0);
+    if (n < 168) throw new Error("grille incomplète");
+    return data.cells;
+  }
+
+  function applyScaledTown(town, token) {
+    const s30 = Number(town && town.ac_annual_s30);
+    if (!(isFinite(s30) && s30 > 0 && isFinite(quebecS30) && quebecS30 > 0)) return false;
+    if (token !== gridToken) return false;
+    gridCells = scaleGrid(baseCells, s30 / quebecS30);
+    gridReady = true;
+    gridStatus = "ready";
+    gridIsScaled = true;
+    activeTownId = town.id;
+    return true;
+  }
+
+  async function ensureTownGrid(id) {
+    const token = ++gridToken;
+    const useId = canonicalVille(id || selectedVille);
+    if (!baseCells) return;
+    const town = townById(useId);
+    const useQuebec = !town || useId === DEFAULT_VILLE ||
+      (town.grid === "full" && String(town.grid_file || "").indexOf("quebec-full-grid") !== -1);
+    if (useQuebec) {
+      if (token !== gridToken) return;
+      gridCells = baseCells;
+      gridReady = true;
+      gridStatus = "ready";
+      gridIsScaled = false;
+      activeTownId = DEFAULT_VILLE;
+      return;
+    }
+    if (town.grid === "full") {
+      applyScaledTown(town, token);
+      gridStatus = "loading";
+      lastGridUiStatus = null;
+      updateGridStatusUi();
+      try {
+        const cells = await fetchTownGridFile(town);
+        if (token !== gridToken) return;
+        gridCells = cells;
+        gridReady = true;
+        gridStatus = "ready";
+        gridIsScaled = false;
+        activeTownId = useId;
+        return;
+      } catch (err) {
+        console.warn("Grille complète indisponible — échelle sud 30°", useId, err);
+        if (token !== gridToken) return;
+        if (applyScaledTown(town, token)) return;
+      }
+    }
+    if (token !== gridToken) return;
+    if (applyScaledTown(town, token)) return;
+    gridCells = baseCells;
+    gridReady = true;
+    gridStatus = "ready";
+    gridIsScaled = false;
+    activeTownId = DEFAULT_VILLE;
+  }
+
+  async function loadTowns() {
+    try {
+      const res = await fetch("assets/towns.json", { cache: "force-cache" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.towns)) return;
+      const towns = data.towns.filter(function (t) { return t && t.id && t.name; });
+      if (!towns.length) return;
+      towns.sort(function (a, b) {
+        return String(a.name).localeCompare(String(b.name), "fr-CA", { sensitivity: "base" });
+      });
+      townCatalog = towns;
+      townByIdMap = {};
+      towns.forEach(function (t) { townByIdMap[t.id] = t; });
+      if (data.meta && isFinite(Number(data.meta.quebec_s30))) quebecS30 = Number(data.meta.quebec_s30);
+      selectedVille = canonicalVille(selectedVille);
+      renderTownList();
+    } catch (err) {
+      console.warn("Liste des villes non chargée", err);
+    }
+  }
+
   function setGridFromPayload(data) {
     if (data && data.cells) {
-      gridCells = data.cells;
+      baseCells = data.cells;
+      if (!gridCells) {
+        gridCells = baseCells;
+        activeTownId = DEFAULT_VILLE;
+        gridIsScaled = false;
+      }
       gridReady = true;
       gridStatus = "ready";
       return true;
@@ -1696,7 +2060,9 @@
     loadBuildId();
     wireUi();
     render();
+    await loadTowns();
     await loadGrid();
+    await ensureTownGrid(selectedVille);
     render();
   });
 
