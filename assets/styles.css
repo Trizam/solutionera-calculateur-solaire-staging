@@ -765,6 +765,27 @@ section.block > h2,
   font-weight: 700;
   color: var(--muted);
 }
+.autonomy-snow {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: left;
+}
+.autonomy-snow[hidden] {
+  display: none;
+}
+.autonomy-snow-rec {
+  margin: 0;
+}
+.autonomy-snow.is-zero {
+  border-left-color: var(--warn);
+}
 .result-pill .prod-num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1374,7 +1395,7 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   .brand { margin-bottom: 0.5rem; }
   .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   section.block, header.hero, .disclaimers,
-  .result-pill, .result-pair, .breakdown, .cards, .card-kpi {
+  .result-pill, .result-pair, .autonomy-snow, .breakdown, .cards, .card-kpi {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none;

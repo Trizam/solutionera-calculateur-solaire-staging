@@ -238,7 +238,11 @@ const htmlSansBrand = html
   .replace(/DÉFI Autonomie Énergétique/g, "")
   .replace(/Autonomie et neige/g, "")
   .replace(/en autonomie/gi, "")
-  .replace(/<div class="label">Autonomie<\/div>/g, "");
+  .replace(/<div class="label">Autonomie<\/div>/g, "")
+  .replace(/Autonomie \(décembre\)/g, "")
+  .replace(/pleine autonomie/gi, "")
+  .replace(/d’autonomie/gi, "")
+  .replace(/d'autonomie/gi, "");
 const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -820,17 +824,47 @@ const prodNoWave =
   app.includes("prod-num") &&
   app.includes("kWhDay");
 const s30Dec = s30.ac_monthly && s30.ac_monthly.dec;
-const snowFactor = 1 - (1 - 0.20) * winterWFromTilt(30);
+function snowCoverFromTilt(tilt) {
+  const w = winterWFromTilt(tilt);
+  return w <= 0 ? 0 : w / 0.18;
+}
+const snowCoverTable = {
+  0: snowCoverFromTilt(0),
+  45: snowCoverFromTilt(45),
+  60: snowCoverFromTilt(60),
+  75: snowCoverFromTilt(75),
+  90: snowCoverFromTilt(90)
+};
+const snowCoverExpect = { 0: 1, 45: 1, 60: 2 / 3, 75: 1 / 3, 90: 0 };
+const snowCoverOk = Object.keys(snowCoverExpect).every(
+  (k) => Math.abs(snowCoverTable[k] - snowCoverExpect[k]) < 1e-9
+);
 const kWDefault = 40 * 0.80 * 0.20;
 const nPvDefault = Math.round((40 * 0.80) / 2);
-const kWhDecDay = (s30Dec * kWDefault * snowFactor) / 31;
+const decSnowFactor = 1 - (1 - 0.20) * snowCoverFromTilt(30);
+const kWhDecDay = (s30Dec * kWDefault * decSnowFactor) / 31;
+const kWhDecNever = (s30Dec * kWDefault * (1 - (1 - 0) * snowCoverFromTilt(30))) / 31;
+const kWhDecVertical = (s30Dec * kWDefault * (1 - (1 - 0) * snowCoverFromTilt(90))) / 31;
 const dayOk =
   Math.abs(s30Dec - 53.274) < 0.01 &&
   nPvDefault === 16 &&
   Math.abs(kWDefault - 6.4) < 1e-9 &&
   app.includes("DAYS_IN_DEC") &&
   app.includes("kWhDec") &&
-  kWhDecDay > 8 && kWhDecDay < 11;
+  app.includes("snowCoverFromTilt") &&
+  app.includes("applyDeneigement(kWhDecMonth, deneige, snowCover)") &&
+  kWhDecDay > 2 && kWhDecDay < 2.5 &&
+  Math.abs(kWhDecNever) < 1e-9 &&
+  kWhDecVertical > 10;
+const recFn =
+  app.includes("function recommendVerticalPanels") &&
+  app.includes("showVerticalRec") &&
+  html.includes('id="autonomySnow"') &&
+  html.includes("autonomySnowRec") &&
+  html.includes("mettez les panneaux à la verticale") &&
+  html.includes("décembre ne tombe pas à zéro") &&
+  css.includes(".autonomy-snow") &&
+  /autonomy-snow\[hidden\]/.test(css);
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
@@ -844,6 +878,16 @@ console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${
 console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
 console.log(`  1A deux boîtes PV (2 m²) + kWc (indépendant): ${prodKwC ? "PASS" : "FAIL"}`);
 console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
+console.log(
+  `  décembre C-by-tilt 0→1, 45→1, 60→2/3, 75→1/3, 90→0: ${snowCoverOk ? "PASS" : "FAIL"} ` +
+  `(${[0, 45, 60, 75, 90].map((t) => snowCoverTable[t]).join(",")})`
+);
+console.log(
+  `  décembre d=0 tilt30 → 0 kWh/j, tilt90 → plein (${kWhDecVertical.toFixed(2)}): ${
+    Math.abs(kWhDecNever) < 1e-9 && kWhDecVertical > 10 ? "PASS" : "FAIL"
+  }`
+);
+console.log(`  boîte verticale sous autonomie (d<100 % et tilt<90°): ${recFn ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -1352,6 +1396,8 @@ const pass =
   prodKwC &&
   prodNoWave &&
   dayOk &&
+  snowCoverOk &&
+  recFn &&
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
