@@ -727,6 +727,7 @@
     }
     const flag = $("permaFlag");
     if (flag) flag.hidden = !r.shortfall;
+    syncScenarioUrl();
   }
 
   /** Integer-only area: paste/blur/change/input */
@@ -743,21 +744,242 @@
     el.value = String(Math.max(0, Math.round(v)));
   }
 
+  function paintUnit(u) {
+    areaUnit = u === "sqft" ? "sqft" : "m2";
+    const m2 = areaUnit === "m2";
+    $("unitM2").classList.toggle("active", m2);
+    $("unitSqft").classList.toggle("active", !m2);
+    $("unitM2").setAttribute("aria-pressed", m2 ? "true" : "false");
+    $("unitSqft").setAttribute("aria-pressed", !m2 ? "true" : "false");
+    const pu = $("printUnit");
+    if (pu) pu.textContent = m2 ? "m²" : "pi²";
+  }
+
   function setUnit(u) {
     const prevM2 = areaM2();
-    areaUnit = u;
-    $("unitM2").classList.toggle("active", u === "m2");
-    $("unitSqft").classList.toggle("active", u === "sqft");
-    $("unitM2").setAttribute("aria-pressed", u === "m2" ? "true" : "false");
-    $("unitSqft").setAttribute("aria-pressed", u === "sqft" ? "true" : "false");
-    const pu = $("printUnit");
-    if (pu) pu.textContent = u === "sqft" ? "pi²" : "m²";
+    paintUnit(u);
     if (prevM2 > 0) {
-      $("area").value = u === "sqft"
+      $("area").value = areaUnit === "sqft"
         ? String(Math.round(prevM2 * SQFT_PER_M2))
         : String(Math.round(prevM2));
     }
+    onScenarioEdit();
+  }
+
+  /**
+   * Shareable roof scenario. Only non-default inputs go in the query.
+   * Area is the number on screen; unit=sqft does not convert it.
+   */
+  const SCENARIO_DEFAULTS = {
+    area: 40,
+    unit: "m2",
+    util: 80,
+    orient: 180,
+    tilt: 30,
+    deneige: Math.round(DEFAULT_DENEIGEMENT * 100),
+    priceW: 3,
+    taxes: true,
+    subv: true,
+    conso: DEFAULT_CONSO_KWH,
+    rate: DEFAULT_RATE_CENTS
+  };
+
+  function snapStep(n, min, max, step) {
+    const x = Number(n);
+    if (!isFinite(x)) return NaN;
+    let v = Math.round(x / step) * step;
+    if (v < min) v = min;
+    if (v > max) v = max;
+    const places = (String(step).split(".")[1] || "").length;
+    v = Number(v.toFixed(places));
+    if (v < min) v = min;
+    if (v > max) v = max;
+    return v;
+  }
+
+  function trimNum(n, places) {
+    return Number(n).toFixed(places).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  }
+
+  function parseUnitParam(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim().toLowerCase().replace(/²/g, "2").replace(/\s+/g, "");
+    if (s === "m2" || s === "m") return "m2";
+    if (s === "sqft" || s === "pi2" || s === "ft2" || s === "p2") return "sqft";
+    return null;
+  }
+
+  function parseFlagParam(raw, fallback) {
+    if (raw == null) return fallback;
+    const s = String(raw).trim().toLowerCase();
+    if (s === "0" || s === "false" || s === "off" || s === "non" || s === "no") return false;
+    if (s === "1" || s === "true" || s === "on" || s === "oui" || s === "yes") return true;
+    return fallback;
+  }
+
+  function parseScenarioSearch(search) {
+    const q = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+    const d = SCENARIO_DEFAULTS;
+    let area = d.area;
+    if (q.has("area")) {
+      const v = parseFloat(String(q.get("area")).trim().replace(",", "."));
+      if (isFinite(v)) area = Math.max(0, Math.round(v));
+    }
+    const unit = parseUnitParam(q.get("unit")) || d.unit;
+    let util = d.util;
+    if (q.has("util")) {
+      const v = snapStep(q.get("util"), 60, 100, 1);
+      if (isFinite(v)) util = v;
+    }
+    const orient = q.has("orient") ? snapAzimuth(q.get("orient")) : d.orient;
+    let tilt = d.tilt;
+    if (q.has("tilt")) {
+      const v = snapStep(q.get("tilt"), 0, 90, 15);
+      if (isFinite(v)) tilt = v;
+    }
+    let deneige = d.deneige;
+    if (q.has("deneige")) {
+      const v = snapStep(q.get("deneige"), 0, 100, 1);
+      if (isFinite(v)) deneige = v;
+    }
+    let priceW = d.priceW;
+    if (q.has("priceW")) {
+      const v = snapStep(q.get("priceW"), 2.5, 4.5, 0.05);
+      if (isFinite(v)) priceW = v;
+    }
+    const taxes = parseFlagParam(q.has("taxes") ? q.get("taxes") : null, d.taxes);
+    const subv = parseFlagParam(q.has("subv") ? q.get("subv") : null, d.subv);
+    let conso = d.conso;
+    if (q.has("conso")) {
+      const s = String(q.get("conso")).trim();
+      if (s === "" || s === "0") conso = 0;
+      else if (/^[\d\s\u00A0\u202F]+$/.test(s)) {
+        const n = parseInt(s.replace(/[\s\u00A0\u202F]/g, ""), 10);
+        if (isFinite(n)) conso = n;
+      }
+    }
+    let rate = d.rate;
+    if (q.has("rate")) {
+      const s = String(q.get("rate")).trim();
+      if (s !== "") {
+        const v = parseFloat(s.replace(",", "."));
+        if (isFinite(v) && v > 0) {
+          const snapped = snapStep(v, 0.001, 100000, 0.001);
+          if (isFinite(snapped)) rate = snapped;
+        }
+      }
+    }
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate };
+  }
+
+  const SCENARIO_KEYS = ["area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate"];
+
+  /** True after a control is used, or when the link already carries scenario values. */
+  let scenarioSnapshot = false;
+
+  function searchHasScenario(search) {
+    const q = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+    return SCENARIO_KEYS.some(function (key) { return q.has(key); });
+  }
+
+  function onScenarioEdit() {
+    scenarioSnapshot = true;
     render();
+  }
+
+  function serializeScenario(s, mode, full) {
+    const d = SCENARIO_DEFAULTS;
+    const p = new URLSearchParams();
+    if (full) {
+      p.set("mode", mode === "webi" ? "webi" : "full");
+      p.set("area", String(s.area));
+      p.set("unit", s.unit === "sqft" ? "sqft" : "m2");
+      p.set("util", String(s.util));
+      p.set("orient", String(s.orient));
+      p.set("tilt", String(s.tilt));
+      p.set("deneige", String(s.deneige));
+      p.set("priceW", trimNum(s.priceW, 2));
+      p.set("taxes", s.taxes ? "1" : "0");
+      p.set("subv", s.subv ? "1" : "0");
+      p.set("conso", String(s.conso));
+      p.set("rate", trimNum(s.rate, 3));
+      return p.toString();
+    }
+    if (mode === "webi") p.set("mode", "webi");
+    if (s.unit === "sqft" || s.area !== d.area) p.set("area", String(s.area));
+    if (s.unit === "sqft") p.set("unit", "sqft");
+    if (s.util !== d.util) p.set("util", String(s.util));
+    if (s.orient !== d.orient) p.set("orient", String(s.orient));
+    if (s.tilt !== d.tilt) p.set("tilt", String(s.tilt));
+    if (s.deneige !== d.deneige) p.set("deneige", String(s.deneige));
+    if (s.priceW !== d.priceW) p.set("priceW", trimNum(s.priceW, 2));
+    if (!s.taxes) p.set("taxes", "0");
+    if (!s.subv) p.set("subv", "0");
+    if (s.conso !== d.conso) p.set("conso", String(s.conso));
+    if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
+    return p.toString();
+  }
+
+  /** Write a shared scenario onto the fields. Area stays as given; setUnit would convert it. */
+  function applyScenario(s) {
+    paintUnit(s.unit);
+    $("area").value = String(s.area);
+    $("util").value = String(s.util);
+    $("orient").value = String(s.orient);
+    $("tilt").value = String(s.tilt);
+    if ($("deneige")) $("deneige").value = String(s.deneige);
+    $("priceW").value = trimNum(s.priceW, 2);
+    $("taxes").checked = !!s.taxes;
+    $("subv").checked = !!s.subv;
+    if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
+    $("rate").value = trimNum(s.rate, 3);
+  }
+
+  function readRange(id, min, max, step, fallback) {
+    const el = $(id);
+    if (!el) return fallback;
+    const v = snapStep(el.value, min, max, step);
+    return isFinite(v) ? v : fallback;
+  }
+
+  function readScenarioFromDom() {
+    const d = SCENARIO_DEFAULTS;
+    const areaEl = $("area");
+    const areaRaw = areaEl ? parseFloat(String(areaEl.value).trim().replace(",", ".")) : NaN;
+    const area = isFinite(areaRaw) ? Math.max(0, Math.round(areaRaw)) : 0;
+    const consoEl = $("conso");
+    const consoDigits = consoEl ? digitsOnly(consoEl.value) : "";
+    const conso = consoDigits === "" ? 0 : parseInt(consoDigits, 10);
+    const rateEl = $("rate");
+    const rateRaw = rateEl ? parseFloat(String(rateEl.value).trim().replace(",", ".")) : NaN;
+    const rateSnapped = isFinite(rateRaw) && rateRaw > 0 ? snapStep(rateRaw, 0.001, 100000, 0.001) : d.rate;
+    return {
+      area,
+      unit: areaUnit === "sqft" ? "sqft" : "m2",
+      util: readRange("util", 60, 100, 1, d.util),
+      orient: snapAzimuth($("orient") ? $("orient").value : d.orient),
+      tilt: readRange("tilt", 0, 90, 15, d.tilt),
+      deneige: readRange("deneige", 0, 100, 1, d.deneige),
+      priceW: readRange("priceW", 2.5, 4.5, 0.05, d.priceW),
+      taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
+      subv: $("subv") ? !!$("subv").checked : d.subv,
+      conso: isFinite(conso) ? conso : 0,
+      rate: isFinite(rateSnapped) ? rateSnapped : d.rate
+    };
+  }
+
+  function shareMode() {
+    return currentDisplayMode() === "webi" ? "webi" : "full";
+  }
+
+  function syncScenarioUrl() {
+    if (typeof history === "undefined" || !history || typeof history.replaceState !== "function") return;
+    if (typeof location === "undefined" || !location) return;
+    const search = serializeScenario(readScenarioFromDom(), shareMode(), scenarioSnapshot);
+    const next = search ? "?" + search : "";
+    if ((location.search || "") === next) return;
+    const path = (location.pathname || "/") + next + (location.hash || "");
+    history.replaceState(history.state, "", path);
   }
 
   function printPdf() {
@@ -1290,15 +1512,16 @@
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "autoStop", "battPrice", "consoJour"].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      el.addEventListener("input", render);
-      el.addEventListener("change", render);
+      el.addEventListener("input", onScenarioEdit);
+      el.addEventListener("change", onScenarioEdit);
     });
     const conso = $("conso");
     if (conso) {
-      conso.addEventListener("input", function () { formatConsoInput(true); render(); });
-      conso.addEventListener("change", function () { formatConsoInput(false); render(); });
-      conso.addEventListener("blur", function () { formatConsoInput(false); render(); });
+      conso.addEventListener("input", function () { scenarioSnapshot = true; formatConsoInput(true); render(); });
+      conso.addEventListener("change", function () { scenarioSnapshot = true; formatConsoInput(false); render(); });
+      conso.addEventListener("blur", function () { scenarioSnapshot = true; formatConsoInput(false); render(); });
       conso.addEventListener("paste", function () {
+        scenarioSnapshot = true;
         requestAnimationFrame(function () { formatConsoInput(true); render(); });
       });
     }
@@ -1316,10 +1539,11 @@
     wireOrientDial();
     const area = $("area");
     if (area) {
-      area.addEventListener("input", () => { roundAreaInput(); render(); });
-      area.addEventListener("change", () => { roundAreaInput(); render(); });
-      area.addEventListener("blur", () => { roundAreaInput(); render(); });
+      area.addEventListener("input", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
+      area.addEventListener("change", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
+      area.addEventListener("blur", () => { scenarioSnapshot = true; roundAreaInput(); render(); });
       area.addEventListener("paste", () => {
+        scenarioSnapshot = true;
         // After clipboard lands in the field, coerce to integer
         requestAnimationFrame(() => { roundAreaInput(); render(); });
       });
@@ -1353,21 +1577,13 @@
       trapModalTab(e);
     });
 
-    $("priceW").value = 3;
-    $("util").value = 80;
-    if ($("deneige")) $("deneige").value = Math.round(DEFAULT_DENEIGEMENT * 100);
-    $("tilt").value = "30";
-    $("orient").value = "180";
-    $("rate").value = String(DEFAULT_RATE_CENTS);
-    $("taxes").checked = true;
-    $("subv").checked = true; // LogisVert on by default (v0.2)
-    $("area").value = 40;
-    if ($("conso")) $("conso").value = fmtGroupedInt(DEFAULT_CONSO_KWH);
+    let initialSearch = "";
+    try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
+    scenarioSnapshot = searchHasScenario(initialSearch);
+    applyScenario(parseScenarioSearch(initialSearch));
     if ($("consoJour")) $("consoJour").value = String(DEFAULT_CONSO_JOUR_KWH);
     if ($("autoStop")) $("autoStop").value = "3";
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
-    if ($("unitM2")) $("unitM2").setAttribute("aria-pressed", "true");
-    if ($("unitSqft")) $("unitSqft").setAttribute("aria-pressed", "false");
   }
 
   function setGridFromPayload(data) {
@@ -1435,6 +1651,9 @@
     },
     AZ_LABELS,
     snapAzimuth,
+    parseScenarioSearch,
+    serializeScenario,
+    SCENARIO_DEFAULTS,
     azimuthFromOffsets,
     orientLabelFor,
     roundAreaInput,
