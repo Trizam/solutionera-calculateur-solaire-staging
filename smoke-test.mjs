@@ -320,7 +320,7 @@ const appLive =
   app.includes("deneigeLive") &&
   app.includes('fmtSig2(lossPct) + "&nbsp;%"') &&
   !app.includes("% annuel");
-const subvDefaultJs = /subv"\)\.checked\s*=\s*true/.test(app) || /\$\("subv"\)\.checked = true/.test(app);
+const subvDefaultJs = /subv:\s*true/.test(app) && /\$\("subv"\)\.checked\s*=/.test(app);
 const discTiltW =
   (html.includes("selon l’inclinaison") || html.includes("selon l'inclinaison") || html.includes("selon l’<strong>inclinaison")) &&
   html.includes("18");
@@ -444,7 +444,7 @@ const hasConsoGrouping =
   app.includes("function parseGroupedInt") &&
   app.includes("function fmtGroupedInt") &&
   app.includes("function formatConsoInput") &&
-  app.includes("fmtGroupedInt(DEFAULT_CONSO_KWH)") &&
+  (app.includes("fmtGroupedInt(DEFAULT_CONSO_KWH)") || (app.includes("fmtGroupedInt(s.conso)") && app.includes("conso: DEFAULT_CONSO_KWH"))) &&
   app.includes("parseGroupedInt(el.value)") &&
   css.includes("input.grouped-int");
 const ttcExact = 0.11142 * TAX_MULT;
@@ -1269,6 +1269,292 @@ console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAI
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
 
+function makeClassList() {
+  const set = new Set();
+  return {
+    add() { for (const x of arguments) set.add(x); },
+    remove() { for (const x of arguments) set.delete(x); },
+    toggle(name, force) {
+      const has = set.has(name);
+      const next = force === undefined ? !has : !!force;
+      if (next) set.add(name); else set.delete(name);
+      return next;
+    },
+    contains(name) { return set.has(name); }
+  };
+}
+
+function makeEl(id) {
+  const listeners = {};
+  const attrs = {};
+  return {
+    id,
+    value: "",
+    checked: false,
+    hidden: false,
+    textContent: "",
+    innerHTML: "",
+    type: "",
+    selectionStart: 0,
+    selectionEnd: 0,
+    childElementCount: 0,
+    style: {},
+    attrs,
+    classList: makeClassList(),
+    setAttribute(k, v) { attrs[k] = String(v); },
+    getAttribute(k) { return Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : null; },
+    removeAttribute(k) { delete attrs[k]; },
+    addEventListener(type, fn) { (listeners[type] || (listeners[type] = [])).push(fn); },
+    dispatchEvent(ev) {
+      const type = ev && ev.type;
+      (listeners[type] || []).forEach((fn) => fn(ev));
+    },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    appendChild() { this.childElementCount += 1; return this; },
+    setSelectionRange() {},
+    focus() {},
+    closest() { return null; },
+    contains() { return false; },
+    getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 }; }
+  };
+}
+
+async function bootScenario(search, hash) {
+  const els = {};
+  const listeners = {};
+  const pending = [];
+  const htmlEl = makeEl("html");
+  const bodyEl = makeEl("body");
+  const location = {
+    pathname: "/solutionera-calculateur-solaire-staging/",
+    search: search || "",
+    hash: hash || "",
+    href: ""
+  };
+  function refreshHref() {
+    location.href = "https://example.test" + location.pathname + location.search + location.hash;
+  }
+  refreshHref();
+  const history = {
+    state: null,
+    pushCount: 0,
+    replaceCount: 0,
+    pushState() { history.pushCount += 1; },
+    replaceState(_state, _title, url) {
+      history.replaceCount += 1;
+      history.state = _state;
+      const hashIdx = url.indexOf("#");
+      const hashPart = hashIdx >= 0 ? url.slice(hashIdx) : "";
+      const before = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+      const qIdx = before.indexOf("?");
+      location.pathname = qIdx >= 0 ? before.slice(0, qIdx) : before;
+      location.search = qIdx >= 0 ? before.slice(qIdx) : "";
+      location.hash = hashPart;
+      refreshHref();
+    }
+  };
+  const document = {
+    documentElement: htmlEl,
+    body: bodyEl,
+    readyState: "loading",
+    visibilityState: "visible",
+    activeElement: null,
+    getElementById(id) {
+      if (!els[id]) els[id] = makeEl(id);
+      return els[id];
+    },
+    addEventListener(type, fn) {
+      const tracked = function () {
+        const ret = fn.apply(this, arguments);
+        if (ret && typeof ret.then === "function") pending.push(ret);
+        return ret;
+      };
+      (listeners[type] || (listeners[type] = [])).push(tracked);
+    },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    createElementNS() { return makeEl("ns"); },
+    contains() { return true; }
+  };
+  const sandbox = {
+    URLSearchParams,
+    Promise,
+    setTimeout,
+    clearTimeout,
+    console,
+    location,
+    history,
+    document,
+    navigator: { userAgent: "scenario-test" },
+    fetch: async function () {
+      return {
+        ok: true,
+        json: async function () {
+          return {
+            cells: {
+              "30": { "180": { ac_annual: 1254.8064, W_winter: 0.17, ac_monthly: { dec: 53.274 } } }
+            }
+          };
+        }
+      };
+    }
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.addEventListener = function () {};
+  sandbox.removeEventListener = function () {};
+  runInNewContext(modeSrc, sandbox, { filename: "display-mode.js" });
+  runInNewContext(app, sandbox, { filename: "app.js" });
+  (listeners.DOMContentLoaded || []).forEach((fn) => fn());
+  await Promise.race([
+    Promise.all(pending),
+    new Promise((_resolve, reject) => setTimeout(() => reject(new Error("scenario boot timeout")), 2000))
+  ]);
+  return {
+    location,
+    history,
+    api: sandbox.SolarCalcV02,
+    el(id) { return document.getElementById(id); }
+  };
+}
+
+function scenarioSnapshot(page) {
+  const calc = page.api.calc();
+  return {
+    search: page.location.search,
+    hash: page.location.hash,
+    pathname: page.location.pathname,
+    area: page.el("area").value,
+    unit: page.el("unitSqft").getAttribute("aria-pressed") === "true" ? "sqft" : "m2",
+    util: page.el("util").value,
+    orient: page.el("orient").value,
+    tilt: page.el("tilt").value,
+    deneige: page.el("deneige").value,
+    priceW: page.el("priceW").value,
+    taxes: page.el("taxes").checked,
+    subv: page.el("subv").checked,
+    conso: page.el("conso").value,
+    rate: page.el("rate").value,
+    m2: calc.m2,
+    push: page.history.pushCount
+  };
+}
+
+function fireInput(page, id, value) {
+  const el = page.el(id);
+  el.value = value;
+  el.dispatchEvent({ type: "input", target: el });
+}
+
+const scenarioOk = await (async function runScenarioUrlTests() {
+  const fails = [];
+  function expect(cond, msg) {
+    if (!cond) fails.push(msg);
+  }
+  const roundTrips = [
+    ["", ""],
+    ["?mode=webi", "?mode=webi"],
+    ["?mode=WEBI", "?mode=webi"],
+    ["?mode=webinar", "?mode=webi"],
+    ["?mode=full", ""],
+    ["?mode=banana", ""],
+    ["?foo=1", ""],
+    ["?area=40&unit=sqft", "?area=40&unit=sqft"],
+    ["?unit=pi2&area=100", "?area=100&unit=sqft"],
+    ["?unit=m2&area=40", ""],
+    [
+      "?util=70&orient=90&tilt=45&deneige=0&priceW=3.5&taxes=0&subv=0&conso=12000&rate=9.53",
+      "?util=70&orient=90&tilt=45&deneige=0&priceW=3.5&taxes=0&subv=0&conso=12000&rate=9.53"
+    ],
+    ["?mode=webi&area=0&conso=0&orient=0", "?mode=webi&area=0&orient=0&conso=0"],
+    [
+      "?tilt=31&orient=190&util=10&priceW=9&rate=nope&conso=abc",
+      "?util=60&orient=195&priceW=4.5"
+    ],
+    ["?taxes=off&subv=non&rate=9,53", "?taxes=0&subv=0&rate=9.53"],
+    [
+      "?orient=-15&tilt=90&deneige=100&util=100&priceW=2.5",
+      "?util=100&orient=345&tilt=90&deneige=100&priceW=2.5"
+    ],
+    ["?area=40.6&unit=m2", "?area=41"],
+    ["?mode=webi&tilt=31", "?mode=webi"]
+  ];
+  for (const [input, canonical] of roundTrips) {
+    const first = await bootScenario(input, "#main");
+    expect(first.location.search === canonical, `canonical ${input} → ${first.location.search} want ${canonical}`);
+    expect(first.location.hash === "#main", `hash kept for ${input}`);
+    expect(first.location.pathname === "/solutionera-calculateur-solaire-staging/", `path kept for ${input}`);
+    expect(first.history.pushCount === 0, `no pushState for ${input}`);
+    const again = await bootScenario(first.location.search, first.location.hash);
+    const a = scenarioSnapshot(first);
+    const b = scenarioSnapshot(again);
+    expect(JSON.stringify(a) === JSON.stringify(b), `round-trip fields ${input}: ${JSON.stringify(a)} vs ${JSON.stringify(b)}`);
+    expect(again.location.search === first.location.search, `stable search ${input}`);
+  }
+
+  const sq = await bootScenario("?area=40&unit=sqft", "#bugModal");
+  expect(sq.el("area").value === "40", "sqft link keeps area 40");
+  expect(sq.el("unitM2").getAttribute("aria-pressed") === "false", "m2 not pressed");
+  expect(sq.el("printUnit").textContent === "pi²", "print unit pi²");
+  const sqM2 = sq.api.calc().m2;
+  expect(Math.abs(sqM2 - 40 / 10.76391041671) < 1e-6, `40 sqft m2=${sqM2}`);
+
+  const live = await bootScenario("", "#main");
+  expect(live.location.search === "", "bare URL stays bare");
+  expect(live.el("subv").checked === true, "LogisVert default on");
+  expect(live.el("taxes").checked === true, "taxes default on");
+  expect(live.el("conso").value === "17 000", "conso default grouped");
+  expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
+  fireInput(live, "util", "80");
+  expect(live.history.replaceCount === 0, "default util does not rewrite");
+  fireInput(live, "util", "81");
+  fireInput(live, "util", "82");
+  fireInput(live, "util", "83");
+  fireInput(live, "util", "84");
+  fireInput(live, "util", "85");
+  expect(live.location.search === "?util=85", `live util → ${live.location.search}`);
+  expect(live.location.hash === "#main", "live edit keeps hash");
+  expect(live.history.pushCount === 0, "slider ticks do not push history");
+  const afterSlider = live.history.replaceCount;
+  fireInput(live, "util", "85");
+  expect(live.history.replaceCount === afterSlider, "unchanged value does not replaceState again");
+  fireInput(live, "area", "55.4");
+  expect(live.el("area").value === "55", "area rounds to integer");
+  live.el("bugName").value = "secret-name";
+  live.el("bugText").value = "secret-bug-text";
+  live.el("unitSqft").dispatchEvent({ type: "click", target: live.el("unitSqft") });
+  const sqftArea = String(Math.round(55 * 10.76391041671));
+  expect(live.el("area").value === sqftArea, `unit click converts area to ${sqftArea}, got ${live.el("area").value}`);
+  expect(live.location.search === `?area=${sqftArea}&unit=sqft&util=85`, `live unit URL ${live.location.search}`);
+  expect(!live.location.href.includes("secret"), "bug text stays out of the URL");
+  const shared = await bootScenario(live.location.search, live.location.hash);
+  expect(shared.el("area").value === sqftArea, "shared area");
+  expect(shared.el("util").value === "85", "shared util");
+  expect(shared.el("unitSqft").getAttribute("aria-pressed") === "true", "shared unit");
+  expect(Math.abs(shared.api.calc().m2 - live.api.calc().m2) < 1e-9, "shared m2 matches");
+
+  const flags = await bootScenario("?taxes=0&subv=0&conso=0&rate=9.53");
+  expect(flags.el("taxes").checked === false, "taxes off");
+  expect(flags.el("subv").checked === false, "subv off");
+  expect(flags.el("conso").value === "", "conso 0 clears the field");
+  expect(flags.api.calc().conso == null, "conso 0 means no cap");
+  expect(Math.abs(flags.api.calc().rateOk - 0.0953) < 1e-9, "rate 9.53 ¢");
+  fireInput(flags, "conso", "");
+  expect(flags.location.search.includes("conso=0"), `cleared conso stays in URL ${flags.location.search}`);
+
+  const webi = await bootScenario("?mode=webi&priceW=4");
+  expect(webi.api.displayMode === "webi", "webi mode kept");
+  fireInput(webi, "deneige", "40");
+  expect(webi.location.search === "?mode=webi&deneige=40&priceW=4", `webi live ${webi.location.search}`);
+
+  if (fails.length) {
+    fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
+  }
+  return fails.length === 0;
+})();
+console.log(`  scenario URL live round-trip: ${scenarioOk ? "PASS" : "FAIL"}`);
+
 const pass =
   ok &&
   !bad &&
@@ -1424,7 +1710,8 @@ const pass =
   bugJsWired &&
   noTokenInFrontend &&
   bugDocs &&
-  bugWorkflow;
+  bugWorkflow &&
+  scenarioOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
