@@ -476,6 +476,14 @@ const batteryColumn =
   /mode-full-only[^>]*id="sec-batt"/.test(html) &&
   /mode-full-only[^>]*id="sec-total"/.test(html) &&
   /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
+  /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
+  /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
+  /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
+  design.includes("4A") &&
+  design.includes("4B") &&
+  design.includes("**5**") &&
+  design.includes("**6**") &&
   /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
@@ -664,7 +672,7 @@ const DAILY_LOAD_LABELS = [
 ];
 const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
 const hasConsoJourUi =
-  html.includes("Combien veux-tu consommer par jour") &&
+  html.includes("Combien d'autonomie je veux") &&
   html.includes("En autonomie. Chaque cran vers la droite ajoute un usage.") &&
   html.includes('id="consoExtra"') &&
   html.includes("Autre consommation") &&

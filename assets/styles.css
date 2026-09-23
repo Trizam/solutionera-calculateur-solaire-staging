@@ -278,6 +278,10 @@ section.block h2 .num {
   letter-spacing: 0.02em;
   flex-shrink: 0;
 }
+section.block h2 > label,
+section.block h2 > span:not(.num) {
+  min-width: 0;
+}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
