@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 63,
-    "n_scaled": 41,
+    "n_full_grid": 68,
+    "n_scaled": 36,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T03:08:13.064Z"
+    "as_of_utc": "2026-09-24T03:56:40.501Z"
   },
   "towns": [
     {
@@ -108,7 +108,8 @@
       "lat": 46.2107,
       "lon": -70.7743,
       "ac_annual_s30": 1214.9727,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/beauceville.json"
     },
     {
       "id": "beauharnois",
@@ -460,7 +461,8 @@
       "lat": 46.3988,
       "lon": -70.5082,
       "ac_annual_s30": 1230.0306,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/lac-etchemin.json"
     },
     {
       "id": "lac-megantic",
@@ -529,7 +531,8 @@
       "lat": 46.8033,
       "lon": -71.1779,
       "ac_annual_s30": 1249.6332,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/levis.json"
     },
     {
       "id": "longueuil",
@@ -923,7 +926,8 @@
       "lat": 46.6549,
       "lon": -70.8052,
       "ac_annual_s30": 1214.3848,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-lazare-de-bellechasse.json"
     },
     {
       "id": "saint-luc-de-vincennes",
@@ -1038,7 +1042,8 @@
       "lat": 46.4504,
       "lon": -71.0307,
       "ac_annual_s30": 1215.4509,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-marie.json"
     },
     {
       "id": "sainte-therese",
