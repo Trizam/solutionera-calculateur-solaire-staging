@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 87,
-    "n_scaled": 17,
+    "n_full_grid": 91,
+    "n_scaled": 13,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T07:00:55.602Z"
+    "as_of_utc": "2026-09-24T07:39:45.029Z"
   },
   "towns": [
     {
@@ -596,7 +596,8 @@
       "lat": 45.4314,
       "lon": -73.1637,
       "ac_annual_s30": 1293.858,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/marieville.json"
     },
     {
       "id": "matane",
@@ -893,7 +894,8 @@
       "lat": 45.6275,
       "lon": -72.9406,
       "ac_annual_s30": 1283.6148,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-hyacinthe.json"
     },
     {
       "id": "saint-jean-port-joli",
@@ -916,7 +918,8 @@
       "lat": 45.3057,
       "lon": -73.2533,
       "ac_annual_s30": 1277.9062,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-jean-sur-richelieu.json"
     },
     {
       "id": "saint-jerome",
@@ -1130,7 +1133,8 @@
       "lat": 46.0435,
       "lon": -73.1165,
       "ac_annual_s30": 1249.1123,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sorel-tracy.json"
     },
     {
       "id": "temiscouata-sur-le-lac",
