@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 68,
-    "n_scaled": 36,
+    "n_full_grid": 73,
+    "n_scaled": 31,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T03:56:40.501Z"
+    "as_of_utc": "2026-09-24T04:45:07.899Z"
   },
   "towns": [
     {
@@ -153,7 +153,8 @@
       "lat": 46.0828,
       "lon": -73.1747,
       "ac_annual_s30": 1283.4678,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/berthierville.json"
     },
     {
       "id": "campbells-bay",
@@ -496,7 +497,8 @@
       "lat": 45.5571,
       "lon": -73.7212,
       "ac_annual_s30": 1308.4875,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/laval.json"
     },
     {
       "id": "les-escoumins",
@@ -858,7 +860,8 @@
       "lat": 46.123,
       "lon": -70.672,
       "ac_annual_s30": 1213.7091,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-georges.json"
     },
     {
       "id": "saint-honore",
@@ -1008,7 +1011,8 @@
       "lat": 46.622,
       "lon": -71.7363,
       "ac_annual_s30": 1252.1783,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-croix.json"
     },
     {
       "id": "sainte-famille-de-lile-dorleans",
@@ -1147,7 +1151,8 @@
       "lat": 46.0913,
       "lon": -71.3013,
       "ac_annual_s30": 1203.8002,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/thetford-mines.json"
     },
     {
       "id": "trois-pistoles",
