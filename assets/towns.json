@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 49,
-    "n_scaled": 55,
+    "n_full_grid": 54,
+    "n_scaled": 50,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T00:52:28.443Z"
+    "as_of_utc": "2026-09-24T01:40:55.801Z"
   },
   "towns": [
     {
@@ -222,7 +222,8 @@
       "lat": 49.9137,
       "lon": -74.3714,
       "ac_annual_s30": 1189.6987,
-      "grid": "scaled",
+      "grid": "full",
+      "grid_file": "assets/town-grids/chibougamau.json",
       "coord_note": "Centre de la ville de Chibougamau (le premier géocodage visait le lac)."
     },
     {
@@ -270,7 +271,8 @@
       "lat": 50.4812,
       "lon": -59.783,
       "ac_annual_s30": 1151.6001,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/cote-nord-du-golfe-du-saint-laurent.json"
     },
     {
       "id": "cowansville",
@@ -316,7 +318,8 @@
       "lat": 52.7984,
       "lon": -67.0881,
       "ac_annual_s30": 1230.8485,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/fermont.json"
     },
     {
       "id": "gaspe",
@@ -374,7 +377,8 @@
       "lat": 50.2464,
       "lon": -63.6004,
       "ac_annual_s30": 1207.6462,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/havre-saint-pierre.json"
     },
     {
       "id": "huntingdon",
@@ -407,7 +411,8 @@
       "lat": 58.1067,
       "lon": -68.4039,
       "ac_annual_s30": 971.8593,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/kuujjuaq.json"
     },
     {
       "id": "lassomption",
