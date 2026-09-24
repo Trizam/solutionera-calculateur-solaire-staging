@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 59,
-    "n_scaled": 45,
+    "n_full_grid": 63,
+    "n_scaled": 41,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T02:29:23.920Z"
+    "as_of_utc": "2026-09-24T03:08:13.064Z"
   },
   "towns": [
     {
@@ -575,7 +575,8 @@
       "lat": 48.1741,
       "lon": -65.9822,
       "ac_annual_s30": 1242.5575,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/maria.json"
     },
     {
       "id": "marieville",
@@ -654,7 +655,8 @@
       "lat": 46.9826,
       "lon": -70.5559,
       "ac_annual_s30": 1273.0616,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/montmagny.json"
     },
     {
       "id": "montreal",
@@ -689,7 +691,8 @@
       "lat": 48.0088,
       "lon": -65.3245,
       "ac_annual_s30": 1306.3957,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/new-carlisle.json"
     },
     {
       "id": "nicolet",
@@ -886,7 +889,8 @@
       "lat": 47.2144,
       "lon": -70.2692,
       "ac_annual_s30": 1238.6942,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-jean-port-joli.json"
     },
     {
       "id": "saint-jean-sur-richelieu",
