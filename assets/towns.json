@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 73,
-    "n_scaled": 31,
+    "n_full_grid": 77,
+    "n_scaled": 27,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T04:45:07.899Z"
+    "as_of_utc": "2026-09-24T05:23:54.670Z"
   },
   "towns": [
     {
@@ -404,7 +404,8 @@
       "lat": 46.024,
       "lon": -73.442,
       "ac_annual_s30": 1279.1148,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/joliette.json"
     },
     {
       "id": "kuujjuaq",
@@ -427,7 +428,8 @@
       "lat": 45.8307,
       "lon": -73.4222,
       "ac_annual_s30": 1308.8219,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/lassomption.json"
     },
     {
       "id": "la-sarre",
@@ -754,7 +756,8 @@
       "lat": 46.0454,
       "lon": -73.7108,
       "ac_annual_s30": 1277.5753,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/rawdon.json"
     },
     {
       "id": "richmond",
@@ -1035,7 +1038,8 @@
       "lat": 45.9624,
       "lon": -73.71,
       "ac_annual_s30": 1286.9496,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-julienne.json"
     },
     {
       "id": "sainte-marie",
