@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 77,
-    "n_scaled": 27,
+    "n_full_grid": 82,
+    "n_scaled": 22,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T05:23:54.670Z"
+    "as_of_utc": "2026-09-24T06:12:23.117Z"
   },
   "towns": [
     {
@@ -617,7 +617,8 @@
       "lat": 45.6323,
       "lon": -73.9838,
       "ac_annual_s30": 1304.905,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/mirabel.json"
     },
     {
       "id": "mont-blanc",
@@ -852,7 +853,8 @@
       "lat": 45.5646,
       "lon": -73.893,
       "ac_annual_s30": 1311.8441,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-eustache.json"
     },
     {
       "id": "saint-georges",
@@ -921,7 +923,8 @@
       "lat": 45.778,
       "lon": -74.0033,
       "ac_annual_s30": 1303.0734,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/saint-jerome.json"
     },
     {
       "id": "saint-lazare-de-bellechasse",
@@ -1062,7 +1065,8 @@
       "lat": 45.6343,
       "lon": -73.8362,
       "ac_annual_s30": 1342.954,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-therese.json"
     },
     {
       "id": "sept-iles",
@@ -1144,7 +1148,8 @@
       "lat": 45.6952,
       "lon": -73.635,
       "ac_annual_s30": 1307.1337,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/terrebonne.json"
     },
     {
       "id": "thetford-mines",
