@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 40,
-    "n_scaled": 64,
+    "n_full_grid": 45,
+    "n_scaled": 59,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-23T23:25:09.782Z"
+    "as_of_utc": "2026-09-24T00:13:40.297Z"
   },
   "towns": [
     {
@@ -60,7 +60,8 @@
       "lat": 48.5719,
       "lon": -78.1161,
       "ac_annual_s30": 1242.3781,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/amos.json"
     },
     {
       "id": "amqui",
@@ -161,7 +162,8 @@
       "lat": 45.7333,
       "lon": -76.6016,
       "ac_annual_s30": 1272.1394,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/campbells-bay.json"
     },
     {
       "id": "cap-sante",
@@ -426,7 +428,8 @@
       "lat": 48.8001,
       "lon": -79.201,
       "ac_annual_s30": 1280.9059,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/la-sarre.json"
     },
     {
       "id": "la-tuque",
@@ -791,7 +794,8 @@
       "lat": 48.2421,
       "lon": -79.0205,
       "ac_annual_s30": 1222.7447,
-      "grid": "scaled",
+      "grid": "full",
+      "grid_file": "assets/town-grids/rouyn-noranda.json",
       "coord_note": "Centre de Rouyn-Noranda (le premier géocodage visait Cadillac)."
     },
     {
@@ -1212,7 +1216,8 @@
       "lat": 47.3323,
       "lon": -79.438,
       "ac_annual_s30": 1287.9734,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/ville-marie.json"
     }
   ]
 }
