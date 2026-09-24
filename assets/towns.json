@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 54,
-    "n_scaled": 50,
+    "n_full_grid": 59,
+    "n_scaled": 45,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T01:40:55.801Z"
+    "as_of_utc": "2026-09-24T02:29:23.920Z"
   },
   "towns": [
     {
@@ -187,7 +187,8 @@
       "lat": 48.3492,
       "lon": -64.6776,
       "ac_annual_s30": 1238.712,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/chandler.json"
     },
     {
       "id": "chateau-richer",
@@ -330,7 +331,8 @@
       "lat": 48.8317,
       "lon": -64.4838,
       "ac_annual_s30": 1272.5718,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/gaspe.json"
     },
     {
       "id": "gatineau",
@@ -515,7 +517,8 @@
       "lat": 47.4083,
       "lon": -61.7806,
       "ac_annual_s30": 1220.8091,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/les-iles-de-la-madeleine.json"
     },
     {
       "id": "levis",
@@ -674,7 +677,8 @@
       "lat": 51.6879,
       "lon": -76.2569,
       "ac_annual_s30": 1140.0734,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/nemaska.json"
     },
     {
       "id": "new-carlisle",
@@ -984,7 +988,8 @@
       "lat": 49.1263,
       "lon": -66.485,
       "ac_annual_s30": 1206.8819,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-anne-des-monts.json"
     },
     {
       "id": "sainte-croix",
