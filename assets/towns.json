@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 82,
-    "n_scaled": 22,
+    "n_full_grid": 87,
+    "n_scaled": 17,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T06:12:23.117Z"
+    "as_of_utc": "2026-09-24T07:00:55.602Z"
   },
   "towns": [
     {
@@ -37,7 +37,8 @@
       "lat": 45.6472,
       "lon": -72.5654,
       "ac_annual_s30": 1232.2769,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/acton-vale.json"
     },
     {
       "id": "alma",
@@ -488,7 +489,8 @@
       "lat": 45.656,
       "lon": -74.3401,
       "ac_annual_s30": 1283.0447,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/lachute.json"
     },
     {
       "id": "laval",
@@ -629,7 +631,8 @@
       "lat": 46.1137,
       "lon": -74.4805,
       "ac_annual_s30": 1241.7219,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/mont-blanc.json"
     },
     {
       "id": "mont-joli",
@@ -652,7 +655,8 @@
       "lat": 46.5524,
       "lon": -75.4969,
       "ac_annual_s30": 1233.9112,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/mont-laurier.json"
     },
     {
       "id": "montmagny",
@@ -994,7 +998,8 @@
       "lat": 45.9519,
       "lon": -74.136,
       "ac_annual_s30": 1276.0497,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sainte-adele.json"
     },
     {
       "id": "sainte-anne-des-monts",
