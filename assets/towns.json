@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 45,
-    "n_scaled": 59,
+    "n_full_grid": 49,
+    "n_scaled": 55,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T00:13:40.297Z"
+    "as_of_utc": "2026-09-24T00:52:28.443Z"
   },
   "towns": [
     {
@@ -84,7 +84,8 @@
       "lat": 49.2118,
       "lon": -68.1801,
       "ac_annual_s30": 1280.288,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/baie-comeau.json"
     },
     {
       "id": "baie-saint-paul",
@@ -497,7 +498,8 @@
       "lat": 48.3462,
       "lon": -69.4041,
       "ac_annual_s30": 1237.7893,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/les-escoumins.json"
     },
     {
       "id": "les-iles-de-la-madeleine",
@@ -1044,7 +1046,8 @@
       "lat": 50.211,
       "lon": -66.3791,
       "ac_annual_s30": 1212.4782,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/sept-iles.json"
     },
     {
       "id": "shannon",
@@ -1160,7 +1163,8 @@
       "lat": 48.1023,
       "lon": -77.7876,
       "ac_annual_s30": 1257.8265,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/val-dor.json"
     },
     {
       "id": "val-des-sources",
