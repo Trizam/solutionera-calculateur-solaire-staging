@@ -3,8 +3,8 @@
     "location_set": "87 MRC + 17 territoires équivalents du Québec",
     "n_towns": 104,
     "n_s30": 104,
-    "n_full_grid": 96,
-    "n_scaled": 8,
+    "n_full_grid": 101,
+    "n_scaled": 3,
     "sort": "fr-CA",
     "default_id": "quebec",
     "quebec_s30": 1254.8064,
@@ -25,7 +25,7 @@
       "timeframe": "monthly"
     },
     "grid_note": "grid=full is a PVWatts cell grid. grid=scaled means only Sud/30° is measured; the calculator scales the Québec grid by ac_annual_s30 / quebec_s30.",
-    "as_of_utc": "2026-09-24T08:28:36.784Z"
+    "as_of_utc": "2026-09-24T09:17:02.537Z"
   },
   "towns": [
     {
@@ -121,7 +121,8 @@
       "lat": 45.314,
       "lon": -73.8758,
       "ac_annual_s30": 1276.9911,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/beauharnois.json"
     },
     {
       "id": "becancour",
@@ -132,7 +133,8 @@
       "lat": 46.3416,
       "lon": -72.4335,
       "ac_annual_s30": 1234.0985,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/becancour.json"
     },
     {
       "id": "beloeil",
@@ -395,7 +397,8 @@
       "lat": 45.0873,
       "lon": -74.1739,
       "ac_annual_s30": 1275.9886,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/huntingdon.json"
     },
     {
       "id": "joliette",
@@ -741,7 +744,8 @@
       "lat": 46.2195,
       "lon": -71.772,
       "ac_annual_s30": 1219.8627,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/plessisville.json"
     },
     {
       "id": "quebec",
@@ -1233,7 +1237,8 @@
       "lat": 45.3972,
       "lon": -74.0255,
       "ac_annual_s30": 1232.8724,
-      "grid": "scaled"
+      "grid": "full",
+      "grid_file": "assets/town-grids/vaudreuil-dorion.json"
     },
     {
       "id": "vercheres",
