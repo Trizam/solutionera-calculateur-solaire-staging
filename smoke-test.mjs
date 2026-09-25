@@ -708,6 +708,19 @@ const hasConsoJourUi =
   app.includes('class=\\"load-name\\"') &&
   app.includes("tenths: 1") &&
   app.includes("tenths: 15");
+const yearsPinOk =
+  html.includes('id="btnPinYears"') &&
+  html.includes("Épingler la rentabilité") &&
+  html.includes('id="btnUnpinYears"') &&
+  html.includes("Désépingler la rentabilité") &&
+  html.includes('id="yearsPinBar"') &&
+  html.includes('id="kpiYearsPin"') &&
+  html.includes(">Rentabilité<") &&
+  app.includes("function setYearsPinned") &&
+  app.includes("kpiYearsPin") &&
+  css.includes(".years-pin") &&
+  css.includes("rgba(216, 243, 220, 0.74)") &&
+  /html\[data-mode="webi"\]\s*\.years-pin/.test(css);
 const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
 function digitsOnly(raw) {
   return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
@@ -838,6 +851,7 @@ console.log(`  économies KPI note FR (plafonné): ${hasEcoNote ? "PASS" : "FAIL
 console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn ? "PASS" : "FAIL"}`);
 console.log(`  conso wired to render + kpiEcoNote: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  autonomie 4A curseur 0–40 kWh/j + appareils + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
+console.log(`  épingle rentabilité (clone bas d’écran, originale reste): ${yearsPinOk ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
@@ -2125,6 +2139,7 @@ const pass =
   hasCreditFn &&
   hasConsoWired &&
   hasConsoJourUi &&
+  yearsPinOk &&
   defaultRateTtc &&
   rateNormPass &&
   rateBug59Pass &&

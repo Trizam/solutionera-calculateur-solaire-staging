@@ -1310,6 +1310,52 @@ section.block > h2,
   margin-top: 0.2rem;
   line-height: 1.3;
 }
+.card-kpi-years { position: relative; }
+.years-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--green-dark);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.card-kpi-years > .years-pin-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+}
+.years-pin-btn:hover,
+.years-pin-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.82);
+}
+.years-pin-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.years-pin-btn[aria-pressed="true"] {
+  background: var(--green);
+  color: #fff;
+  border-color: transparent;
+}
+html[data-theme="dark"] .years-pin-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+html[data-theme="dark"] .years-pin-btn:hover,
+html[data-theme="dark"] .years-pin-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+html[data-theme="dark"] .years-pin-btn[aria-pressed="true"] {
+  background: var(--green);
+  color: #102018;
+}
 .rate-box {
   display: flex;
   align-items: center;
@@ -1487,6 +1533,71 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   box-shadow: 0 0 0 2px var(--green), 0 8px 22px rgba(27, 67, 50, 0.28);
 }
 .bug-fab[aria-expanded="true"]:hover { background: var(--hover-soft); }
+
+/* Pinned payback. Pale green is translucent so the page shows through.
+   Sits to the right of the bug bubble so the two don’t cover each other. */
+.years-pin {
+  position: fixed;
+  z-index: 35;
+  left: calc(max(0.65rem, env(safe-area-inset-left, 0px)) + 3.25rem + 0.45rem);
+  right: max(0.65rem, env(safe-area-inset-right, 0px));
+  bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.years-pin[hidden] { display: none !important; }
+html[data-mode="webi"] .years-pin { display: none !important; }
+.years-pin-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  max-width: 100%;
+  padding: 0.15rem 0.2rem 0.15rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(216, 243, 220, 0.74);
+  border: 1px solid rgba(207, 227, 212, 0.9);
+  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.14);
+  backdrop-filter: blur(8px);
+}
+.years-pin-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.years-pin-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .years-pin-card {
+  background: rgba(31, 58, 45, 0.74);
+  border-color: rgba(47, 74, 60, 0.9);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+@media (min-width: 700px) {
+  .years-pin {
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  }
+  .years-pin-card {
+    gap: 0.7rem;
+    min-height: 3.05rem;
+    padding: 0.35rem 0.4rem 0.35rem 1rem;
+    border-radius: 14px;
+  }
+  .years-pin-kicker { font-size: 0.8rem; }
+  .years-pin-value { font-size: 1.35rem; }
+}
+body.is-years-pinned footer.bug {
+  padding-bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 6.25rem);
+}
 html[data-theme="dark"] .bug-fab {
   background: var(--green);
   color: #102018;
@@ -2056,7 +2167,7 @@ section.block h2 .field-info-btn {
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, .bug-fab, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, .bug-fab, .years-pin, .years-pin-btn, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
   .board {
     display: block !important;

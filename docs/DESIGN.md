@@ -85,7 +85,7 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, ligne de coût |
-| Retour **3** | Valeur des panneaux | Trio `.card-kpi` |
+| Retour **3** | Valeur des panneaux | Trio `.card-kpi`. L’épingle de la boîte années duplique le chiffre en bas d’écran, sans retirer la boîte |
 | Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte verte en bas |
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).

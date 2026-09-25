@@ -1240,7 +1240,9 @@
     $("kpiEco").textContent = fmtShownMoney(r.eco);
     const note = $("kpiEcoNote");
     if (note) note.hidden = !r.ecoClamped;
-    $("kpiYears").textContent = fmtYears(r.years);
+    const yearsLabel = fmtYears(r.years);
+    $("kpiYears").textContent = yearsLabel;
+    if ($("kpiYearsPin")) $("kpiYearsPin").textContent = yearsLabel;
     const yearText = !isFinite(r.years) || r.years <= 0
       ? "—"
       : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
@@ -2171,6 +2173,20 @@
     }
   }
 
+  /** Sticky clone of the payback years. The card in the form stays put. */
+  function setYearsPinned(on) {
+    const bar = $("yearsPinBar");
+    const pinned = !!on;
+    if (bar) bar.hidden = !pinned;
+    if (document.body) document.body.classList.toggle("is-years-pinned", pinned);
+    const label = pinned ? "Désépingler la rentabilité" : "Épingler la rentabilité";
+    [$("btnPinYears"), $("btnUnpinYears")].forEach(function (btn) {
+      if (!btn) return;
+      btn.setAttribute("aria-pressed", pinned ? "true" : "false");
+      btn.setAttribute("aria-label", label);
+    });
+  }
+
   function wireUi() {
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
@@ -2178,6 +2194,14 @@
       el.addEventListener("input", onScenarioEdit);
       el.addEventListener("change", onScenarioEdit);
     });
+    const pinYears = $("btnPinYears");
+    const unpinYears = $("btnUnpinYears");
+    function onYearsPinClick() {
+      const bar = $("yearsPinBar");
+      setYearsPinned(!(bar && !bar.hidden));
+    }
+    if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
+    if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
     const wantAutonomy = $("wantAutonomy");
     if (wantAutonomy) {
       wantAutonomy.checked = document.documentElement.getAttribute("data-want-autonomy") === "on";
