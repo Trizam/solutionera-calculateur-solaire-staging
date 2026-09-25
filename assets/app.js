@@ -22,12 +22,14 @@
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
   /**
-   * Autonomy ladder, kWh/day in tenths (no electric heat).
-   * Rounded off-grid audits: phone ~0.02–0.05 → 0.1 so the first notch shows;
-   * laptop ~0.25 + router 24 h ~0.25; LED house ~0.5; TV ~0.4;
-   * well/pressure pump ~0.5–1.5; efficient fridge ~1–1.5; chest freezer ~0.8;
-   * one washer load ~0.5 (no dryer); modest electric cooking ~1–1.5.
-   * Full right stop ≈ 6.3 kWh/day. A Québec grid house is ~45 kWh/day.
+   * Daily-load ladder, kWh/day in tenths.
+   * Slider max is 40 kWh/day (400 tenths): enough for a fully autonomous
+   * Québec house (base loads, hot water, heat pump, backup heat) and still
+   * under a typical grid home (~45 kWh/day). The first nine loads stay the
+   * off-grid ladder (phone through cooking) and still sum to 6.3 kWh/day.
+   * Later loads open the range toward « maison pleinement autonome ».
+   * The slider itself is kWh/day (0.1 steps), not a notch index. A device
+   * appears once the slider reaches that device’s cumulative total.
    */
   /** 16px stroke icons, same language as the theme marks. Shown only on a visible row. */
   function loadIcon(paths) {
@@ -43,8 +45,16 @@
     { label: "Réfrigérateur", tenths: 12, icon: loadIcon('<rect x="3.75" y="1.5" width="8.5" height="13" rx="1.2"' + ICO_STROKE + '/><path d="M3.75 7h8.5M10.4 4.2v1.15M10.4 9.3v1.15"' + ICO_STROKE + '/>') },
     { label: "Congélateur", tenths: 8, icon: loadIcon('<path d="M8 1.8v12.4M2.7 4.7 13.3 11.3M13.3 4.7 2.7 11.3"' + ICO_STROKE + '/>') },
     { label: "Laveuse", tenths: 5, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="8.8" r="2.45"' + ICO_STROKE + '/><path d="M4.7 4.55h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') },
-    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') }
+    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') },
+    { label: "Lave-vaisselle", tenths: 12, icon: loadIcon('<rect x="2.2" y="3" width="11.6" height="10" rx="1.2"' + ICO_STROKE + '/><path d="M2.2 6.2h11.6"' + ICO_STROKE + '/><circle cx="6.1" cy="9.5" r="0.7" fill="currentColor" stroke="none"/><circle cx="9.9" cy="9.5" r="0.7" fill="currentColor" stroke="none"/>') },
+    { label: "Sécheuse", tenths: 25, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="9" r="2.2"' + ICO_STROKE + '/><path d="M4.3 4.6h1.3M6.5 4.6h1.3M8.7 4.6h1.3"' + ICO_STROKE + '/>') },
+    { label: "Chauffe-eau", tenths: 80, icon: loadIcon('<rect x="4.3" y="1.6" width="7.4" height="12.8" rx="2.4"' + ICO_STROKE + '/><path d="M6.3 5.1h3.4M6.3 7.3h3.4M6.3 9.5h3.4"' + ICO_STROKE + '/>') },
+    { label: "Thermopompe", tenths: 120, icon: loadIcon('<rect x="1.8" y="3.1" width="12.4" height="8.2" rx="1.2"' + ICO_STROKE + '/><path d="M1.8 6h12.4M4.2 8.6h2M7 8.6h2M9.8 8.6h2M8 11.3v2.2"' + ICO_STROKE + '/>') },
+    { label: "Chauffage", tenths: 100, icon: loadIcon('<path d="M3.2 13.4V6.4M5.6 13.4V3M8 13.4V3M10.4 13.4V3M12.8 13.4V6.4M3.2 13.4h9.6"' + ICO_STROKE + '/>') }
   ];
+  /** Slider ceiling, kWh/day. Must match the ladder sum (400 tenths). */
+  const DAILY_KWH_MAX = 40;
+  const DAILY_TENTH_MAX = DAILY_KWH_MAX * 10;
   const CONSO_EXTRA_MAX = 100;
   /** Draft installed-battery range until a real $/kWh band is chosen. */
   const BATT_PRICE_DEFAULT = 1200;
@@ -54,7 +64,7 @@
    * 24 h and « 1 jour » are the same stop. Default is 1 jour.
    */
   const RESERVE_STOPS = [
-    { hours: 0, label: "0" },
+    { hours: 0, label: "aucune" },
     { hours: 5 / 60, label: "5 min" },
     { hours: 15 / 60, label: "15 min" },
     { hours: 30 / 60, label: "30 min" },
@@ -399,7 +409,7 @@
     return snapped > CONSO_EXTRA_MAX ? CONSO_EXTRA_MAX : snapped;
   }
 
-  /** Slider step 0…N plus optional extra kWh/day. Sum stays in tenths. */
+  /** Ladder step 0…N plus optional extra kWh/day. Sum stays in tenths. */
   function dailyLoadKwh(step, extra) {
     const n = Math.max(0, Math.min(DAILY_LOADS.length, Math.round(Number(step) || 0)));
     let tenths = 0;
@@ -408,8 +418,31 @@
     return tenths / 10;
   }
 
-  function dailyLoadStep() {
-    return readRange("consoJour", 0, DAILY_LOADS.length, 1, 0);
+  /** Slider position in tenths of a kWh (0 … DAILY_TENTH_MAX). */
+  function sliderTenths() {
+    return readRange("consoJour", 0, DAILY_TENTH_MAX, 1, 0);
+  }
+
+  /**
+   * kWh/day from a slider position in tenths, plus the free line.
+   * Reserve uses this total, not the sum of the revealed device rows.
+   */
+  function sliderDailyKwh(tenths, extra) {
+    const t = Math.max(0, Math.min(DAILY_TENTH_MAX, Math.round(Number(tenths) || 0)));
+    return (t + Math.round(clampExtraKwh(extra) * 10)) / 10;
+  }
+
+  /** How many devices the slider has reached (cumulative tenths ≤ position). */
+  function loadsVisibleCount(tenths) {
+    const cap = Math.max(0, Math.round(Number(tenths) || 0));
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < DAILY_LOADS.length; i++) {
+      sum += DAILY_LOADS[i].tenths;
+      if (sum <= cap) n = i + 1;
+      else break;
+    }
+    return n;
   }
 
   function consoExtraKwh() {
@@ -426,41 +459,43 @@
     el.value = v > 0 ? fmtKwhDay(v) : "";
   }
 
-  function renderDailyLoadRows(step) {
+  function renderDailyLoadRows(tenths) {
     const body = $("consoJourList");
-    const table = $("consoJourTable");
     if (!body) return;
-    const n = Math.max(0, Math.min(DAILY_LOADS.length, step));
+    const n = loadsVisibleCount(tenths);
     let html = "";
     for (let i = 0; i < n; i++) {
       const load = DAILY_LOADS[i];
-      html += "<tr><th scope=\"row\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span></th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
+      html += "<span class=\"load-chip\" role=\"listitem\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span><span class=\"load-kwh\">" + fmtKwhDay(load.tenths / 10) + "</span></span>";
     }
     body.innerHTML = html;
-    if (table) table.classList.toggle("is-empty", n === 0);
+    body.classList.toggle("is-empty", n === 0);
+    if (n === 0) body.setAttribute("aria-hidden", "true");
+    else body.removeAttribute("aria-hidden");
   }
 
-  /** Ladder on the slider; total line adds the free kWh/day. Note vs December production. */
+  /** Slider kWh; chips above it; total line adds the free kWh/day. Note vs December. */
   function updateConsoJourUi(prodDay) {
-    const step = dailyLoadStep();
+    const tenths = sliderTenths();
     const extra = consoExtraKwh();
-    const base = dailyLoadKwh(step, 0);
-    const total = dailyLoadKwh(step, extra);
+    const base = sliderDailyKwh(tenths, 0);
+    const total = sliderDailyKwh(tenths, extra);
     const val = $("consoJourVal");
-    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh";
-    const maxEl = $("consoJourMax");
-    if (maxEl) maxEl.innerHTML = fmtKwhDay(dailyLoadKwh(DAILY_LOADS.length, 0)) + "&nbsp;kWh";
+    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh/j";
     const slider = $("consoJour");
     if (slider) {
-      const last = step > 0 ? DAILY_LOADS[step - 1].label : "";
+      const n = loadsVisibleCount(tenths);
+      const last = n > 0 ? DAILY_LOADS[n - 1].label : "";
+      const spoken = fmtKwhDay(base) + (base > 1 ? " kilowattheures par jour" : " kilowattheure par jour");
+      slider.setAttribute("aria-valuenow", String(base));
+      slider.setAttribute("aria-valuemin", "0");
+      slider.setAttribute("aria-valuemax", String(DAILY_KWH_MAX));
       slider.setAttribute(
         "aria-valuetext",
-        step === 0
-          ? "0 kilowattheure par jour"
-          : fmtKwhDay(base) + " kilowattheures par jour, avec " + last
+        n === 0 ? spoken : spoken + ", avec " + last
       );
     }
-    renderDailyLoadRows(step);
+    renderDailyLoadRows(tenths);
     const totalEl = $("consoJourTotal");
     if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh";
     const note = $("consoJourNote");
@@ -477,9 +512,9 @@
       : "Décembre produit " + prodTxt + " kWh/j. Cette cible dépasse la production du mois.";
   }
 
-  /** Daily consumption for the reserve (kWh/day): ladder plus the free line. */
+  /** Daily consumption for the reserve (kWh/day): slider plus the free line. */
   function consoJourKwh() {
-    return dailyLoadKwh(dailyLoadStep(), consoExtraKwh());
+    return sliderDailyKwh(sliderTenths(), consoExtraKwh());
   }
 
   function reserveStopIndex() {
@@ -517,10 +552,285 @@
     return fmtSig2(n);
   }
 
-  /** Duration 0 hides the rest of the autonomy column. One notch shows it all. */
+  /** Duration 0 (aucune) hides the rest of the autonomy column. One notch shows it all. */
   function syncAutonomyColumn(hours) {
     if (!document.documentElement) return;
     document.documentElement.setAttribute("data-autonomy", hours > 0 ? "on" : "off");
+  }
+
+  /**
+   * Opt-in reveal. Cards above the December daily figure start higher and
+   * settle down toward that axis; cards below start lower and settle up.
+   * They land in the board’s own slots. The viewport then eases, like a
+   * map drag, to just above 4A. A user scroll cancels the pan.
+   */
+  const AUTONOMY_MOTION_MS = 620;
+  let autonomyAnims = [];
+  let autonomyPanStop = null;
+
+  function motionReduced() {
+    const win = typeof window !== "undefined" ? window : null;
+    if (!win || typeof win.matchMedia !== "function") return true;
+    try {
+      return !!win.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch (err) {
+      return true;
+    }
+  }
+
+  function cancelAutonomyMotion() {
+    autonomyAnims.forEach(function (anim) {
+      try { anim.cancel(); } catch (err) { /* finished */ }
+    });
+    autonomyAnims = [];
+    if (typeof document.querySelectorAll === "function") {
+      const stuck = document.querySelectorAll("#board .block, #board .result-pill, #board .result-pair, .dec-daily");
+      Array.prototype.forEach.call(stuck || [], clearMotionStyles);
+    }
+    if (autonomyPanStop) autonomyPanStop();
+  }
+
+  function axisCenterY() {
+    const axis = $("outKwhDay");
+    if (!axis || typeof axis.getBoundingClientRect !== "function") return null;
+    const r = axis.getBoundingClientRect();
+    if (!r || !(r.height > 0)) return null;
+    return r.top + r.height / 2;
+  }
+
+  function gravityTravel(el, axisY) {
+    if (axisY == null || !el || typeof el.getBoundingClientRect !== "function") return null;
+    if (el.id === "outKwhDay" || (typeof el.contains === "function" && el.contains($("outKwhDay")))) return null;
+    const r = el.getBoundingClientRect();
+    if (!r || !(r.height > 1) || !(r.width > 1)) return null;
+    const delta = (r.top + r.height / 2) - axisY;
+    if (Math.abs(delta) < 24) return null;
+    const travel = Math.min(96, Math.abs(delta) * 0.34);
+    return delta < 0 ? -travel : travel;
+  }
+
+  function autonomyMotionCards() {
+    const board = $("board");
+    if (!board || typeof board.querySelectorAll !== "function") return [];
+    const nodes = board.querySelectorAll(":scope > .block, :scope > .result-pill, :scope > .slot-need > .block");
+    return Array.prototype.slice.call(nodes || []);
+  }
+
+  function clearMotionStyles(el) {
+    if (!el || !el.style) return;
+    el.style.transform = "";
+    el.style.opacity = "";
+    el.style.willChange = "";
+  }
+
+  function playGravity() {
+    const axisY = axisCenterY();
+    const cards = autonomyMotionCards();
+    const freshSel = ".autonomy-column";
+    cards.forEach(function (el) {
+      const from = gravityTravel(el, axisY);
+      if (from == null) return;
+      const fresh = typeof el.closest === "function" && !!el.closest(freshSel);
+      if (motionReduced() || typeof el.animate !== "function") return;
+      el.style.willChange = "transform";
+      const frames = fresh
+        ? [
+          { transform: "translateY(" + from + "px)", opacity: 0 },
+          { transform: "translateY(0px)", opacity: 1 }
+        ]
+        : [
+          { transform: "translateY(" + from + "px)" },
+          { transform: "translateY(0px)" }
+        ];
+      if (fresh) el.style.opacity = "0";
+      el.style.transform = "translateY(" + from + "px)";
+      const anim = el.animate(frames, {
+        duration: AUTONOMY_MOTION_MS,
+        easing: "cubic-bezier(0.22, 0.61, 0.24, 1)",
+        fill: "both"
+      });
+      autonomyAnims.push(anim);
+      anim.onfinish = function () {
+        anim.cancel();
+        clearMotionStyles(el);
+      };
+    });
+    const decNodes = typeof document.querySelectorAll === "function"
+      ? document.querySelectorAll(".dec-daily")
+      : [];
+    Array.prototype.forEach.call(decNodes || [], function (el) {
+      if (!el || el.hidden || typeof el.animate !== "function") return;
+      const r = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : null;
+      if (!r || !(r.height > 1)) return;
+      if (motionReduced()) return;
+      el.style.opacity = "0";
+      const anim = el.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 420, easing: "ease-out", fill: "both" }
+      );
+      autonomyAnims.push(anim);
+      anim.onfinish = function () {
+        anim.cancel();
+        clearMotionStyles(el);
+      };
+    });
+  }
+
+  /**
+   * Viewport Y of the anchor as laid out, without the gravity translate
+   * on an ancestor. Grid position comes from getBoundingClientRect;
+   * offsetTop would ignore it.
+   */
+  function layoutViewportTop(el) {
+    let adjust = 0;
+    let node = el.parentElement;
+    while (node && node !== document.body) {
+      let tr = "none";
+      try {
+        tr = window.getComputedStyle(node).transform;
+      } catch (err) {
+        tr = "none";
+      }
+      if (tr && tr !== "none" && typeof DOMMatrix !== "undefined") {
+        try {
+          adjust += new DOMMatrix(tr).m42 || 0;
+        } catch (err2) { /* keep the raw rect */ }
+      }
+      node = node.parentElement;
+    }
+    return el.getBoundingClientRect().top - adjust;
+  }
+
+  function panTargetY(anchor, margin) {
+    const win = window;
+    const current = win.scrollY || win.pageYOffset || 0;
+    return Math.max(0, current + layoutViewportTop(anchor) - margin);
+  }
+
+  /**
+   * The page eases anchor jumps (scroll-behavior: smooth). A map pan writes
+   * its own curve, so those writes have to land in the same frame.
+   */
+  function holdInstantScroll() {
+    const root = document.documentElement;
+    if (!root || !root.style) return function () {};
+    const prev = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    return function () {
+      root.style.scrollBehavior = prev;
+    };
+  }
+
+  function clampScrollY(win, y) {
+    const root = document.scrollingElement || document.documentElement;
+    const max = Math.max(0, (root.scrollHeight || 0) - (win.innerHeight || 0));
+    if (!isFinite(y)) return 0;
+    return Math.min(max, Math.max(0, y));
+  }
+
+  function panToAutonomy(instant) {
+    if (autonomyPanStop) autonomyPanStop();
+    const anchor = $("h-auto") || $("autonomyAnchor") || $("sec-auto");
+    const win = typeof window !== "undefined" ? window : null;
+    if (!anchor || !win || typeof anchor.getBoundingClientRect !== "function") return;
+    /* Rest just above the first autonomy question. */
+    const margin = 72;
+    const releaseScroll = holdInstantScroll();
+    const targetNow = panTargetY(anchor, margin);
+    if (instant || motionReduced() || typeof win.requestAnimationFrame !== "function" || typeof win.scrollTo !== "function") {
+      if (typeof win.scrollTo === "function") win.scrollTo(0, clampScrollY(win, targetNow));
+      releaseScroll();
+      return;
+    }
+    const start = win.scrollY || win.pageYOffset || 0;
+    if (Math.abs(targetNow - start) < 2) {
+      releaseScroll();
+      return;
+    }
+    const t0 = typeof win.performance !== "undefined" && win.performance.now ? win.performance.now() : Date.now();
+    let stopped = false;
+    let frameId = 0;
+    /* Last scrollY this pan wrote. A scroll event that lands elsewhere is the user. */
+    let lastSet = start;
+    function cleanup() {
+      stopped = true;
+      if (frameId) win.cancelAnimationFrame(frameId);
+      frameId = 0;
+      autonomyPanStop = null;
+      win.removeEventListener("wheel", onUser, true);
+      win.removeEventListener("touchstart", onUser, true);
+      win.removeEventListener("touchmove", onUser, true);
+      win.removeEventListener("keydown", onUser, true);
+      win.removeEventListener("scroll", onScroll, true);
+      releaseScroll();
+    }
+    function onUser(ev) {
+      if (stopped) return;
+      if (ev && ev.type === "keydown") {
+        const k = ev.key;
+        if (k !== "ArrowUp" && k !== "ArrowDown" && k !== "PageUp" && k !== "PageDown" && k !== "Home" && k !== "End" && k !== " ") return;
+      }
+      cleanup();
+    }
+    function onScroll() {
+      if (stopped) return;
+      const y = win.scrollY || win.pageYOffset || 0;
+      if (Math.abs(y - lastSet) > 2) cleanup();
+    }
+    win.addEventListener("wheel", onUser, true);
+    win.addEventListener("touchstart", onUser, true);
+    win.addEventListener("touchmove", onUser, true);
+    win.addEventListener("keydown", onUser, true);
+    win.addEventListener("scroll", onScroll, true);
+    autonomyPanStop = cleanup;
+    function frame(now) {
+      if (stopped) return;
+      const t = Math.min(1, ((now || Date.now()) - t0) / AUTONOMY_MOTION_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const liveTarget = panTargetY(anchor, margin);
+      const next = clampScrollY(win, start + (liveTarget - start) * eased);
+      /* Set before scrollTo so a synchronous scroll event matches this write. */
+      lastSet = next;
+      win.scrollTo(0, next);
+      if (stopped || t >= 1) {
+        if (!stopped) cleanup();
+        return;
+      }
+      frameId = win.requestAnimationFrame(frame);
+    }
+    frameId = win.requestAnimationFrame(frame);
+  }
+
+  function revealAutonomyView() {
+    cancelAutonomyMotion();
+    if (currentDisplayMode() === "webi") return;
+    if (motionReduced()) {
+      panToAutonomy(true);
+      return;
+    }
+    playGravity();
+    const win = typeof window !== "undefined" ? window : null;
+    if (win && typeof win.requestAnimationFrame === "function") {
+      win.requestAnimationFrame(function () { panToAutonomy(false); });
+    } else {
+      panToAutonomy(true);
+    }
+  }
+
+  function setWantAutonomy(on) {
+    const root = document.documentElement;
+    if (!root) return;
+    const next = on ? "on" : "off";
+    const prev = root.getAttribute("data-want-autonomy");
+    root.setAttribute("data-want-autonomy", next);
+    const box = $("wantAutonomy");
+    if (box && box.checked !== !!on) box.checked = !!on;
+    if (!on) {
+      cancelAutonomyMotion();
+      return;
+    }
+    if (prev === "on") return;
+    revealAutonomyView();
   }
 
   function battPricePerKwh() {
@@ -1116,7 +1426,8 @@
     }
     let consoJour = d.consoJour;
     if (q.has("consoJour")) {
-      const v = snapStep(q.get("consoJour"), 0, DAILY_LOADS.length, 1);
+      /* kWh/day, 0.1 steps, not the old notch index. */
+      const v = snapStep(q.get("consoJour"), 0, DAILY_KWH_MAX, 0.1);
       if (isFinite(v)) consoJour = v;
     }
     let consoExtra = d.consoExtra;
@@ -1161,7 +1472,7 @@
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
       p.set("rate", trimNum(s.rate, 3));
-      p.set("consoJour", String(s.consoJour));
+      p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
       return p.toString();
     }
@@ -1178,7 +1489,7 @@
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
-    if (s.consoJour !== d.consoJour) p.set("consoJour", String(s.consoJour));
+    if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
     return p.toString();
   }
@@ -1196,7 +1507,7 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
-    if ($("consoJour")) $("consoJour").value = String(s.consoJour);
+    if ($("consoJour")) $("consoJour").value = String(Math.round(s.consoJour * 10));
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
@@ -1233,7 +1544,7 @@
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
-      consoJour: readRange("consoJour", 0, DAILY_LOADS.length, 1, d.consoJour),
+      consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
       ville: canonicalVille(selectedVille)
     };
@@ -1867,6 +2178,13 @@
       el.addEventListener("input", onScenarioEdit);
       el.addEventListener("change", onScenarioEdit);
     });
+    const wantAutonomy = $("wantAutonomy");
+    if (wantAutonomy) {
+      wantAutonomy.checked = document.documentElement.getAttribute("data-want-autonomy") === "on";
+      wantAutonomy.addEventListener("change", function () {
+        setWantAutonomy(!!wantAutonomy.checked);
+      });
+    }
     const conso = $("conso");
     if (conso) {
       conso.addEventListener("input", function () { scenarioSnapshot = true; formatConsoInput(true); render(); });
@@ -2676,6 +2994,8 @@
     creditKwh,
     consoAnnuelleKwh,
     dailyLoadKwh,
+    sliderDailyKwh,
+    loadsVisibleCount,
     clampExtraKwh,
     fmtKwhDay,
     parseGroupedInt,

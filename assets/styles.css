@@ -92,6 +92,7 @@ html[data-mode="webi"] .mode-full-only {
   vertical-align: middle;
   white-space: nowrap;
 }
+html { overflow-anchor: none; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -321,6 +322,35 @@ html[data-theme="dark"] .theme-blue {
 }
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
+}
+/* Full mode: December daily figure + blue column wait for the opt-in.
+   Webi keeps the December figure and never shows the column. */
+html[data-want-autonomy="off"]:not([data-mode="webi"]) .autonomy-column,
+html[data-want-autonomy="off"]:not([data-mode="webi"]) .dec-daily {
+  display: none !important;
+}
+html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-yield > .result-pill {
+  grid-column: 1 / -1;
+}
+.autonomy-optin {
+  grid-column: 1 / -1;
+  margin: 0.15rem 0 0;
+  align-items: center;
+  font-weight: 700;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.autonomy-optin input {
+  accent-color: #2a5f8f;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0;
+}
+.autonomy-anchor {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 .hint {
   font-size: 0.82rem;
@@ -1087,6 +1117,83 @@ section.block > h2,
 .load-table + .calc-line {
   margin-top: 0.55rem;
 }
+.load-table.load-summary thead { display: none; }
+.load-table.load-summary .load-custom-row th,
+.load-table.load-summary .load-total-row th {
+  padding-left: 0;
+}
+/* Devices sit above the slider, packed against its top edge, and fill
+   upward. The band is reserved up front (it does not grow), so the slider
+   and the viewport stay put. Heights cover 14 chips after wrap:
+   ~230px below 400px wide, ~142px from 480px, ~112px from 700px,
+   ~142px again in the desktop half-column (≥1100px). */
+.load-stage {
+  position: relative;
+  padding-top: 15.75rem;
+}
+.load-devices {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(15.75rem - 0.45rem);
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-items: flex-end;
+  align-content: flex-start;
+  gap: 0.35rem;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+@media (min-width: 480px) {
+  .load-stage { padding-top: 10rem; }
+  .load-devices { height: calc(10rem - 0.45rem); }
+}
+@media (min-width: 700px) {
+  .load-stage { padding-top: 8.25rem; }
+  .load-devices { height: calc(8.25rem - 0.45rem); }
+}
+@media (min-width: 1100px) {
+  .load-stage { padding-top: 10rem; }
+  .load-devices { height: calc(10rem - 0.45rem); }
+}
+.load-devices.is-empty { visibility: hidden; }
+.load-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.18rem 0.5rem 0.18rem 0.38rem;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.load-chip .load-kwh {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.slider-ends {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 0 0 0.12rem calc(var(--prod-gutter) + var(--prod-gap));
+  font-size: 0.68rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--muted);
+}
+.slider-ends span:last-child { text-align: right; }
+#sec-auto { --prod-gutter: 9rem; }
+@media (prefers-reduced-motion: reduce) {
+  .load-chip { transition: none; }
+}
 .yield-auto {
   display: contents;
 }
@@ -1762,6 +1869,8 @@ html[data-theme="dark"] .bug-done {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  /* Result updates must not yank the viewport while the map pan runs. */
+  overflow-anchor: none;
 }
 .board > .block,
 .board > .result-pair,
@@ -1907,6 +2016,14 @@ section.block h2 .field-info-btn {
     flex-direction: column;
   }
   html:not([data-mode="webi"]) .slot-need { align-self: start; }
+  /* Solar path reads full width until the blue column is asked for. */
+  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-size,
+  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-prod,
+  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-yield,
+  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-cost,
+  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-roi {
+    grid-column: 1 / -1;
+  }
   html:not([data-mode="webi"]) .flow-arrow {
     display: grid;
     place-items: center;
@@ -1987,6 +2104,7 @@ section.block h2 .field-info-btn {
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
   .slider-meta,
+  .slider-ends,
   .slider-track input[type="range"] { display: none !important; }
   .orient-dial,
   .orient-val { display: none !important; }
