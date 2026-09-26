@@ -79,25 +79,27 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la 
 | Emplacement | Question | Réponse |
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
-| Rendement | Mesurage net et autonomie de décembre | Paire de boîtes vertes |
-| Réserve **4A** | Combien de jours de réserve voulez-vous ? | Crans de 0 à 3 jours, boîte bleue en kWh |
-| Besoin **4B** | Combien d'autonomie je veux | Un curseur de 0 à environ 6,3 kWh/j, plus une ligne libre. Sous 4A |
-| Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte verte, flèche centrée |
+| Rendement | Mesurage net, puis kWh/j de décembre après la case | Paire de boîtes vertes. Le jour de décembre est l’axe entre solaire et autonomie |
+| Besoin **4A** | Quels appareils je veux | Curseur 0 à 40 kWh/j. Appareils au-dessus du curseur, ancrés en bas. Ligne libre conservée |
+| Durée **4B** | Pendant combien de temps je veux cette autonomie | Crans de aucune à 3 jours, sous 4A. Boîte bleue de réserve en kWh |
+| Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, ligne de coût |
-| Retour **3** | Valeur des panneaux | Trio `.card-kpi` |
+| Retour **3** | Valeur des panneaux | Trio `.card-kpi`. L’épingle de la boîte années duplique le chiffre en bas d’écran, sans retirer la boîte |
 | Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte verte en bas |
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
 
-La consommation du jour est le cran du curseur (téléphone jusqu’à la cuisson) plus la ligne libre. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
+La case « je veux de l’autonomie », sous la production annuelle, est décochée au départ. Cochée : le kWh/j de décembre apparaît, et la colonne bleue (4A, 4B, remplissage, batteries, total) aussi. Les cartes au-dessus de ce jour glissent vers le bas, celles en dessous vers le haut, puis la vue se pose juste au-dessus de 4A. En mode webi, la case et la colonne bleue restent masquées ; le kWh/j de décembre reste visible.
+
+La consommation du jour est le curseur (0 à 40 kWh/j) plus la ligne libre. Les neuf premiers usages restent l’échelle hors réseau, jusqu’à environ 6,3 kWh/j. La suite nomme lave-vaisselle, sécheuse, chauffe-eau, thermopompe et chauffage. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux.
 
 Réserve (kWh) = consommation du jour × durée. Coût des batteries = réserve × prix $/kWh, sans taxes. LogisVert reste sur les panneaux. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
 
-Prix batterie : curseur 600–1 800 $/kWh, pas de 50, défaut 1 200. Durée : crans 0, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours. Défaut : 1 jour. Déneigement : défaut 100 %. Durée à 0 : 4B, le remplissage, les batteries et le total sont masqués. Un cran plus haut, cette colonne revient en entier.
+Prix batterie : curseur 600–1 800 $/kWh, pas de 50, défaut 1 200. Durée : crans aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours. Défaut : 1 jour. Déneigement : défaut 100 %. Durée à aucune : la boîte réserve, le remplissage, les batteries et le total sont masqués. 4A et le curseur de durée restent. Un cran plus haut, cette suite revient en entier.
 
 Pastille en bas de 1B : « Efficacité de l’installation », unité kWh/kWc/An.
 
-L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus le cran du curseur et la ligne libre. La durée de réserve et le prix des batteries n’y vont pas.
+L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus la consommation du jour (kWh/j) et la ligne libre. La durée de réserve et le prix des batteries n’y vont pas. La case d’autonomie non plus.
 
 En mode webi, tout ce qui porte `.mode-full-only` est masqué : coût, retour, consommation du jour, réserve, remplissage, batterie, total.
