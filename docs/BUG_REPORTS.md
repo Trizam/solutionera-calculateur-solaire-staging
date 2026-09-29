@@ -9,6 +9,14 @@ Les visiteurs n’ont **pas** besoin d’un compte GitHub. Le lien du footer et 
 3. Prioriser **toi-même** avec `P0` / `P1` / `P2`
 4. Labels auto : `user-report` + `bug`
 
+## Marquer comme réglé
+
+GitHub ferme l’issue au merge si le corps de la pull request contient `Fixes #N` (aussi `Closes` / `Resolves`). Une PR qui cite le numéro sans ce mot laisse l’issue ouverte.
+
+La PR #109 l’a fait (`Fixes #106`, `#107`, `#108`). La PR #119 a appliqué #110, #112, #114, #115 et #118 sans ce mot : elles sont restées ouvertes jusqu’à une fermeture manuelle.
+
+Détail pour l’agent : `.cursor/skills/github-issue/SKILL.md`. Une issue `idea` ou `to-validate` ne se ferme pas tant que Master n’a pas dit oui. #95 (chantier) ne se ferme pas comme un bug.
+
 ## Client (Pages)
 
 `index.html` :
