@@ -2315,23 +2315,13 @@
         onScenarioEdit();
       });
     }
-    if (currentDisplayMode() !== "webi") setYearsPinned(true);
-    const yearsTargets = [];
     const yearsCard = document.querySelector(".card-kpi-years");
-    const paybackLine = $("outPayback");
-    if (yearsCard) yearsTargets.push(yearsCard);
-    if (paybackLine) yearsTargets.push(paybackLine);
-    if (yearsTargets.length && typeof IntersectionObserver === "function" && document.body) {
-      const seen = new Map();
+    if (yearsCard && typeof IntersectionObserver === "function" && document.body) {
       const yearsWatch = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          seen.set(entry.target, !!(entry.isIntersecting && entry.intersectionRatio > 0));
-        });
-        let visible = false;
-        seen.forEach(function (on) { if (on) visible = true; });
-        document.body.classList.toggle("is-years-source-visible", visible);
-      }, { threshold: [0, 0.15] });
-      yearsTargets.forEach(function (el) { yearsWatch.observe(el); });
+        const entry = entries[entries.length - 1];
+        document.body.classList.toggle("is-years-source-visible", !!(entry && entry.isIntersecting));
+      }, { threshold: 0 });
+      yearsWatch.observe(yearsCard);
     }
     const conso = $("conso");
     if (conso) {

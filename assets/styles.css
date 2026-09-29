@@ -356,10 +356,7 @@ html[data-want-autonomy="off"]:not([data-mode="webi"]) .dec-daily {
   line-height: 1.35;
 }
 .autonomy-anchor {
-  height: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+  display: none;
 }
 .hint {
   font-size: 0.82rem;
