@@ -472,6 +472,10 @@
     body.classList.toggle("is-empty", n === 0);
     if (n === 0) body.setAttribute("aria-hidden", "true");
     else body.removeAttribute("aria-hidden");
+    const stage = typeof body.closest === "function" ? body.closest(".load-stage") : null;
+    if (stage) stage.classList.toggle("is-empty", n === 0);
+    const read = $("loadRead");
+    if (read) read.hidden = n === 0;
   }
 
   /** Slider kWh; chips above it; total line adds the free kWh/day. Note vs December. */
@@ -497,7 +501,7 @@
     }
     renderDailyLoadRows(tenths);
     const totalEl = $("consoJourTotal");
-    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh";
+    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh/j";
     const note = $("consoJourNote");
     if (!note) return;
     if (!(total > 0) || !isFinite(prodDay)) {
@@ -555,18 +559,27 @@
   /** Duration 0 (aucune) hides the rest of the autonomy column. One notch shows it all. */
   function syncAutonomyColumn(hours) {
     if (!document.documentElement) return;
-    document.documentElement.setAttribute("data-autonomy", hours > 0 ? "on" : "off");
+    const on = hours > 0;
+    document.documentElement.setAttribute("data-autonomy", on ? "on" : "off");
+    const note = $("autonomyNone");
+    if (!note) return;
+    const want = document.documentElement.getAttribute("data-want-autonomy") === "on";
+    note.hidden = !(want && !on);
   }
 
   /**
    * Opt-in reveal. Cards above the December daily figure start higher and
    * settle down toward that axis; cards below start lower and settle up.
    * They land in the board’s own slots. The viewport then eases, like a
-   * map drag, to just above 4A. A user scroll cancels the pan.
+   * map drag, onto the December day, level with 4A and 4B. A user
+   * scroll cancels the pan; once it stops, the view returns to that hinge.
    */
   const AUTONOMY_MOTION_MS = 620;
+  const AUTONOMY_SETTLE_MS = 180;
   let autonomyAnims = [];
   let autonomyPanStop = null;
+  let autonomySettleTimer = 0;
+  let autonomySettleOff = null;
 
   function motionReduced() {
     const win = typeof window !== "undefined" ? window : null;
@@ -588,6 +601,7 @@
       Array.prototype.forEach.call(stuck || [], clearMotionStyles);
     }
     if (autonomyPanStop) autonomyPanStop();
+    clearAutonomySettle();
   }
 
   function axisCenterY() {
@@ -612,7 +626,7 @@
   function autonomyMotionCards() {
     const board = $("board");
     if (!board || typeof board.querySelectorAll !== "function") return [];
-    const nodes = board.querySelectorAll(":scope > .block, :scope > .result-pill, :scope > .slot-need > .block");
+    const nodes = board.querySelectorAll(":scope > .block, :scope > .result-pill, :scope > .slot-yield > .result-pill, #chapterRow > .slot-need > .block");
     return Array.prototype.slice.call(nodes || []);
   }
 
@@ -728,12 +742,52 @@
     return Math.min(max, Math.max(0, y));
   }
 
-  function panToAutonomy(instant) {
+  function clearAutonomySettle() {
+    const win = typeof window !== "undefined" ? window : null;
+    if (win && autonomySettleTimer) win.clearTimeout(autonomySettleTimer);
+    autonomySettleTimer = 0;
+    if (autonomySettleOff) autonomySettleOff();
+    autonomySettleOff = null;
+  }
+
+  /**
+   * After an interrupted opening pan, wait until scroll, wheel and touchend
+   * have been quiet, then return to the chapter row. One shot.
+   */
+  function armAutonomySettle() {
+    if (motionReduced()) return;
+    clearAutonomySettle();
+    const win = typeof window !== "undefined" ? window : null;
+    if (!win) return;
+    function bump() {
+      if (autonomySettleTimer) win.clearTimeout(autonomySettleTimer);
+      autonomySettleTimer = win.setTimeout(function () {
+        autonomySettleTimer = 0;
+        if (autonomySettleOff) autonomySettleOff();
+        autonomySettleOff = null;
+        panToChapter(false, { kind: "settle" });
+      }, AUTONOMY_SETTLE_MS);
+    }
+    function onActivity() { bump(); }
+    win.addEventListener("scroll", onActivity, true);
+    win.addEventListener("wheel", onActivity, true);
+    win.addEventListener("touchend", onActivity, true);
+    autonomySettleOff = function () {
+      win.removeEventListener("scroll", onActivity, true);
+      win.removeEventListener("wheel", onActivity, true);
+      win.removeEventListener("touchend", onActivity, true);
+    };
+    bump();
+  }
+
+  function panToChapter(instant, opts) {
+    const kind = opts && opts.kind ? opts.kind : "open";
+    clearAutonomySettle();
     if (autonomyPanStop) autonomyPanStop();
-    const anchor = $("h-auto") || $("autonomyAnchor") || $("sec-auto");
+    const anchor = $("chapterRow") || $("outKwhDay");
     const win = typeof window !== "undefined" ? window : null;
     if (!anchor || !win || typeof anchor.getBoundingClientRect !== "function") return;
-    /* Rest just above the first autonomy question. */
+    /* Land on the December day, the hinge of the chapter. */
     const margin = 72;
     const releaseScroll = holdInstantScroll();
     const targetNow = panTargetY(anchor, margin);
@@ -770,12 +824,18 @@
         const k = ev.key;
         if (k !== "ArrowUp" && k !== "ArrowDown" && k !== "PageUp" && k !== "PageDown" && k !== "Home" && k !== "End" && k !== " ") return;
       }
+      const settle = kind === "open";
       cleanup();
+      if (settle) armAutonomySettle();
     }
     function onScroll() {
       if (stopped) return;
       const y = win.scrollY || win.pageYOffset || 0;
-      if (Math.abs(y - lastSet) > 2) cleanup();
+      if (Math.abs(y - lastSet) > 2) {
+        const settle = kind === "open";
+        cleanup();
+        if (settle) armAutonomySettle();
+      }
     }
     win.addEventListener("wheel", onUser, true);
     win.addEventListener("touchstart", onUser, true);
@@ -805,19 +865,31 @@
     cancelAutonomyMotion();
     if (currentDisplayMode() === "webi") return;
     if (motionReduced()) {
-      panToAutonomy(true);
+      panToChapter(true, { kind: "open" });
       return;
     }
     playGravity();
     const win = typeof window !== "undefined" ? window : null;
     if (win && typeof win.requestAnimationFrame === "function") {
-      win.requestAnimationFrame(function () { panToAutonomy(false); });
+      win.requestAnimationFrame(function () { panToChapter(false, { kind: "open" }); });
     } else {
-      panToAutonomy(true);
+      panToChapter(true, { kind: "open" });
     }
   }
 
-  function setWantAutonomy(on) {
+  function afterLayout(fn) {
+    const win = typeof window !== "undefined" ? window : null;
+    if (!win || typeof win.requestAnimationFrame !== "function") {
+      fn();
+      return;
+    }
+    win.requestAnimationFrame(function () {
+      win.requestAnimationFrame(fn);
+    });
+  }
+
+  function setWantAutonomy(on, opts) {
+    const silent = !!(opts && opts.silent);
     const root = document.documentElement;
     if (!root) return;
     const next = on ? "on" : "off";
@@ -825,12 +897,21 @@
     root.setAttribute("data-want-autonomy", next);
     const box = $("wantAutonomy");
     if (box && box.checked !== !!on) box.checked = !!on;
-    if (!on) {
+    syncAutonomyColumn(autonomyHours());
+    if (silent) {
       cancelAutonomyMotion();
       return;
     }
-    if (prev === "on") return;
-    revealAutonomyView();
+    if (prev === next) return;
+    cancelAutonomyMotion();
+    afterLayout(function () {
+      if (root.getAttribute("data-want-autonomy") !== next) return;
+      if (!on) {
+        panToChapter(motionReduced(), { kind: "close" });
+        return;
+      }
+      revealAutonomyView();
+    });
   }
 
   function battPricePerKwh() {
@@ -1257,7 +1338,24 @@
       autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtReserveKwh(r.reserveKwh);
+    const reserveUnit = $("outReserve") && $("outReserve").querySelector(".prod-unit");
+    if (reserveNum) {
+      if (r.consoJour === 0) {
+        reserveNum.textContent = "Aucune réserve";
+        reserveNum.classList.add("is-sentence");
+        if (reserveUnit) {
+          reserveUnit.textContent = "à remplir";
+          reserveUnit.hidden = false;
+        }
+      } else {
+        reserveNum.textContent = fmtReserveKwh(r.reserveKwh);
+        reserveNum.classList.remove("is-sentence");
+        if (reserveUnit) {
+          reserveUnit.textContent = "kWh";
+          reserveUnit.hidden = false;
+        }
+      }
+    }
     syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
@@ -1338,7 +1436,8 @@
     conso: DEFAULT_CONSO_KWH,
     rate: DEFAULT_RATE_CENTS,
     consoJour: 0,
-    consoExtra: 0
+    consoExtra: 0,
+    autonomie: false
   };
 
   function snapStep(n, min, max, step) {
@@ -1439,10 +1538,11 @@
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
+    const autonomie = parseFlagParam(q.has("autonomie") ? q.get("autonomie") : null, d.autonomie);
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autonomie };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autonomie"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1476,6 +1576,7 @@
       p.set("rate", trimNum(s.rate, 3));
       p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
+      if (s.autonomie) p.set("autonomie", "1");
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1493,6 +1594,7 @@
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
     if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
+    if (s.autonomie) p.set("autonomie", "1");
     return p.toString();
   }
 
@@ -1514,6 +1616,7 @@
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
+    setWantAutonomy(!!s.autonomie, { silent: true });
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -1548,7 +1651,8 @@
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
       consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
-      ville: canonicalVille(selectedVille)
+      ville: canonicalVille(selectedVille),
+      autonomie: document.documentElement.getAttribute("data-want-autonomy") === "on"
     };
   }
 
@@ -2173,13 +2277,14 @@
     }
   }
 
-  /** Sticky clone of the payback years. The card in the form stays put. */
+  /** Payback years stay on screen. The bar says Retour, like the box.
+   * It steps aside while that box is already visible. */
   function setYearsPinned(on) {
     const bar = $("yearsPinBar");
     const pinned = !!on;
     if (bar) bar.hidden = !pinned;
     if (document.body) document.body.classList.toggle("is-years-pinned", pinned);
-    const label = pinned ? "Désépingler la rentabilité" : "Épingler la rentabilité";
+    const label = pinned ? "Désépingler le retour" : "Épingler le retour";
     [$("btnPinYears"), $("btnUnpinYears")].forEach(function (btn) {
       if (!btn) return;
       btn.setAttribute("aria-pressed", pinned ? "true" : "false");
@@ -2202,12 +2307,31 @@
     }
     if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
     if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
+    if (currentDisplayMode() !== "webi") setYearsPinned(true);
     const wantAutonomy = $("wantAutonomy");
     if (wantAutonomy) {
       wantAutonomy.checked = document.documentElement.getAttribute("data-want-autonomy") === "on";
       wantAutonomy.addEventListener("change", function () {
         setWantAutonomy(!!wantAutonomy.checked);
+        onScenarioEdit();
       });
+    }
+    const yearsTargets = [];
+    const yearsCard = document.querySelector(".card-kpi-years");
+    const paybackLine = $("outPayback");
+    if (yearsCard) yearsTargets.push(yearsCard);
+    if (paybackLine) yearsTargets.push(paybackLine);
+    if (yearsTargets.length && typeof IntersectionObserver === "function" && document.body) {
+      const seen = new Map();
+      const yearsWatch = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          seen.set(entry.target, !!(entry.isIntersecting && entry.intersectionRatio > 0));
+        });
+        let visible = false;
+        seen.forEach(function (on) { if (on) visible = true; });
+        document.body.classList.toggle("is-years-source-visible", visible);
+      }, { threshold: [0, 0.15] });
+      yearsTargets.forEach(function (el) { yearsWatch.observe(el); });
     }
     const conso = $("conso");
     if (conso) {
