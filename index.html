@@ -7,6 +7,7 @@
   <meta name="format-detection" content="telephone=no" />
   <meta name="description" content="Calculateur solaire — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
   <title>Calculateur solaire · Solution ERA</title>
+  <!-- Règles de design, seule copie : docs/DESIGN.md -->
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,7 +26,7 @@
   <div class="wrap">
     <main id="main" tabindex="-1">
     <div class="brand">
-      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="44" height="44" decoding="async" />
+      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="50" height="50" decoding="async" />
       <div class="brand-text">
         <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
         <div class="brand-sub">Calculateur solaire <span class="mode-badge mode-webi-only">Mode webi</span></div>
@@ -80,9 +81,135 @@
       <p>Estimation de son projet en quelques minutes</p>
     </header>
 
-    <!-- 1 · Production — visible in both modes; webi = this block only -->
-    <section class="block" id="sec-prod" aria-labelledby="h-prod" tabindex="-1">
-      <h2 id="h-prod"><span class="num">1</span> Combien est-ce que je peux produire d'énergie électrique avec ma toiture&nbsp;?</h2>
+    <!--
+      Desktop board. Each card is a slot (data-slot).
+      Wide screens place them with grid-template-areas in styles.css.
+      DOM order is the narrow stack, so a later mobile layout can move slots
+      without rewriting the cards.
+    -->
+    <div class="board" id="board">
+
+    <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
+    <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
+      <h2 id="h-prod"><span class="num">1A</span> Combien de panneaux puis-je installer sur ma toiture&nbsp;?</h2>
+      <div class="field">
+        <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
+        <div class="label-row field-info-wrap">
+          <label for="area">Superficie de l’installation</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="area"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Superficie de l’installation"
+            title="Aide : Superficie de l’installation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="prod-control-row">
+          <div class="unit-toggle" role="group" aria-label="Unité de surface">
+            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
+            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
+          </div>
+          <div class="prod-control-main">
+            <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
+            <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
+          </div>
+        </div>
+        <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
+      </div>
+      <div class="field">
+        <div class="label-row field-info-wrap">
+          <label for="util">Densité d’installation (utilisation du toit)</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="util"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Densité d’installation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="utilVal">80 %</div>
+          <div class="slider-track">
+            <input id="util" type="range" min="60" max="100" step="1" value="80" />
+            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
+        </div>
+        <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
+      </div>
+      <div class="result-pair">
+        <div class="result-pill">
+          <div class="label">Panneaux solaires installés</div>
+          <div class="big prod-line" id="outPv">
+            <span class="prod-num">—</span>
+          </div>
+        </div>
+        <div class="result-pill">
+          <div class="label">Puissance</div>
+          <div class="big prod-line" id="outKw">
+            <span class="prod-num">—</span>
+            <span class="prod-unit">kWc</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1B · Production — visible in both modes; webi = 1A + 1B -->
+    <section class="block slot-prod" id="sec-prod-b" data-slot="prod" aria-labelledby="h-prod-b">
+      <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
+      <div class="field" id="field-loc">
+        <div class="label-row field-info-wrap">
+          <label class="field-label" id="locLabel" for="villeBtn">Localisation</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="loc"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Localisation"
+            title="Aide : Localisation"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="town-picker" id="townPicker">
+          <div class="town-field" id="townField">
+            <input
+              type="text"
+              id="villeBtn"
+              class="town-input"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="villeList"
+              aria-describedby="locHint"
+              autocomplete="off"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="search"
+              placeholder="Ville, MRC ou région"
+              value="Québec"
+            />
+            <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc</span>
+            <button type="button" class="town-caret-btn" id="villeCaret" tabindex="-1" aria-label="Afficher les villes">
+              <span class="town-caret" aria-hidden="true"></span>
+            </button>
+          </div>
+          <ul id="villeList" class="town-list" role="listbox" hidden aria-labelledby="locLabel"></ul>
+          <select id="ville" class="town-native" tabindex="-1" aria-hidden="true">
+            <option value="quebec" selected>Québec</option>
+          </select>
+        </div>
+        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°. Une ville, une MRC ou une région administrative filtre la liste.</p>
+      </div>
       <div class="field">
         <div class="label-row field-info-wrap">
           <label for="orient">Orientation des panneaux solaires</label>
@@ -126,7 +253,7 @@
             <option value="345">345°</option>
           </select>
           <div class="orient-dial" id="orientDial" aria-hidden="true">
-            <svg class="orient-dial-svg" viewBox="0 0 200 200" width="168" height="168" role="img">
+            <svg class="orient-dial-svg" viewBox="-24 -24 248 248" width="218" height="218" role="img">
               <circle class="orient-face" cx="100" cy="100" r="92" />
               <circle class="orient-face-inner" cx="100" cy="100" r="64" />
               <g id="orientTicks"></g>
@@ -145,34 +272,6 @@
           <div class="orient-val" id="orientVal">180° (Sud)</div>
         </div>
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
-      </div>
-      <div class="field">
-        <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
-        <div class="label-row field-info-wrap">
-          <label for="area">Superficie de l’installation</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="area"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Superficie de l’installation"
-            title="Aide : Superficie de l’installation"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row">
-          <div class="unit-toggle" role="group" aria-label="Unité de surface">
-            <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
-            <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
-          </div>
-          <div class="prod-control-main">
-            <input id="area" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" value="40" />
-            <span class="print-unit" id="printUnit" aria-hidden="true">m²</span>
-          </div>
-        </div>
-        <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -196,41 +295,18 @@
                 <line x1="4" y1="40" x2="60" y2="40" stroke="currentColor" stroke-width="2" opacity="0.45" />
                 <!-- roof/panel line (updated by JS) -->
                 <g id="tiltPanel">
-                  <line id="tiltLine" x1="12" y1="40" x2="46.64" y2="20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+                  <line id="tiltLine" x1="12" y1="40" x2="40.28" y2="11.72" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
                   <circle id="tiltHinge" cx="12" cy="40" r="2.75" fill="currentColor" />
                 </g>
               </svg>
             </div>
-            <span id="tiltVal">30°</span>
+            <span id="tiltVal">45°</span>
           </div>
           <div class="slider-track">
-            <input id="tilt" type="range" min="0" max="90" step="15" value="30" />
+            <input id="tilt" type="range" min="0" max="90" step="15" value="45" />
             <div class="slider-meta"><span>0&nbsp;°</span><span>90&nbsp;°</span></div>
           </div>
         </div>
-      </div>
-      <div class="field">
-        <div class="label-row field-info-wrap">
-          <label for="util">Densité d’installation (utilisation du toit)</label>
-          <button
-            type="button"
-            class="field-info-btn"
-            data-info="util"
-            aria-haspopup="dialog"
-            aria-controls="fieldInfoModal"
-            aria-label="Aide : Densité d’installation"
-          >
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="utilVal">80 %</div>
-          <div class="slider-track">
-            <input id="util" type="range" min="60" max="100" step="1" value="80" />
-            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
-          </div>
-        </div>
-        <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
       </div>
       <div class="field" id="field-deneige">
         <div class="label-row field-info-wrap">
@@ -247,35 +323,168 @@
           </button>
         </div>
         <div class="prod-control-row slider-row">
-          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−14&nbsp;%</div>
+          <div class="slider-val-left" id="deneigeLive" aria-live="polite">−0&nbsp;%</div>
           <div class="slider-track">
-            <input id="deneige" type="range" min="0" max="100" step="1" value="20" />
-            <div class="slider-meta"><span>0&nbsp;%</span><span>100&nbsp;%</span></div>
+            <input id="deneige" type="range" min="0" max="100" step="1" value="100" />
+            <div class="slider-meta"><span>jamais</span><span>toujours</span></div>
           </div>
         </div>
-        <p class="hint">→ 0&nbsp;% = je ne déneige pas · 100&nbsp;% = je déneige dès qu’il y a une chute de neige</p>
-      </div><div class="result-pill">
-        <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
-        <div class="label">Vous pourrez alors produire</div>
-        <div class="prod-lines">
+      </div>
+      <div class="result-pill">
+        <div class="label">Efficacité de l’installation</div>
+        <div class="big prod-line" id="outKwhKwc">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh/kWc/An</span>
+        </div>
+      </div>
+      <p class="hint">→ Kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement.</p>
+      <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
+    </section>
+
+    <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
+      <div class="result-pill">
+        <div class="label">Mesurage Net</div>
+        <div class="big prod-line" id="outKwh">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh / an</span>
+        </div>
+      </div>
+      <div class="yield-auto">
+        <div class="result-pill">
+          <div class="label">Autonomie</div>
           <div class="big prod-line" id="outKwhDay">
             <span class="prod-num">—</span>
-            <span class="prod-unit">kWh /</span>
-            <span class="prod-period">jour</span>
-          </div>
-          <div class="big prod-line" id="outKwh">
-            <span class="prod-num">—</span>
-            <span class="prod-unit">kWh /</span>
-            <span class="prod-period">an</span>
+            <span class="prod-unit">kWh / j déc</span>
           </div>
         </div>
-        <div class="label prod-power">avec une installation solaire d’une puissance de&nbsp;: <strong id="outKw">— kWc</strong></div>
+        <aside class="autonomy-snow theme-yellow" id="autonomySnow" hidden>
+          <p class="autonomy-snow-rec" id="autonomySnowRec">
+            Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
+          </p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 4A · Réserve (durée). 4B · consommation, en dessous. -->
+    <div class="slot-need" data-slot="need">
+    <section class="block mode-full-only theme-blue" id="sec-reserve" aria-labelledby="h-reserve">
+      <h2 id="h-reserve">
+        <span class="num">4A</span>
+        <span>Combien de jours de réserve voulez-vous&nbsp;?</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="autostop"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Durée de réserve"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="field">
+        <label for="autoStop">Durée</label>
+        <div class="slider-row">
+          <div class="slider-val-left" id="autoStopVal">1 jour</div>
+          <div class="slider-track">
+            <input id="autoStop" type="range" min="0" max="16" step="1" value="11" aria-valuemin="0" aria-valuemax="16" aria-valuenow="11" aria-valuetext="1 jour" />
+            <div class="slider-meta"><span>0</span><span>3 jours</span></div>
+          </div>
+        </div>
+        <p class="hint">Crans fixes, de 0 à 3 jours. À 0, la colonne autonomie disparaît.</p>
+      </div>
+      <div class="reserve-out result-pill autonomy-rest" id="reserveOut">
+        <div class="label">Réserve</div>
+        <div class="big prod-line" id="outReserve">
+          <span class="prod-num">—</span>
+          <span class="prod-unit">kWh</span>
+        </div>
       </div>
     </section>
 
+    <section class="block mode-full-only theme-blue autonomy-rest" id="sec-auto" aria-labelledby="h-auto">
+      <h2 id="h-auto">
+        <span class="num">4B</span>
+        <label for="consoJour">Combien d'autonomie je veux</label>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="conso-jour"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Consommation par jour en autonomie"
+          title="Aide : Consommation par jour en autonomie"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="field field-conso-jour" id="field-conso-jour">
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh</div>
+          <div class="slider-track">
+            <input id="consoJour" type="range" min="0" max="9" step="1" value="0" aria-describedby="consoJourHint" />
+            <div class="slider-meta"><span>0</span><span id="consoJourMax">6,3&nbsp;kWh</span></div>
+          </div>
+        </div>
+        <p class="hint" id="consoJourHint">En autonomie. Chaque cran vers la droite ajoute un usage.</p>
+        <table class="load-table is-empty" id="consoJourTable" aria-label="Usages inclus dans la consommation par jour">
+          <thead>
+            <tr>
+              <th scope="col">Usage</th>
+              <th scope="col">kWh / j</th>
+            </tr>
+          </thead>
+          <tbody id="consoJourList"></tbody>
+          <tbody>
+            <tr class="load-custom-row">
+              <th scope="row"><label for="consoExtra">Autre consommation</label></th>
+              <td>
+                <div class="load-custom">
+                  <input id="consoExtra" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" aria-label="Autre consommation en kilowattheures par jour" />
+                  <span>kWh / j</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="load-total-row">
+              <th scope="row">Total par jour</th>
+              <td id="consoJourTotal">0 kWh</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="calc-line" id="consoJourNote" hidden></p>
+      </div>
+    </section>
+    </div>
+
+    <section class="result-pill mode-full-only slot-fill autonomy-rest theme-blue" id="sec-fill" data-slot="fill" aria-labelledby="h-fill">
+      <div class="flow-arrow" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="18" height="18">
+          <path d="M5 16h18M16 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="label label-with-info" id="h-fill">
+        <span>Temps pour remplir</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="remplissage"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Temps pour remplir la réserve"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </div>
+      <div class="big prod-line" id="outFill">
+        <span class="prod-num" id="outFillNum">—</span>
+        <span class="prod-unit" id="outFillUnit">au rythme de décembre</span>
+      </div>
+      <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
+    </section>
+
     <!-- 2 · Coût -->
-    <section class="block mode-full-only" id="sec-cost" aria-labelledby="h-cost">
-      <h2 id="h-cost"><span class="num">2</span> Combien ça coûte&nbsp;?</h2>
+    <section class="block mode-full-only slot-cost" id="sec-cost" data-slot="cost" aria-labelledby="h-cost">
+      <h2 id="h-cost"><span class="num">2</span> Combien coûte le solaire&nbsp;?</h2>
 
       <div class="field">
         <label for="priceW">Prix au watt installé (CAD)</label>
@@ -312,8 +521,39 @@
       </div>
     </section>
 
-    <!-- 3 · Valeur + résultat -->
-    <section class="block mode-full-only" id="sec-value" aria-labelledby="h-value">
+    <!-- 5 · Batteries -->
+    <section class="block mode-full-only slot-batt theme-blue autonomy-rest" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
+      <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
+      <div class="field">
+        <div class="label-row field-info-wrap">
+          <label for="battPrice">Prix au kWh installé</label>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="battprice"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Prix au kWh installé"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <div class="slider-row">
+          <div class="slider-val-left" id="battPriceVal">1&nbsp;200&nbsp;$</div>
+          <div class="slider-track">
+            <input id="battPrice" type="range" min="600" max="1800" step="50" value="1200" />
+            <div class="slider-meta"><span>600&nbsp;$</span><span>1&nbsp;800&nbsp;$</span></div>
+          </div>
+        </div>
+        <p class="hint">Brouillon — la fourchette $/kWh reste à confirmer.</p>
+      </div>
+      <div class="breakdown" aria-live="polite">
+        <div class="line total"><span>Coût des batteries</span><span id="lineBatt">—</span></div>
+      </div>
+    </section>
+
+    <!-- 3 · Valeur + résultat — retour solaire seulement -->
+    <section class="block mode-full-only slot-roi" id="sec-value" data-slot="roi" aria-labelledby="h-value">
       <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
 
       <div class="field">
@@ -352,7 +592,7 @@
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
-      <p class="surplus-alert" id="surplusAlert" hidden role="status">
+      <p class="surplus-alert theme-yellow" id="surplusAlert" hidden role="status">
         <strong>Moins optimal : tu produis plus que tu consommes.</strong>
         Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
       </p>
@@ -362,6 +602,38 @@
       <button type="button" class="btn" id="btnPdf">Imprimer / enregistrer en PDF</button>
       <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
+
+    <!-- 6 · Coût total du projet -->
+    <section class="block mode-full-only slot-total theme-blue autonomy-rest" id="sec-total" data-slot="total" aria-labelledby="h-total">
+      <h2 id="h-total">
+        <span class="num">6</span>
+        <span>Coût total du projet</span>
+        <button
+          type="button"
+          class="field-info-btn"
+          data-info="project"
+          aria-haspopup="dialog"
+          aria-controls="fieldInfoModal"
+          aria-label="Aide : Coût total du projet"
+        >
+          <span aria-hidden="true">ⓘ</span>
+        </button>
+      </h2>
+      <div class="breakdown">
+        <div class="line"><span>Panneaux (coût réel)</span><span id="lineProjectSolar">—</span></div>
+        <div class="line"><span>Batteries</span><span id="lineProjectBatt">—</span></div>
+      </div>
+      <div class="result-pill" id="projectOut">
+        <div class="label">Coût total</div>
+        <div class="big prod-line">
+          <span class="prod-num" id="outProject">—</span>
+          <span class="prod-unit">panneaux + batteries</span>
+        </div>
+      </div>
+      <p class="hint project-note">Le retour à gauche ne compte que les panneaux.</p>
+    </section>
+
+    </div>
 
     <aside class="disclaimers mode-full-only">
       <div class="disc-head">
@@ -373,14 +645,40 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: grille d’irradiation fixe ville de Québec, NREL/PVWatts (le reste du Québec peut être +/- 4&nbsp;% de productivité).</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, après l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
+        <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Au-delà, une bannière jaune rappelle le rachat HQ du surplus (4,730&nbsp;¢/kWh, art.&nbsp;2.51) — moins payant que le kWh évité.</li>
+        <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur pédagogique, de 0 à environ 6,3&nbsp;kWh/j (téléphone → cuisson), plus une ligne libre. Sans chauffage électrique. Ce n’est pas la consommation annuelle de la facture.</li>
+        <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée choisie (crans de 0 à 3 jours). À 0, la colonne autonomie (4B, remplissage, batteries, total) disparaît. Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
     </aside>
+
+    <div class="editor-tools" id="editorTools">
+      <label class="check">
+        <input type="checkbox" id="showDetails" />
+        <span>Je veux les détails<span class="sub">→ Affiche tous les chiffres. Le calcul reste précis dans les deux cas.</span></span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="showNotes" aria-controls="editorNotes" />
+        <span>Afficher les notes d’édition<span class="sub">→ Chantier en cours, masqué par défaut.</span></span>
+      </label>
+      <aside class="editor-notes" id="editorNotes" hidden>
+        <h2>Notes d’édition</h2>
+        <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
+        <ul>
+          <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
+          <li>Consommation par jour = cran du curseur (0 à environ 6,3&nbsp;kWh/j) plus la ligne libre. Ce n’est pas la facture annuelle.</li>
+          <li>Réserve = cette consommation × un cran de durée (0, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À 0, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
+          <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
+          <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. Le cran et la ligne libre, oui.</li>
+          <li>Ombrage : plus tard.</li>
+        </ul>
+      </aside>
+    </div>
 
     <footer class="bug">
       <a href="#bugModal" id="bugLink" class="bug-report">Signale un bug, une erreur de calcul ou une amélioration</a>
@@ -400,8 +698,8 @@
       <div class="modal-body" id="infoDesc">
         <div class="info-block">
           <h4>Grille d’irradiation</h4>
-          <p>Estimation annuelle NREL/PVWatts, grille fixe ancrée sur Québec (ville).</p>
-          <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kW annuel.</p>
+          <p>Estimation PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%. La ville choisie fournit le productible sud 45° pour 1&nbsp;kWc.</p>
+          <p>7 inclinaisons × 24 orientations (tous les 15°). On lit la cellule tilt×azimut pour le kWh/kWc annuel. Québec a une grille complète. Ailleurs, grille complète ou grille de Québec mise à l’échelle du rapport sud 30° mesuré.</p>
         </div>
         <div class="info-block">
           <h4>Déneigement (W)</h4>
@@ -417,6 +715,18 @@
           <p>Idée simplifiée, à partir de la part déc+jan+fév / annuel (NREL).</p>
           <p>Le chiffre à gauche du curseur (ex.&nbsp;−14&nbsp;%) est la perte restante, pas l’effort de déneigement.</p>
           <p>Formule&nbsp;: kWh_eff = kWh_an × (1 − (1−d)×W).</p>
+        </div>
+        <div class="info-block">
+          <h4>Autonomie (décembre)</h4>
+          <p>Le kWh / jour d’autonomie est la production de décembre ÷ 31.</p>
+          <p>Sans déneigement, décembre est à zéro si les panneaux ne sont pas verticaux (ou très inclinés).</p>
+          <p>Si vous ne déneigez pas à 100&nbsp;%, on recommande les panneaux à la verticale.</p>
+        </div>
+        <div class="info-block">
+          <h4>Batterie</h4>
+          <p>Réserve = consommation par jour (somme des appareils) × durée choisie.</p>
+          <p>Coût des batteries = réserve × prix au kWh. Les taxes et LogisVert restent sur les panneaux.</p>
+          <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
           <h4>Rappel</h4>
@@ -503,6 +813,17 @@
     </div>
   </div>
 
+  <template id="tpl-info-loc">
+    <span data-info-title>Localisation</span>
+    <div class="info-block">
+      <h4>Ville et productible</h4>
+      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique. La liste se déroule et se fait défiler.</p>
+      <p>Écrire un nom filtre les villes. Une MRC ou une région administrative filtre aussi, même si ces noms ne s’affichent pas&nbsp;: le menu ne montre que les villes.</p>
+      <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
+      <p>La boîte <strong>Efficacité de l’installation</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement choisis.</p>
+      <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu est le productible sud 45° pour 1&nbsp;kWc : la cellule mesurée si la grille est complète, sinon la cellule sud 45° de Québec à l’échelle de ce rapport.</p>
+    </div>
+  </template>
   <template id="tpl-info-orient">
     <span data-info-title>Orientation des panneaux solaires</span>
     <div class="info-block">
@@ -549,6 +870,48 @@
       <p><strong>60&nbsp;%</strong>&nbsp;: s’il y a <strong>quelques obstacles</strong> (cheminées, puits de ventilation, etc.).</p>
     </div>
   </template>
+  <template id="tpl-info-consojour">
+    <span data-info-title>Consommation par jour</span>
+    <div class="info-block">
+      <h4>Un seul curseur</h4>
+      <p>Le curseur part de zéro. Chaque cran vers la droite ajoute un usage, du plus léger au plus lourd. La ligne libre ajoute des kWh/j absents de l’échelle.</p>
+      <p>Ce total dimensionne la réserve. Ce n’est pas la facture annuelle, qui sert encore aux économies et au retour solaire.</p>
+    </div>
+  </template>
+  <template id="tpl-info-autostop">
+    <span data-info-title>Durée de réserve</span>
+    <div class="info-block">
+      <h4>Le curseur</h4>
+      <p>Les crans sont&nbsp;: 0, 5 min, 15 min, 30 min, 45 min, 1 heure, 2 heures, 4 heures, 6 heures, 8 heures, 12 heures, 1 jour (24 h), 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours.</p>
+      <p>Le mot à gauche est le cran. La réserve en kWh, à côté, suit ce cran de plus près.</p>
+      <p>À 0, le reste de la colonne autonomie disparaît. Un cran plus haut, elle revient en entier.</p>
+      <p>Réserve = consommation par jour × cette durée.</p>
+    </div>
+  </template>
+  <template id="tpl-info-remplissage">
+    <span data-info-title>Temps pour remplir la réserve</span>
+    <div class="info-block">
+      <h4>Décembre d’abord</h4>
+      <p>La production du jour de décembre couvre d’abord la consommation. Seul le surplus remplit la réserve.</p>
+      <p>Le rythme est toujours celui de décembre, même si l’été produit plus.</p>
+    </div>
+  </template>
+  <template id="tpl-info-battprice">
+    <span data-info-title>Prix au kWh installé</span>
+    <div class="info-block">
+      <h4>Coût de la réserve</h4>
+      <p>Coût des batteries = réserve (kWh) × prix au kWh installé.</p>
+      <p>La fourchette du curseur est un brouillon. Les taxes et LogisVert restent sur les panneaux.</p>
+    </div>
+  </template>
+  <template id="tpl-info-project">
+    <span data-info-title>Coût total du projet</span>
+    <div class="info-block">
+      <h4>Panneaux + batteries</h4>
+      <p>Total = coût réel des panneaux (taxes et subvention comprises) + coût des batteries.</p>
+      <p>Le retour sur investissement, à gauche, ne compte que les panneaux.</p>
+    </div>
+  </template>
   <template id="tpl-info-deneige">
     <span data-info-title>Fréquence de déneigement</span>
     <div class="info-block">
@@ -565,10 +928,70 @@
       <h4>Pourquoi ça bouge</h4>
       <p>L’inclinaison influence aussi l’accumulation&nbsp;:<br>un toit plat (zéro degré) accumule très bien la neige<br>un toit 12/12 (quarante-cinq degrés) accumule la neige<br>une installation verticale (quatre-vingt-dix degrés) n’accumule aucune neige</p>
       <p>La production sous le curseur se met à jour en même temps.</p>
+          <p>En décembre, sans déneigement, la production d’autonomie est nulle — sauf panneaux verticaux.</p>
+    </div>
+  </template>
+  <template id="tpl-info-conso-jour">
+    <span data-info-title>Consommation par jour</span>
+    <div class="info-block">
+      <h4>En autonomie</h4>
+      <p>Le curseur part de zéro. Chaque cran vers la droite ajoute un usage, du plus léger au plus lourd.</p>
+      <p>Les kWh sont des ordres de grandeur pour une maison autonome efficace, <strong>sans chauffage électrique</strong> (bois ou autre). Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
+    </div>
+    <div class="info-block">
+      <h4>Ce que chaque cran ajoute</h4>
+      <ul>
+        <li>Téléphone — 0,1&nbsp;kWh/j</li>
+        <li>Ordinateur et Wi-Fi — 0,5&nbsp;kWh/j</li>
+        <li>Éclairage — 0,5&nbsp;kWh/j</li>
+        <li>Télévision — 0,4&nbsp;kWh/j</li>
+        <li>Pompe à eau — 0,8&nbsp;kWh/j</li>
+        <li>Réfrigérateur — 1,2&nbsp;kWh/j</li>
+        <li>Congélateur — 0,8&nbsp;kWh/j</li>
+        <li>Laveuse — 0,5&nbsp;kWh/j</li>
+        <li>Cuisson — 1,5&nbsp;kWh/j</li>
+      </ul>
+      <p>Tout à droite&nbsp;: environ 6,3&nbsp;kWh/j. Repères d’audits hors réseau, arrondis au 0,1&nbsp;kWh (frigo efficace ~1–1,5, pompe ~0,5–1,5, cuisson électrique modeste ~1–2).</p>
+    </div>
+    <div class="info-block">
+      <h4>Autre consommation</h4>
+      <p>La dernière ligne ajoute des kWh/j absents du curseur&nbsp;: internet satellite, thermopompe, outils, chauffe-eau.</p>
+      <p>Le total se compare à la production de décembre, la journée la plus difficile de l’année.</p>
     </div>
   </template>
 
   <!-- Bug report — visible in webi + full; POST create-only proxy (no token in page) -->
+  <button
+    type="button"
+    class="bug-fab"
+    id="bugFab"
+    aria-expanded="false"
+    aria-controls="bugModal"
+    aria-haspopup="dialog"
+    aria-label="Signaler un bug, une erreur de calcul ou une amélioration"
+  >
+    <svg class="bug-fab-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.8 6.1 6.6 3.2" />
+        <path d="M15.2 6.1 17.4 3.2" />
+        <path d="M7.8 10.4 3.6 8.2" />
+        <path d="M16.2 10.4 20.4 8.2" />
+        <path d="M7.6 14H3.4" />
+        <path d="M20.6 14H16.4" />
+        <path d="M8.2 17.6 4.8 20.6" />
+        <path d="M15.8 17.6 19.2 20.6" />
+        <ellipse cx="12" cy="14.2" rx="4.15" ry="5" />
+        <path d="M12 9.3v9.6" />
+      </g>
+      <circle cx="12" cy="6.7" r="1.55" fill="currentColor" />
+    </svg>
+  </button>
+  <div id="bugDone" class="bug-done" hidden role="status">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+    <span>Done</span>
+  </div>
   <div class="modal-backdrop info-sheet" id="bugModal" hidden role="dialog" aria-modal="true" aria-labelledby="bugTitle">
     <div class="modal-card">
       <div class="modal-head">
@@ -594,14 +1017,6 @@
         </div>
         <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>
       </form>
-
-      <div id="bugSuccess" class="sheet-form" hidden>
-        <div class="modal-body">
-          <p class="bug-success-msg">Merci — signalement envoyé.</p>
-          <p><a id="bugIssueLink" href="https://github.com/Trizam/solutionera-calculateur-solaire-staging/issues?q=label%3Auser-report" target="_blank" rel="noopener noreferrer">Voir les signalements</a></p>
-        </div>
-        <button type="button" class="btn" id="btnBugOk">Fermer</button>
-      </div>
     </div>
   </div>
 

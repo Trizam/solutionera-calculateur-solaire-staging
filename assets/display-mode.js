@@ -1,6 +1,6 @@
 /* URL display modes — Solution Era calculateur solaire
  * Bare URL / ?mode=full / unknown → full (all sections).
- * ?mode=webi (alias ?mode=webinar) → block 1 only (toit → kWh/an).
+ * ?mode=webi (alias ?mode=webinar) → blocks 1A + 1B only (toit → kWc + kWh).
  */
 (function (root) {
   "use strict";

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /** Smoke — Calculateur Solaire version 0.2 · grille QC + W-by-tilt */
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { inflateSync } from "zlib";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { spawnSync } from "child_process";
 import { runInNewContext } from "vm";
 import {
   validateBugPayload,
@@ -45,7 +47,7 @@ const forbiddenB = "0.07" + "065";
 let bad = false;
 for (const p of walk(__dirname)) {
   const t = readFileSync(p, "utf8");
-  if (t.includes(forbiddenA) || t.includes(forbiddenB)) {
+  if (t.includes(forbiddenA) || /0\.07065(?!\d)/.test(t)) {
     console.log("  forbidden in", p);
     bad = true;
   }
@@ -70,6 +72,81 @@ const cellCount = Object.keys(grid.cells).reduce(
 );
 const cellsOk = cellCount === 168;
 console.log(`  cells count ${cellCount} (expect 168): ${cellsOk ? "PASS" : "FAIL"}`);
+
+function townDataReport() {
+  const path = join(__dirname, "assets", "towns.json");
+  if (!existsSync(path)) return { ok: false, detail: "missing assets/towns.json" };
+  let doc;
+  try {
+    doc = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    return { ok: false, detail: "towns.json invalid JSON" };
+  }
+  const towns = doc && Array.isArray(doc.towns) ? doc.towns : [];
+  const problems = [];
+  if (towns.length !== 104) problems.push("count " + towns.length);
+  const ids = new Set();
+  let mrc = 0;
+  let eq = 0;
+  const names = towns.map((t) => t.name);
+  const sorted = names.slice().sort((a, b) => String(a).localeCompare(String(b), "fr-CA", { sensitivity: "base" }));
+  if (names.join("\n") !== sorted.join("\n")) problems.push("not fr-CA sorted");
+  towns.forEach((t) => {
+    if (!t.id || ids.has(t.id)) problems.push("id " + t.id);
+    ids.add(t.id);
+    if (t.type === "MRC") mrc += 1;
+    else if (t.type === "Equivalent") eq += 1;
+    else problems.push("type " + t.name);
+    if (!(t.lat >= 44 && t.lat <= 63 && t.lon >= -80 && t.lon <= -56)) problems.push("coords " + t.name);
+    if (!isFinite(Number(t.ac_annual_s30)) || Number(t.ac_annual_s30) < 600 || Number(t.ac_annual_s30) > 1800) {
+      problems.push("s30 " + t.name + "=" + t.ac_annual_s30);
+    }
+    if (t.grid !== "full" && t.grid !== "scaled") problems.push("grid " + t.name);
+    if (t.grid === "full") {
+      const rel = t.grid_file || ("assets/town-grids/" + t.id + ".json");
+      const file = join(__dirname, rel);
+      if (!existsSync(file)) problems.push("missing grid file " + t.name);
+      else {
+        try {
+          const g = JSON.parse(readFileSync(file, "utf8"));
+          if (g.scaled === true) problems.push("full marked scaled " + t.name);
+          const n = Object.keys(g.cells || {}).reduce((acc, tilt) => acc + Object.keys(g.cells[tilt] || {}).length, 0);
+          if (n !== 168) problems.push("cells " + n + " " + t.name);
+          const s45 = g.cells && g.cells["45"] && g.cells["45"]["180"];
+          if (!s45 || !(Number(s45.ac_annual) > 0)) problems.push("s45 " + t.name);
+        } catch (_) {
+          problems.push("bad grid " + t.name);
+        }
+      }
+    }
+  });
+  if (mrc !== 87 || eq !== 17) problems.push(`MRC=${mrc} Equivalent=${eq}`);
+  const qc = towns.find((t) => t.id === "quebec");
+  if (!qc || Math.abs(Number(qc.ac_annual_s30) - 1254.8064) > 0.01) problems.push("québec s30");
+  if (qc && (qc.lat !== 46.813 || qc.lon !== -71.208)) problems.push("québec coords");
+  return { ok: problems.length === 0, detail: problems.slice(0, 8).join("; ") };
+}
+const townData = townDataReport();
+const townDataOk = townData.ok;
+console.log(`  towns.json 104 places, S/30, grids: ${townDataOk ? "PASS" : "FAIL"} ${townData.detail}`);
+
+const fetchScript = join(__dirname, "scripts", "fetch-quebec-towns.mjs");
+const fetchWorkflowPath = join(__dirname, ".github", "workflows", "fetch-quebec-grids.yml");
+const fetchSelf = spawnSync(process.execPath, [fetchScript, "--self-check"], { encoding: "utf8" });
+const fetchStatus = spawnSync(process.execPath, [fetchScript, "--status", "--short"], { encoding: "utf8" });
+const fetchWorkflowText = existsSync(fetchWorkflowPath) ? readFileSync(fetchWorkflowPath, "utf8") : "";
+const fetchJobOk =
+  fetchSelf.status === 0 &&
+  fetchStatus.status === 0 &&
+  fetchStatus.stdout.trim() === "104/104" &&
+  fetchWorkflowText.includes("cron:") &&
+  fetchWorkflowText.includes("--max-minutes 45") &&
+  fetchWorkflowText.includes("NLR_API_KEY") &&
+  fetchWorkflowText.includes("data/quebec-town-grids") &&
+  readFileSync(fetchScript, "utf8").includes("const CALL_GAP_MS = 4000;");
+console.log(
+  `  hourly PVWatts fetch job: ${fetchJobOk ? "PASS" : "FAIL"} status=${(fetchStatus.stdout || "").trim()} self=${fetchSelf.status}`
+);
 
 /** Same W-by-tilt model as app.js */
 function winterWFromTilt(tilt) {
@@ -172,6 +249,7 @@ const liveBeside =
   !html.includes("slider-val-left-stack") &&
   !html.includes("loss-annuel");
 const liveFmt =
+  (html.includes("−0&nbsp;%") || html.includes("−0 %")) &&
   (html.includes("−14&nbsp;%") || html.includes("−14 %")) &&
   !html.includes("−14,4") &&
   !html.includes("% annuel") &&
@@ -220,12 +298,144 @@ const orientLabel =
 const orient24 = (html.match(/option value="/g) || []).length >= 24;
 const has195 = html.includes('value="195"') && html.includes('value="15"');
 const areaInt = html.includes('step="1"') && html.includes('inputmode="numeric"');
+/** RGBA PNG (8-bit, non-interlaced). Used to prove the mark is not pre-cropped. */
+function readPngRgba(path) {
+  const buf = readFileSync(path);
+  if (buf.length < 8 || buf.toString("hex", 0, 8) !== "89504e470d0a1a0a") {
+    throw new Error(`not a png: ${path}`);
+  }
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  let interlace = 0;
+  const idats = [];
+  while (offset < buf.length) {
+    const len = buf.readUInt32BE(offset);
+    const type = buf.toString("ascii", offset + 4, offset + 8);
+    const data = buf.subarray(offset + 8, offset + 8 + len);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      interlace = data[12];
+    } else if (type === "IDAT") {
+      idats.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+    offset += 12 + len;
+  }
+  if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
+    throw new Error(`unsupported png ${path}: bit=${bitDepth} color=${colorType} interlace=${interlace}`);
+  }
+  const raw = inflateSync(Buffer.concat(idats));
+  const bpp = 4;
+  const stride = width * bpp;
+  const rgba = Buffer.alloc(height * stride);
+  let i = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = raw[i++];
+    const row = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const v = raw[i++];
+      const left = x >= bpp ? rgba[row + x - bpp] : 0;
+      const up = y > 0 ? rgba[row - stride + x] : 0;
+      const ul = y > 0 && x >= bpp ? rgba[row - stride + x - bpp] : 0;
+      let outByte = v;
+      if (filter === 1) outByte = (v + left) & 255;
+      else if (filter === 2) outByte = (v + up) & 255;
+      else if (filter === 3) outByte = (v + ((left + up) >> 1)) & 255;
+      else if (filter === 4) {
+        const p = left + up - ul;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - ul);
+        const pred = pa <= pb && pa <= pc ? left : pb <= pc ? up : ul;
+        outByte = (v + pred) & 255;
+      } else if (filter !== 0) {
+        throw new Error(`bad png filter ${filter}`);
+      }
+      rgba[row + x] = outByte;
+    }
+  }
+  return { width, height, rgba };
+}
+
+/** A cropped disc has a long flat side. A real circle only stays flat for a few pixels. */
+function logoDiscIntact(path) {
+  const { width, height, rgba } = readPngRgba(path);
+  if (width !== height || width < 64) return false;
+  const alphaAt = (x, y) => rgba[(y * width + x) * 4 + 3];
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  let any = false;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (alphaAt(x, y) > 20) {
+        any = true;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!any) return false;
+  const margin = Math.min(minX, minY, width - 1 - maxX, height - 1 - maxY);
+  const longestFlat = (vals) => {
+    let best = 1;
+    let cur = 1;
+    for (let i = 1; i < vals.length; i++) {
+      if (vals[i] === vals[i - 1]) {
+        cur += 1;
+        if (cur > best) best = cur;
+      } else {
+        cur = 1;
+      }
+    }
+    return best;
+  };
+  const rights = [];
+  for (let y = 0; y < height; y++) {
+    let right = -1;
+    for (let x = width - 1; x >= 0; x--) {
+      if (alphaAt(x, y) > 128) {
+        right = x;
+        break;
+      }
+    }
+    if (right >= 0) rights.push(right);
+  }
+  const flat = longestFlat(rights);
+  // ~14px padding on a 240 canvas. A clipped export touches the edge or stays flat for ~100 rows.
+  return margin >= 8 && flat <= 20;
+}
+
+const logoBlocks = css.match(/\.brand-logo\b[^{]*\{[^}]*\}/g) || [];
+const logoCssOk =
+  logoBlocks.length >= 1 &&
+  logoBlocks.every(
+    (block) =>
+      !/border-radius\s*:/.test(block) &&
+      !/overflow\s*:\s*hidden/.test(block) &&
+      !/object-fit\s*:\s*(cover|fill)/.test(block) &&
+      !/image-rendering\s*:/.test(block) &&
+      !/padding\s*:/.test(block)
+  ) &&
+  logoBlocks.some((block) => /object-fit\s*:\s*contain/.test(block));
+const logoPngOk =
+  logoDiscIntact(join(__dirname, "assets/logo-solution-era.png")) &&
+  logoDiscIntact(join(__dirname, "favicon.png"));
 const logoOk =
-  (html.includes("logo-solution-era.png") || html.includes("logo-solution-era.svg")) &&
-  css.includes(".brand-logo") &&
-  /border-radius:\s*50%/.test(css) &&
-  !/\.brand-logo[\s\S]{0,220}border-radius:\s*10px/.test(css) &&
-  css.includes("overflow: visible");
+  html.includes("logo-solution-era.png") &&
+  html.includes('class="brand-logo"') &&
+  logoCssOk &&
+  logoPngOk;
 const taxes15 = html.includes("15&nbsp;%") || html.includes("15 %");
 const logisDefault = /id="subv"[^>]*checked/.test(html) || /id="subv" checked/.test(html);
 const logisCopy =
@@ -234,11 +444,52 @@ const logisCopy =
   !html.includes("D'abord le coût sans") &&
   !html.includes("coche pour l’appliquer") &&
   !html.includes("coche pour l'appliquer");
-const htmlSansBrand = html
-  .replace(/DÉFI Autonomie Énergétique/g, "")
-  .replace(/Autonomie et neige/g, "")
-  .replace(/en autonomie/gi, "");
-const noBattery = !/batteries|autonomie/i.test(htmlSansBrand);
+const design = readFileSync(join(__dirname, "docs/DESIGN.md"), "utf8");
+const designRules =
+  html.includes("Combien coûte le solaire") &&
+  html.includes('id="showDetails"') &&
+  html.includes("Je veux les détails") &&
+  html.indexOf('id="editorTools"') < html.indexOf('id="showDetails"') &&
+  html.indexOf('id="showDetails"') < html.indexOf('id="showNotes"') &&
+  !html.includes("page-tools") &&
+  html.includes('id="showNotes"') &&
+  html.includes('id="editorNotes" hidden') &&
+  html.includes("docs/DESIGN.md") &&
+  !html.includes("Loi des deux chiffres") &&
+  /\.result-pair\s*\{[\s\S]{0,220}align-items:\s*stretch/.test(css) &&
+  /\.cards\s*\{[\s\S]{0,220}align-items:\s*stretch/.test(css) &&
+  app.includes("function fmtShown") &&
+  design.includes("Loi des deux chiffres") &&
+  design.includes("result-pill") &&
+  design.includes("Je veux les détails") &&
+  design.includes("seule") &&
+  !design.includes("répétées dans le commentaire");
+const batteryColumn =
+  html.includes('data-slot="need"') &&
+  html.includes('data-slot="fill"') &&
+  html.includes('data-slot="batt"') &&
+  html.includes('data-slot="total"') &&
+  html.includes('id="consoJour"') &&
+  html.includes('id="autoStop"') &&
+  html.includes('id="battPrice"') &&
+  html.includes('id="permaFlag"') &&
+  html.includes('id="sec-yield"') &&
+  !/id="sec-yield"[^>]*mode-full-only/.test(html) &&
+  /mode-full-only[^>]*id="sec-auto"/.test(html) &&
+  /mode-full-only[^>]*id="sec-fill"/.test(html) &&
+  /mode-full-only[^>]*id="sec-batt"/.test(html) &&
+  /mode-full-only[^>]*id="sec-total"/.test(html) &&
+  /mode-full-only[^>]*id="permaFlag"/.test(html) &&
+  /<h2 id="h-reserve">\s*<span class="num">4A<\/span>/.test(html) &&
+  /<h2 id="h-auto">\s*<span class="num">4B<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
+  html.indexOf('id="sec-reserve"') < html.indexOf('id="sec-auto"') &&
+  /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
+  /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
+  design.includes("4A") &&
+  design.includes("4B") &&
+  design.includes("**5**") &&
+  design.includes("**6**") &&
+  /const years = eco > 0 \? reel \/ eco : Infinity;/.test(app);
 const brandDefi =
   html.includes("Solution ERA | DÉFI Autonomie Énergétique") &&
   /class="brand-name"[^>]*>Solution ERA \| DÉFI Autonomie Énergétique</.test(html) &&
@@ -275,13 +526,16 @@ const tiltSlider =
   /id="tilt"[^>]*min="0"/.test(html) &&
   /id="tilt"[^>]*max="90"/.test(html) &&
   /id="tilt"[^>]*step="15"/.test(html) &&
+  /id="tilt"[^>]*value="45"/.test(html) &&
+  html.includes('id="tiltVal">45°') &&
+  /tilt:\s*45/.test(app) &&
   html.includes('id="tiltVal"') &&
   html.includes("tilt-gutter") &&
   html.includes("tiltViz") &&
   !/<select\s+id="tilt"/.test(html) &&
   !html.includes("tilt-select-row") &&
   /\$\("tiltVal"\)\.textContent/.test(app) &&
-  /\["util", "deneige", "priceW", "tilt"\]/.test(app);
+  /\["util", "deneige", "priceW", "tilt"/.test(app);
 const subtitlePad =
   /--subtitle-pad-top:\s*0\.45rem/.test(sliderScreen) &&
   /section\.block\s*>\s*h2/.test(sliderScreen) &&
@@ -315,7 +569,7 @@ const appLive =
   app.includes("deneigeLive") &&
   app.includes('fmtSig2(lossPct) + "&nbsp;%"') &&
   !app.includes("% annuel");
-const subvDefaultJs = /subv"\)\.checked\s*=\s*true/.test(app) || /\$\("subv"\)\.checked = true/.test(app);
+const subvDefaultJs = /subv:\s*true/.test(app) && /\$\("subv"\)\.checked\s*=/.test(app);
 const discTiltW =
   (html.includes("selon l’inclinaison") || html.includes("selon l'inclinaison") || html.includes("selon l’<strong>inclinaison")) &&
   html.includes("18");
@@ -331,7 +585,7 @@ console.log(`  orient labels N° (Cardinal) for cardinals: ${orientLabel && orie
 console.log(`  area integers (step=1, inputmode=numeric): ${areaInt ? "PASS" : "FAIL"}`);
 console.log(`  logo + taxes 15% + LogisVert default ON: ${logoOk && taxes15 && logisDefault && subvDefaultJs ? "PASS" : "FAIL"}`);
 console.log(`  LogisVert subcopy « Appliquée par défaut »: ${logisCopy ? "PASS" : "FAIL"}`);
-console.log(`  no battery + info modal + tilt viz + gridStatus: ${noBattery && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
+console.log(`  battery column + design rules + info modal + tilt viz + gridStatus: ${batteryColumn && designRules && infoBtn && tiltViz && gridStatusUi ? "PASS" : "FAIL"}`);
 console.log(`  slider value-left + Safari touch CSS: ${sliderLeft && safariFix ? "PASS" : "FAIL"}`);
 console.log(`  slider value centered on piste + left gutter: ${sliderLeft ? "PASS" : "FAIL"}`);
 console.log(`  prod 2-col grid (superficie toggle left + 4 rows): ${prodControlGrid ? "PASS" : "FAIL"}`);
@@ -422,6 +676,39 @@ const hasConsoWired =
   app.includes("surplusAlert") &&
   !app.includes("is-clamped") &&
   !app.includes("cardEco");
+const DAILY_LOAD_LABELS = [
+  "Téléphone",
+  "Ordinateur et Wi-Fi",
+  "Éclairage",
+  "Télévision",
+  "Pompe à eau",
+  "Réfrigérateur",
+  "Congélateur",
+  "Laveuse",
+  "Cuisson"
+];
+const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
+const hasConsoJourUi =
+  html.includes("Combien d'autonomie je veux") &&
+  html.includes("En autonomie. Chaque cran vers la droite ajoute un usage.") &&
+  html.includes('id="consoExtra"') &&
+  html.includes("Autre consommation") &&
+  html.includes('id="consoJourList"') &&
+  html.includes('id="consoJourTotal"') &&
+  html.includes("tpl-info-conso-jour") &&
+  /id="consoJour"/.test(consoJourTag) &&
+  /type="range"/.test(consoJourTag) &&
+  /min="0"/.test(consoJourTag) &&
+  /max="9"/.test(consoJourTag) &&
+  /step="1"/.test(consoJourTag) &&
+  /value="0"/.test(consoJourTag) &&
+  DAILY_LOAD_LABELS.every((label) => app.includes(label) && html.includes(label)) &&
+  app.includes("function dailyLoadKwh") &&
+  app.includes("function updateConsoJourUi") &&
+  app.includes('class="load-ico"') &&
+  app.includes('class=\\"load-name\\"') &&
+  app.includes("tenths: 1") &&
+  app.includes("tenths: 15");
 const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
 function digitsOnly(raw) {
   return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
@@ -451,7 +738,7 @@ const hasConsoGrouping =
   app.includes("function parseGroupedInt") &&
   app.includes("function fmtGroupedInt") &&
   app.includes("function formatConsoInput") &&
-  app.includes("fmtGroupedInt(DEFAULT_CONSO_KWH)") &&
+  (app.includes("fmtGroupedInt(DEFAULT_CONSO_KWH)") || (app.includes("fmtGroupedInt(s.conso)") && app.includes("conso: DEFAULT_CONSO_KWH"))) &&
   app.includes("parseGroupedInt(el.value)") &&
   css.includes("input.grouped-int");
 const hasSurplusAlertCss =
@@ -568,6 +855,7 @@ console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn
 console.log(`  conso wired to render + surplusAlert: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  surplus alert CSS jaune, cartes inchangées: ${hasSurplusAlertCss ? "PASS" : "FAIL"}`);
 console.log(`  surplus kWh × rachat 4,730 ¢ + écart vs évité: ${surplusClampMath ? "PASS" : "FAIL"}`);
+console.log(`  autonomie slider 0→9 + liste + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
@@ -586,7 +874,8 @@ const infoSheetUi =
   html.includes('class="modal-backdrop info-sheet" id="bugModal"') &&
   app.includes("openFieldInfo") &&
   app.includes("fieldInfoModal") &&
-  html.includes('data-info="orient"') &&
+  html.includes('data-info="loc"') &&
+  html.includes("tpl-info-loc") &&
   html.includes('data-info="area"') &&
   html.includes('data-info="util"') &&
   html.includes('data-info="deneige"') &&
@@ -616,7 +905,9 @@ const infoSheetUi =
   html.includes("puits de ventilation") &&
   !html.includes("superficie exacte des panneaux") &&
   /label-row field-info-wrap[\s\S]{0,280}for="tilt"/.test(html) &&
-  html.includes("avec une installation solaire d’une puissance de") &&
+  html.includes("Mesurage Net") &&
+  html.includes("Panneaux solaires installés") &&
+  !html.includes("Vous pourrez alors installer") &&
   !html.includes("avec votre installation solaire") &&
   html.includes("perte de production") &&
   html.includes("chiffre à gauche") &&
@@ -673,6 +964,9 @@ const orientDialMobile =
   !/focusSelectQuiet/.test(app) &&
   html.includes("orient-thumb-hit") &&
   css.includes(".orient-thumb-hit") &&
+  html.includes('viewBox="-24 -24 248 248"') &&
+  /\.orient-dial-svg[\s\S]{0,80}overflow:\s*visible/.test(sliderScreenCss) &&
+  /\.orient-dial[\s\S]{0,80}overflow:\s*visible/.test(sliderScreenCss) &&
   /\.orient-dial-svg[\s\S]{0,80}pointer-events:\s*none/.test(sliderScreenCss) &&
   /\.orient-dial[\s\S]{0,280}padding:\s*18px/.test(sliderScreenCss);
 console.log(`  orient dial mobile drag (window touch + fat-finger hit): ${orientDialMobile ? "PASS" : "FAIL"}`);
@@ -702,6 +996,11 @@ const deneigeTip =
   !deneigeTpl.includes("100&nbsp;% = déneigement après chaque chute") &&
   !deneigeTpl.includes("L’inclinaison fixe aussi le risque");
 console.log(`  ⓘ déneigement mots + accumulation 12/12: ${deneigeTip ? "PASS" : "FAIL"}`);
+const deneigeEnds =
+  /id="deneige"[\s\S]*?<div class="slider-meta"><span>jamais<\/span><span>toujours<\/span><\/div>/.test(html) &&
+  !html.includes("je ne déneige pas") &&
+  !html.includes("je déneige dès qu");
+console.log(`  déneigement ends jamais/toujours, no 0%/100% hint: ${deneigeEnds ? "PASS" : "FAIL"}`);
 
 const modeSrc = readFileSync(join(__dirname, "assets/display-mode.js"), "utf8");
 function runDisplayMode(search) {
@@ -756,6 +1055,70 @@ const modeWebiOk =
 const htmlModeDefault = /<html[^>]*data-mode="full"/.test(html);
 const htmlModeScript = html.includes('src="assets/display-mode.js"');
 const htmlProdVisible = html.includes('id="sec-prod"') && !/id="sec-prod"[^>]*mode-full-only/.test(html);
+const htmlProdBVisible = html.includes('id="sec-prod-b"') && !/id="sec-prod-b"[^>]*mode-full-only/.test(html);
+const htmlSplit1A =
+  html.includes('<span class="num">1A</span>') &&
+  html.includes("Combien de panneaux puis-je installer") &&
+  html.includes('id="outPv"') &&
+  html.includes("Panneaux solaires installés") &&
+  /id="outKw"/.test(html) &&
+  html.includes(">kWc<") &&
+  html.indexOf('id="area"') < html.indexOf('id="util"') &&
+  html.indexOf('id="util"') < html.indexOf('id="outPv"');
+const htmlSplit1B =
+  html.includes('<span class="num">1B</span>') &&
+  html.includes("Combien d'énergie électrique vais-je produire") &&
+  html.includes('id="ville"') &&
+  html.includes('id="villeBtn"') &&
+  html.includes('id="villeList"') &&
+  html.includes("1&nbsp;kWc") &&
+  html.includes("kWh/kWc") &&
+  html.includes("plein sud, 45°") &&
+  !html.includes("plein sud, 30°") &&
+  html.includes("Mesurage Net") &&
+  html.includes("Autonomie") &&
+  html.includes("kWh / an") &&
+  html.includes("kWh / j déc") &&
+  !html.includes("±&nbsp;4") &&
+  !html.includes("+/- 4") &&
+  html.indexOf("field-loc") < html.indexOf('id="orient"') &&
+  html.indexOf('id="orient"') < html.indexOf('id="tilt"') &&
+  html.indexOf('id="tilt"') < html.indexOf("field-deneige");
+function menuYieldReport() {
+  const problems = [];
+  const grid = JSON.parse(readFileSync(join(__dirname, "assets/quebec-full-grid.json"), "utf8"));
+  const q45 = Number(grid.cells["45"]["180"].ac_annual);
+  if (Math.round(q45) !== 1270) problems.push("québec s45 " + q45);
+  const towns = JSON.parse(readFileSync(join(__dirname, "assets/towns.json"), "utf8"));
+  const q30 = Number(towns.meta.quebec_s30);
+  const acton = towns.towns.find((t) => t.id === "acton-vale");
+  const montreal = towns.towns.find((t) => t.id === "montreal");
+  const mGrid = JSON.parse(readFileSync(join(__dirname, "assets/town-grids/montreal.json"), "utf8"));
+  const measured = Number(mGrid.cells["45"]["180"].ac_annual);
+  const scaledActon = q45 * (Number(acton.ac_annual_s30) / q30);
+  const scaledMontreal = q45 * (Number(montreal.ac_annual_s30) / q30);
+  if (Math.round(scaledActon) !== 1248) problems.push("acton scaled45 " + scaledActon);
+  if (Math.round(measured) !== 1326) problems.push("montréal s45 " + measured);
+  if (Math.round(measured) === Math.round(scaledMontreal)) problems.push("montréal measured equals scaled");
+  if (!html.includes("1&nbsp;270 kWh/kWc")) problems.push("placeholder");
+  if (!html.includes("productible sud 45°")) problems.push("copy 45");
+  if (html.includes("productible sud 30°")) problems.push("copy still sud 30");
+  if (!html.includes("rapport sud 30°")) problems.push("scaling copy removed");
+  if (!html.includes("inclinaison <strong>45°</strong>")) problems.push("help tilt");
+  if (html.includes("inclinaison <strong>30°</strong>")) problems.push("help still 30");
+  const codeOk =
+    app.includes("function menuYieldAnnual") &&
+    app.includes('southAnnual(cells, "45", "180")') &&
+    app.includes("q45 * (s30 / quebecS30)") &&
+    app.includes("function loadMenuFullGrids") &&
+    app.includes("function refreshTownYields") &&
+    !app.includes("fmtYield(town.ac_annual_s30)") &&
+    !app.includes("fmtYield(quebecS30)");
+  if (!codeOk) problems.push("app menu yield");
+  return { ok: problems.length === 0, detail: problems.join("; ") };
+}
+const menuYield = menuYieldReport();
+const menuYieldOk = menuYield.ok;
 const secCostIdx = html.indexOf('id="sec-cost"');
 const secValueIdx = html.indexOf('id="sec-value"');
 const secCostTag = secCostIdx >= 0 ? html.slice(Math.max(0, secCostIdx - 80), secCostIdx + 40) : "";
@@ -780,43 +1143,133 @@ const htmlAllowlist =
   htmlHidesDisc &&
   htmlHidesHero &&
   htmlProdVisible &&
+  htmlProdBVisible &&
   html.includes('id="sec-prod"') &&
+  html.includes('id="sec-prod-b"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
-const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh /") && html.includes(">jour<");
-const prodPillAnnual = html.includes('id="outKwh"') && html.includes(">an<");
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j déc");
+const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an") && html.includes("Mesurage Net");
 const prodPillEqualType =
   html.includes('class="big prod-line" id="outKwhDay"') &&
   html.includes('class="big prod-line" id="outKwh"') &&
   html.includes("prod-num") &&
-  css.includes("prod-lines") &&
-  /grid-template-columns:\s*max-content\s+auto\s+auto/.test(css) &&
+  css.includes("result-pair") &&
+  /grid-template-columns:\s*1fr\s+1fr/.test(css) &&
   !html.includes("big-annual") &&
   !css.includes(".big-annual");
 const prodKwC =
-  /id="outKw"[^>]*>— kWc</.test(html) &&
-  /\$\("outKw"\)\.textContent = fmtSig2\(r\.kW\) \+ " kWc"/.test(app) &&
-  html.includes("avec une installation solaire d’une puissance de") &&
-  !html.includes("Puissance estimée");
+  html.includes('id="outKw"') &&
+  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
+  html.includes(">kWc<") &&
+  html.includes('id="outPv"') &&
+  html.includes("Panneaux solaires installés") &&
+  app.includes("PANEL_M2") &&
+  app.includes("PANEL_W") &&
+  /usedM2 \/ PANEL_M2/.test(app) &&
+  /usedM2 \* PANEL_KW_PER_M2/.test(app) &&
+  !/\(kW \* 1000\) \/ PANEL_W/.test(app) &&
+  !html.includes("Puissance estimée") &&
+  !html.includes("avec une installation solaire d’une puissance de");
 const prodNoWave =
   !/id="outKwhDay"[^>]*>≈/.test(html) &&
   !/id="outKwh"[^>]*>≈/.test(html) &&
   !app.includes('"≈ " + fmtNum(r.kWh') &&
   app.includes("prod-num") &&
   app.includes("kWhDay");
-const dayFromAnnual = Math.round(6874 / 365);
-const dayOk = dayFromAnnual === 19;
+const s30Dec = s30.ac_monthly && s30.ac_monthly.dec;
+function snowCoverFromTilt(tilt) {
+  const w = winterWFromTilt(tilt);
+  return w <= 0 ? 0 : w / 0.18;
+}
+const snowCoverTable = {
+  0: snowCoverFromTilt(0),
+  45: snowCoverFromTilt(45),
+  60: snowCoverFromTilt(60),
+  75: snowCoverFromTilt(75),
+  90: snowCoverFromTilt(90)
+};
+const snowCoverExpect = { 0: 1, 45: 1, 60: 2 / 3, 75: 1 / 3, 90: 0 };
+const snowCoverOk = Object.keys(snowCoverExpect).every(
+  (k) => Math.abs(snowCoverTable[k] - snowCoverExpect[k]) < 1e-9
+);
+const kWDefault = 40 * 0.80 * 0.20;
+const nPvDefault = Math.round((40 * 0.80) / 2);
+const decSnowFactor = 1 - (1 - 0.20) * snowCoverFromTilt(30);
+const kWhDecDay = (s30Dec * kWDefault * decSnowFactor) / 31;
+const kWhDecNever = (s30Dec * kWDefault * (1 - (1 - 0) * snowCoverFromTilt(30))) / 31;
+const kWhDecVertical = (s30Dec * kWDefault * (1 - (1 - 0) * snowCoverFromTilt(90))) / 31;
+const dayOk =
+  Math.abs(s30Dec - 53.274) < 0.01 &&
+  nPvDefault === 16 &&
+  Math.abs(kWDefault - 6.4) < 1e-9 &&
+  app.includes("DAYS_IN_DEC") &&
+  app.includes("kWhDec") &&
+  app.includes("snowCoverFromTilt") &&
+  app.includes("applyDeneigement(kWhDecMonth, deneige, snowCover)") &&
+  kWhDecDay > 2 && kWhDecDay < 2.5 &&
+  Math.abs(kWhDecNever) < 1e-9 &&
+  kWhDecVertical > 10;
+const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-auto"'));
+const prodBHtml = html.slice(html.indexOf('id="sec-prod-b"'), html.indexOf('id="sec-yield"'));
+const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-cost"'));
+const recFn =
+  app.includes("function recommendVerticalPanels") &&
+  app.includes("showVerticalRec") &&
+  html.includes('id="autonomySnow"') &&
+  html.includes("autonomySnowRec") &&
+  html.includes("mettez les panneaux à la verticale") &&
+  html.includes("décembre ne tombe pas à zéro") &&
+  css.includes(".autonomy-snow") &&
+  /autonomy-snow\[hidden\]/.test(css) &&
+  yieldHtml.includes('id="autonomySnow"') &&
+  yieldHtml.indexOf('id="outKwhDay"') < yieldHtml.indexOf('id="autonomySnow"') &&
+  !prodBHtml.includes("autonomySnow");
+const shortfallInFill =
+  fillHtml.includes('id="permaFlag"') &&
+  fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
+  !html.includes("perma-flag") &&
+  css.includes(".fill-shortfall");
+const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
+const productiblePill =
+  prodBHtml.includes('id="outKwhKwc"') &&
+  prodBHtml.includes(">Efficacité de l’installation<") &&
+  prodBHtml.includes(">kWh/kWc/An<") &&
+  prodBHtml.includes("kilowatt-crête installé") &&
+  prodBHtml.indexOf('id="deneige"') < prodBHtml.indexOf('id="outKwhKwc"') &&
+  prodBHtml.indexOf('id="outKwhKwc"') < prodBHtml.indexOf('id="gridStatus"') &&
+  app.includes("const kWhPerKwc = applyDeneigement(table, deneige, W)") &&
+  app.includes("fmtGroupedInt(Math.round(r.kWhPerKwc))") &&
+  !app.includes("fmtShown(r.kWhPerKwc") &&
+  kWhPerKwcDefault > 1070 && kWhPerKwcDefault < 1080;
 console.log(`  display mode default=full (bare/unknown/?mode=full): ${modeDefaultFull ? "PASS" : "FAIL"}`);
 console.log(`  display mode ?mode=webi (+ alias webinar) sets data-mode=webi: ${modeWebiOk ? "PASS" : "FAIL"}`);
 console.log(`  html data-mode=full + display-mode.js sync: ${htmlModeDefault && htmlModeScript ? "PASS" : "FAIL"}`);
-console.log(`  webi hides non-#sec-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  webi hides non-prod boxes (hero/cost/value/disclaimers): ${htmlAllowlist ? "PASS" : "FAIL"}`);
+console.log(`  step 1 split 1A superficie/densité → PV+kWc: ${htmlSplit1A ? "PASS" : "FAIL"}`);
+console.log(`  step 1B localisation QC / orient / tilt / déneige: ${htmlSplit1B ? "PASS" : "FAIL"}`);
+console.log(`  menu yield sud 45° (QC 1 270, scale keeps sud 30°): ${menuYieldOk ? "PASS" : "FAIL"} ${menuYield.detail}`);
 console.log(`  CSS data-mode hooks + badge FR « Mode webi »: ${cssHidesFull && cssHidesWebiOnly && htmlWebiBadge ? "PASS" : "FAIL"}`);
 console.log(`  runbook live URL ?mode=webi (bare=full): ${runbookWebiLink ? "PASS" : "FAIL"}`);
 console.log(`  app.js re-exports SolarDisplayMode: ${appWiresMode ? "PASS" : "FAIL"}`);
-console.log(`  prod pill kWh/jour then kWh/an, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
-console.log(`  prod pill jour+an same .big type: ${prodPillEqualType ? "PASS" : "FAIL"}`);
-console.log(`  prod pill puissance unit kWc: ${prodKwC ? "PASS" : "FAIL"}`);
-console.log(`  daily = annual/365 rounded (6874→${dayFromAnnual}): ${dayOk ? "PASS" : "FAIL"}`);
+console.log(`  prod pills Mesurage Net kWh/an + Autonomie kWh/j déc, no ≈: ${prodPillDay && prodPillAnnual && prodNoWave ? "PASS" : "FAIL"}`);
+console.log(`  prod pair two equal KPI boxes: ${prodPillEqualType ? "PASS" : "FAIL"}`);
+console.log(`  1A deux boîtes PV (2 m²) + kWc (indépendant): ${prodKwC ? "PASS" : "FAIL"}`);
+console.log(`  1B production annuelle kWh/kWc en bas (défaut ${kWhPerKwcDefault.toFixed(1)}): ${productiblePill ? "PASS" : "FAIL"}`);
+console.log(`  autonomie = kWh déc / 31 (S/30 défaut ${kWhDecDay.toFixed(2)} kWh/j, 16 PV): ${dayOk ? "PASS" : "FAIL"}`);
+console.log(
+  `  décembre C-by-tilt 0→1, 45→1, 60→2/3, 75→1/3, 90→0: ${snowCoverOk ? "PASS" : "FAIL"} ` +
+  `(${[0, 45, 60, 75, 90].map((t) => snowCoverTable[t]).join(",")})`
+);
+console.log(
+  `  décembre d=0 tilt30 → 0 kWh/j, tilt90 → plein (${kWhDecVertical.toFixed(2)}): ${
+    Math.abs(kWhDecNever) < 1e-9 && kWhDecVertical > 10 ? "PASS" : "FAIL"
+  }`
+);
+console.log(`  boîte verticale sous autonomie (d<100 % et tilt<90°): ${recFn ? "PASS" : "FAIL"}`);
+console.log(`  décembre sous Temps pour remplir: ${shortfallInFill ? "PASS" : "FAIL"}`);
 
 const themeSrc = readFileSync(join(__dirname, "assets/theme-mode.js"), "utf8");
 function runThemeMode(opts) {
@@ -975,9 +1428,10 @@ const fmt14230 = fmtSig2(14230);
 const fmt14230Compact = fmt14230.replace(/\s/g, "");
 const fmt14230Ok = Math.abs(sig2Round(14230) - 14000) < 1e-9 && (fmt14230Compact === "14000" || /14\s*000/.test(fmt14230));
 const prodUsesSig2 =
-  app.includes("fmtSig2(r.kWhDay)") &&
-  app.includes("fmtSig2(r.kWh)") &&
-  app.includes("fmtSig2(r.kW)") &&
+  /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
+  app.includes("fmtShown(r.kWhDay, 2)") &&
+  app.includes("fmtShown(r.kWh, 0)") &&
+  app.includes("fmtShown(r.kW, 2)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1009,8 +1463,10 @@ const fmtMoneySig2Ok =
   !/15675/.test(fmtMoney15675Compact);
 const totalUsesSig2 =
   app.includes("function fmtMoneySig2") &&
-  /\$\("lineTotal"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
-  /\$\("kpiReel"\)\.textContent = fmtMoneySig2\(r\.reel\)/.test(app) &&
+  app.includes("function fmtShownMoney") &&
+  /function fmtShownMoney\(n\)[\s\S]{0,280}return fmtMoneySig2\(n\)/.test(app) &&
+  /\$\("lineTotal"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
+  /\$\("kpiReel"\)\.textContent = fmtShownMoney\(r\.reel\)/.test(app) &&
   !/\$\("lineTotal"\)\.textContent = fmtMoney\(r\.reel\)/.test(app);
 console.log(`  sig2Round table 14230→14000, 874→870, 12.53→13: ${sig2RoundOk ? "PASS" : "FAIL"}`);
 console.log(`  fmtSig2(14230) → ${JSON.stringify(fmt14230)} (expect 14 000 / 14000): ${fmt14230Ok ? "PASS" : "FAIL"}`);
@@ -1193,16 +1649,391 @@ console.log(`  honeypot ignored path (200 ok ignored): ${bugHpIgnoredPath ? "PAS
 console.log(`  proxy validate min / no-token / CORS: ${bugMinPath && bugNoTokenPath && bugCors ? "PASS" : "FAIL"}`);
 console.log(`  api/bug-report Netlify handler: ${netlifyApiFn ? "PASS" : "FAIL"}`);
 console.log(`  bug modal in footer (visible webi): ${footerOpen ? "PASS" : "FAIL"}`);
+const bugDockUi =
+  html.includes('id="bugFab"') &&
+  html.includes('class="bug-fab"') &&
+  html.includes('aria-controls="bugModal"') &&
+  html.includes("Signaler un bug, une erreur de calcul ou une amélioration") &&
+  css.includes(".bug-fab") &&
+  css.includes("#bugModal.bug-dock") &&
+  css.includes("min-width: 900px") &&
+  css.includes("pointer-events: none") &&
+  app.includes('const BUG_DOCK_QUERY = "(min-width: 900px)"') &&
+  app.includes("function bugDockViewport") &&
+  app.includes("bug-dock") &&
+  app.includes('m.setAttribute("aria-modal", dock ? "false" : "true")') &&
+  app.includes("activeModalId === \"bugModal\" && bugDockViewport()") &&
+  !css.includes(".bug-modal");
 console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" : "FAIL"}`);
+console.log(`  bug dock desktop + bubble, other sheets unchanged: ${bugDockUi ? "PASS" : "FAIL"}`);
+const bugWindowPolish =
+  html.includes('class="bug-fab-icon"') &&
+  html.includes("M8.8 6.1 6.6 3.2") &&
+  html.includes("M15.8 17.6 19.2 20.6") &&
+  !html.includes("M5 4.75h14") &&
+  html.includes('id="bugDone"') &&
+  html.includes(">Done<") &&
+  !html.includes('id="bugSuccess"') &&
+  !html.includes("btnBugOk") &&
+  css.includes(".bug-done") &&
+  css.includes(".bug-done, footer.bug") &&
+  app.includes("function showBugDone") &&
+  app.includes("function bugShortcutTarget") &&
+  app.includes("e.metaKey || e.ctrlKey") &&
+  app.includes('setTimeout(hideBugDone, 1000)') &&
+  !app.includes("function showBugSuccess") &&
+  bugDocsSrc.includes("Command+Entrée") &&
+  bugDocsSrc.includes("Done");
+console.log(`  bug icon, Done toast, Command+Enter: ${bugWindowPolish ? "PASS" : "FAIL"}`);
 console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAIL"}`);
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
+
+function makeClassList() {
+  const set = new Set();
+  return {
+    add() { for (const x of arguments) set.add(x); },
+    remove() { for (const x of arguments) set.delete(x); },
+    toggle(name, force) {
+      const has = set.has(name);
+      const next = force === undefined ? !has : !!force;
+      if (next) set.add(name); else set.delete(name);
+      return next;
+    },
+    contains(name) { return set.has(name); }
+  };
+}
+
+function makeEl(id) {
+  const listeners = {};
+  const attrs = {};
+  return {
+    id,
+    value: "",
+    checked: false,
+    hidden: false,
+    textContent: "",
+    innerHTML: "",
+    type: "",
+    selectionStart: 0,
+    selectionEnd: 0,
+    childElementCount: 0,
+    style: {},
+    attrs,
+    classList: makeClassList(),
+    setAttribute(k, v) { attrs[k] = String(v); },
+    getAttribute(k) { return Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : null; },
+    removeAttribute(k) { delete attrs[k]; },
+    addEventListener(type, fn) { (listeners[type] || (listeners[type] = [])).push(fn); },
+    dispatchEvent(ev) {
+      const type = ev && ev.type;
+      (listeners[type] || []).forEach((fn) => fn(ev));
+    },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    appendChild() { this.childElementCount += 1; return this; },
+    setSelectionRange() {},
+    focus() {},
+    closest() { return null; },
+    contains() { return false; },
+    getBoundingClientRect() { return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 }; }
+  };
+}
+
+async function bootScenario(search, hash) {
+  const els = {};
+  const listeners = {};
+  const pending = [];
+  const htmlEl = makeEl("html");
+  const bodyEl = makeEl("body");
+  const location = {
+    pathname: "/solutionera-calculateur-solaire-staging/",
+    search: search || "",
+    hash: hash || "",
+    href: ""
+  };
+  function refreshHref() {
+    location.href = "https://example.test" + location.pathname + location.search + location.hash;
+  }
+  refreshHref();
+  const history = {
+    state: null,
+    pushCount: 0,
+    replaceCount: 0,
+    pushState() { history.pushCount += 1; },
+    replaceState(_state, _title, url) {
+      history.replaceCount += 1;
+      history.state = _state;
+      const hashIdx = url.indexOf("#");
+      const hashPart = hashIdx >= 0 ? url.slice(hashIdx) : "";
+      const before = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+      const qIdx = before.indexOf("?");
+      location.pathname = qIdx >= 0 ? before.slice(0, qIdx) : before;
+      location.search = qIdx >= 0 ? before.slice(qIdx) : "";
+      location.hash = hashPart;
+      refreshHref();
+    }
+  };
+  const document = {
+    documentElement: htmlEl,
+    body: bodyEl,
+    readyState: "loading",
+    visibilityState: "visible",
+    activeElement: null,
+    getElementById(id) {
+      if (!els[id]) els[id] = makeEl(id);
+      return els[id];
+    },
+    addEventListener(type, fn) {
+      const tracked = function () {
+        const ret = fn.apply(this, arguments);
+        if (ret && typeof ret.then === "function") pending.push(ret);
+        return ret;
+      };
+      (listeners[type] || (listeners[type] = [])).push(tracked);
+    },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    createElementNS() { return makeEl("ns"); },
+    contains() { return true; }
+  };
+  const sandbox = {
+    URLSearchParams,
+    Promise,
+    setTimeout,
+    clearTimeout,
+    console,
+    location,
+    history,
+    document,
+    navigator: { userAgent: "scenario-test" },
+    fetch: async function () {
+      return {
+        ok: true,
+        json: async function () {
+          return {
+            cells: {
+              "30": { "180": { ac_annual: 1254.8064, W_winter: 0.17, ac_monthly: { dec: 53.274 } } }
+            }
+          };
+        }
+      };
+    }
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.addEventListener = function () {};
+  sandbox.removeEventListener = function () {};
+  runInNewContext(modeSrc, sandbox, { filename: "display-mode.js" });
+  runInNewContext(app, sandbox, { filename: "app.js" });
+  (listeners.DOMContentLoaded || []).forEach((fn) => fn());
+  await Promise.race([
+    Promise.all(pending),
+    new Promise((_resolve, reject) => setTimeout(() => reject(new Error("scenario boot timeout")), 2000))
+  ]);
+  return {
+    location,
+    history,
+    api: sandbox.SolarCalcV02,
+    el(id) { return document.getElementById(id); }
+  };
+}
+
+function scenarioSnapshot(page) {
+  const calc = page.api.calc();
+  return {
+    search: page.location.search,
+    hash: page.location.hash,
+    pathname: page.location.pathname,
+    area: page.el("area").value,
+    unit: page.el("unitSqft").getAttribute("aria-pressed") === "true" ? "sqft" : "m2",
+    util: page.el("util").value,
+    orient: page.el("orient").value,
+    tilt: page.el("tilt").value,
+    deneige: page.el("deneige").value,
+    priceW: page.el("priceW").value,
+    taxes: page.el("taxes").checked,
+    subv: page.el("subv").checked,
+    conso: page.el("conso").value,
+    rate: page.el("rate").value,
+    m2: calc.m2,
+    push: page.history.pushCount
+  };
+}
+
+function fireInput(page, id, value) {
+  const el = page.el(id);
+  el.value = value;
+  el.dispatchEvent({ type: "input", target: el });
+}
+
+const scenarioOk = await (async function runScenarioUrlTests() {
+  const fails = [];
+  function expect(cond, msg) {
+    if (!cond) fails.push(msg);
+  }
+  function fullSearch(over) {
+    const s = Object.assign({
+      mode: "full",
+      ville: "quebec",
+      area: 40,
+      unit: "m2",
+      util: 80,
+      orient: 180,
+      tilt: 45,
+      deneige: 100,
+      priceW: "3",
+      taxes: "1",
+      subv: "1",
+      conso: 17000,
+      rate: "12.811",
+      consoJour: "0",
+      consoExtra: "0"
+    }, over || {});
+    const p = new URLSearchParams();
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+      p.set(key, String(s[key]));
+    });
+    return "?" + p.toString();
+  }
+  const roundTrips = [
+    ["", ""],
+    ["?mode=webi", "?mode=webi"],
+    ["?mode=WEBI", "?mode=webi"],
+    ["?mode=webinar", "?mode=webi"],
+    ["?mode=full", ""],
+    ["?mode=banana", ""],
+    ["?foo=1", ""],
+    ["?area=40&unit=sqft", fullSearch({ area: 40, unit: "sqft" })],
+    ["?unit=pi2&area=100", fullSearch({ area: 100, unit: "sqft" })],
+    ["?unit=m2&area=40", fullSearch()],
+    [
+      "?util=70&orient=90&tilt=45&deneige=0&priceW=3.5&taxes=0&subv=0&conso=12000&rate=9.53",
+      fullSearch({ util: 70, orient: 90, tilt: 45, deneige: 0, priceW: "3.5", taxes: "0", subv: "0", conso: 12000, rate: "9.53" })
+    ],
+    ["?mode=webi&area=0&conso=0&orient=0", fullSearch({ mode: "webi", area: 0, conso: 0, orient: 0 })],
+    [
+      "?tilt=31&orient=190&util=10&priceW=9&rate=nope&conso=abc",
+      fullSearch({ util: 60, orient: 195, tilt: 30, priceW: "4.5" })
+    ],
+    ["?taxes=off&subv=non&rate=9,53", fullSearch({ taxes: "0", subv: "0", rate: "9.53" })],
+    [
+      "?orient=-15&tilt=90&deneige=100&util=100&priceW=2.5",
+      fullSearch({ util: 100, orient: 345, tilt: 90, deneige: 100, priceW: "2.5" })
+    ],
+    ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
+    ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
+    ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
+    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })],
+    ["?ville=alma", fullSearch({ ville: "alma" })],
+    ["?ville=quebec", fullSearch()],
+    ["?ville=../x", fullSearch()]
+  ];
+  for (const [input, canonical] of roundTrips) {
+    const first = await bootScenario(input, "#main");
+    expect(first.location.search === canonical, `canonical ${input} → ${first.location.search} want ${canonical}`);
+    expect(first.location.hash === "#main", `hash kept for ${input}`);
+    expect(first.location.pathname === "/solutionera-calculateur-solaire-staging/", `path kept for ${input}`);
+    expect(first.history.pushCount === 0, `no pushState for ${input}`);
+    const again = await bootScenario(first.location.search, first.location.hash);
+    const a = scenarioSnapshot(first);
+    const b = scenarioSnapshot(again);
+    expect(JSON.stringify(a) === JSON.stringify(b), `round-trip fields ${input}: ${JSON.stringify(a)} vs ${JSON.stringify(b)}`);
+    expect(again.location.search === first.location.search, `stable search ${input}`);
+  }
+
+  const sq = await bootScenario("?area=40&unit=sqft", "#bugModal");
+  expect(sq.el("area").value === "40", "sqft link keeps area 40");
+  expect(sq.el("unitM2").getAttribute("aria-pressed") === "false", "m2 not pressed");
+  expect(sq.el("printUnit").textContent === "pi²", "print unit pi²");
+  const sqM2 = sq.api.calc().m2;
+  expect(Math.abs(sqM2 - 40 / 10.76391041671) < 1e-6, `40 sqft m2=${sqM2}`);
+
+  const live = await bootScenario("", "#main");
+  expect(live.el("tilt").value === "45", "default roof inclination is 45°");
+  expect(live.location.search === "", "bare URL stays bare");
+  expect(live.el("subv").checked === true, "LogisVert default on");
+  expect(live.el("taxes").checked === true, "taxes default on");
+  expect(live.el("conso").value === "17 000", "conso default grouped");
+  expect(live.api.dailyLoadKwh(0, 0) === 0, "ladder step 0 is 0");
+  expect(live.api.dailyLoadKwh(1, 0) === 0.1, "phone is 0.1 kWh/j");
+  expect(live.api.dailyLoadKwh(2, 0) === 0.6, "phone + computer");
+  expect(live.api.dailyLoadKwh(5, 0) === 2.3, "through water pump");
+  expect(live.api.dailyLoadKwh(6, 0) === 3.5, "through fridge");
+  expect(live.api.dailyLoadKwh(9, 0) === 6.3, "full ladder 6.3 kWh/j");
+  expect(live.api.dailyLoadKwh(9, 1.2) === 7.5, "custom adds on top");
+  expect(live.api.dailyLoadKwh(3, "0,5") === 1.6, "comma extra");
+  expect(live.api.clampExtraKwh("250") === 100, "extra caps at 100");
+  expect(live.api.fmtKwhDay(6.3) === "6,3", "fmt kWh/j FR");
+  expect(live.el("consoJour").value === "0", "daily slider starts at 0");
+  expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
+  fireInput(live, "util", "80");
+  const fullDefault = fullSearch();
+  expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+    expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
+  });
+  fireInput(live, "util", "81");
+  fireInput(live, "util", "82");
+  fireInput(live, "util", "83");
+  fireInput(live, "util", "84");
+  fireInput(live, "util", "85");
+  expect(live.location.search === fullSearch({ util: 85 }), `live util → ${live.location.search}`);
+  expect(live.location.hash === "#main", "live edit keeps hash");
+  expect(live.history.pushCount === 0, "slider ticks do not push history");
+  const afterSlider = live.history.replaceCount;
+  fireInput(live, "util", "85");
+  expect(live.history.replaceCount === afterSlider, "unchanged value does not replaceState again");
+  fireInput(live, "area", "55.4");
+  expect(live.el("area").value === "55", "area rounds to integer");
+  live.el("bugName").value = "secret-name";
+  live.el("bugText").value = "secret-bug-text";
+  live.el("unitSqft").dispatchEvent({ type: "click", target: live.el("unitSqft") });
+  const sqftArea = String(Math.round(55 * 10.76391041671));
+  expect(live.el("area").value === sqftArea, `unit click converts area to ${sqftArea}, got ${live.el("area").value}`);
+  expect(live.location.search === fullSearch({ area: sqftArea, unit: "sqft", util: 85 }), `live unit URL ${live.location.search}`);
+  expect(!live.location.href.includes("secret"), "bug text stays out of the URL");
+  const shared = await bootScenario(live.location.search, live.location.hash);
+  expect(shared.el("area").value === sqftArea, "shared area");
+  expect(shared.el("util").value === "85", "shared util");
+  expect(shared.el("unitSqft").getAttribute("aria-pressed") === "true", "shared unit");
+  expect(Math.abs(shared.api.calc().m2 - live.api.calc().m2) < 1e-9, "shared m2 matches");
+
+  const flags = await bootScenario("?taxes=0&subv=0&conso=0&rate=9.53");
+  expect(flags.el("taxes").checked === false, "taxes off");
+  expect(flags.el("subv").checked === false, "subv off");
+  expect(flags.el("conso").value === "", "conso 0 clears the field");
+  expect(flags.api.calc().conso == null, "conso 0 means no cap");
+  expect(Math.abs(flags.api.calc().rateOk - 0.0953) < 1e-9, "rate 9.53 ¢");
+  fireInput(flags, "conso", "");
+  expect(flags.location.search.includes("conso=0"), `cleared conso stays in URL ${flags.location.search}`);
+
+  const webi = await bootScenario("?mode=webi&priceW=4");
+  expect(webi.api.displayMode === "webi", "webi mode kept");
+  expect(webi.location.search === fullSearch({ mode: "webi", priceW: "4" }), `partial webi link expands → ${webi.location.search}`);
+  fireInput(webi, "deneige", "40");
+  expect(webi.location.search === fullSearch({ mode: "webi", deneige: 40, priceW: "4" }), `webi live ${webi.location.search}`);
+
+  const prefs = await bootScenario("");
+  expect(prefs.el("showDetails").checked === false, "details off by default");
+  expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
+  expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
+  expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+
+  if (fails.length) {
+    fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
+  }
+  return fails.length === 0;
+})();
+console.log(`  scenario URL live round-trip: ${scenarioOk ? "PASS" : "FAIL"}`);
 
 const pass =
   ok &&
   !bad &&
   annualOk &&
   cellsOk &&
+  townDataOk &&
+  fetchJobOk &&
   wTiltOk &&
   hasFetch &&
   hasFallback &&
@@ -1240,7 +2071,8 @@ const pass =
   logisDefault &&
   logisCopy &&
   subvDefaultJs &&
-  noBattery &&
+  batteryColumn &&
+  designRules &&
   infoBtn &&
   tiltViz &&
   gridStatusUi &&
@@ -1294,6 +2126,7 @@ const pass =
   hasConsoWired &&
   hasSurplusAlertCss &&
   surplusClampMath &&
+  hasConsoJourUi &&
   defaultRateTtc &&
   rateNormPass &&
   rateBug59Pass &&
@@ -1307,11 +2140,16 @@ const pass =
   orientDialMobile &&
   areaInstallLabel &&
   deneigeTip &&
+  deneigeEnds &&
   modeDefaultFull &&
   modeWebiOk &&
   htmlModeDefault &&
   htmlModeScript &&
   htmlAllowlist &&
+  htmlSplit1A &&
+  htmlSplit1B &&
+  menuYieldOk &&
+  htmlProdBVisible &&
   cssHidesFull &&
   cssHidesWebiOnly &&
   htmlWebiBadge &&
@@ -1321,8 +2159,12 @@ const pass =
   prodPillAnnual &&
   prodPillEqualType &&
   prodKwC &&
+  productiblePill &&
   prodNoWave &&
   dayOk &&
+  snowCoverOk &&
+  recFn &&
+  shortfallInFill &&
   themeLogicOk &&
   htmlThemeToggle &&
   themeSwipe &&
@@ -1346,10 +2188,13 @@ const pass =
   netlifyApiFn &&
   footerOpen &&
   bugMobileCss &&
+  bugDockUi &&
+  bugWindowPolish &&
   bugJsWired &&
   noTokenInFrontend &&
   bugDocs &&
-  bugWorkflow;
+  bugWorkflow &&
+  scenarioOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
