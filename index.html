@@ -341,7 +341,7 @@
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
     </section>
 
-    <div class="slot-yield" id="sec-yield" data-slot="yield">
+    <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
       <div class="result-pill" id="mesuragePill">
         <div class="label">Mesurage Net</div>
         <div class="big prod-line" id="outKwh">
@@ -349,7 +349,6 @@
           <span class="prod-unit">kWh / an</span>
         </div>
       </div>
-      <div class="chapter-row" id="chapterRow">
       <div class="yield-auto" id="yieldAuto">
         <div class="result-pill dec-daily">
           <div class="label">Autonomie</div>
@@ -364,9 +363,10 @@
           </p>
         </aside>
       </div>
-      <!-- 4A · appareils. 4B · durée, à la hauteur du jour de décembre. -->
-      <div class="slot-need" data-slot="need" id="slot-need">
-    <div id="autonomyAnchor" class="autonomy-anchor"></div>
+    </div>
+
+    <!-- 4A · appareils. 4B · durée, colonne de droite. -->
+    <div class="slot-need" data-slot="need" id="slot-need">
     <section class="block mode-full-only theme-blue" id="sec-auto" aria-labelledby="h-auto">
       <h2 id="h-auto">
         <span class="num">4A</span>
@@ -467,8 +467,6 @@
         </div>
       </div>
     </section>
-        </div>
-      </div>
     </div>
 
     <section class="result-pill mode-full-only slot-fill autonomy-rest theme-blue" id="sec-fill" data-slot="fill" aria-labelledby="h-fill">

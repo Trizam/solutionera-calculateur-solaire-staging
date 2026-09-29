@@ -323,9 +323,6 @@ html[data-theme="dark"] .theme-blue {
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
 }
-.autonomy-anchor {
-  display: none;
-}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -979,62 +976,28 @@ section.block > h2,
 .autonomy-snow-rec {
   margin: 0;
 }
+/* Mesurage et le jour de décembre sont les deux cases de la rangée.
+   La note de neige occupe la ligne du dessous, sous ce jour. */
 .slot-yield {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
   align-items: stretch;
   min-width: 0;
 }
-.slot-yield > .result-pill,
-.chapter-row .result-pill {
-  margin-top: 0;
-}
-.chapter-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  min-width: 0;
-}
-/* Webi: mesurage | décembre, neige sous décembre. 4A/4B are .mode-full-only.
-   display:contents lets the December pill join this grid. */
-html[data-mode="webi"] #sec-yield {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  gap: 0.65rem;
-}
-html[data-mode="webi"] #chapterRow {
-  display: contents;
-}
-html[data-mode="webi"] #sec-yield > .result-pill {
+.slot-yield > .result-pill {
   grid-column: 1;
   grid-row: 1;
+  margin-top: 0;
 }
-html[data-mode="webi"] .yield-auto > .result-pill {
+.yield-auto > .result-pill {
   grid-column: 2;
   grid-row: 1;
 }
-html[data-mode="webi"] .yield-auto .autonomy-snow {
+.yield-auto .autonomy-snow {
   grid-column: 2;
   grid-row: 2;
   margin-top: 0;
 }
-html[data-mode="webi"] #sec-yield > .result-pill,
-html[data-mode="webi"] .yield-auto > .result-pill {
-  padding: 0.85rem 0.65rem;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-html[data-mode="webi"] #sec-yield .result-pill .big {
-  font-size: 1.45rem;
-}
 @media (max-width: 520px) {
-  html[data-mode="webi"] .yield-auto .autonomy-snow {
-    grid-column: 1 / -1;
-  }
+  .slot-yield .autonomy-snow { grid-column: 1 / -1; }
 }
 .field-conso-jour {
   margin-top: var(--section-hairline-pad);
@@ -1256,9 +1219,6 @@ html[data-mode="webi"] #sec-yield .result-pill .big {
 }
 .yield-auto {
   display: contents;
-}
-.yield-auto .autonomy-snow {
-  margin-top: 0;
 }
 .fill-shortfall {
   margin: 0.75rem 0 0;
@@ -2175,11 +2135,10 @@ section.block h2 .field-info-btn {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "size size"
-      "prod prod"
-      "yield yield"
-      "cost fill"
-      "roi batt"
+      "size need"
+      "prod need"
+      "yield fill"
+      "cost batt"
       "roi total";
     column-gap: var(--board-gap);
     row-gap: 1rem;
@@ -2187,6 +2146,7 @@ section.block h2 .field-info-btn {
   }
   html:not([data-mode="webi"]) .slot-size { grid-area: size; align-self: start; }
   html:not([data-mode="webi"]) .slot-prod { grid-area: prod; align-self: start; }
+  html:not([data-mode="webi"]) .slot-need { grid-area: need; }
   html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
   html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
   html:not([data-mode="webi"]) .slot-cost { grid-area: cost; align-self: start; }
@@ -2198,32 +2158,13 @@ section.block h2 .field-info-btn {
     grid-row: fill-start / total-end;
     align-self: stretch;
   }
+  html:not([data-mode="webi"]) .slot-need,
   html:not([data-mode="webi"]) .slot-batt,
   html:not([data-mode="webi"]) .slot-total {
     display: flex;
     flex-direction: column;
   }
-  /* Chapter band: December day | 4A/4B. The green box stays its own height. */
-  html:not([data-mode="webi"]) #chapterRow {
-    display: grid;
-    align-items: start;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    grid-template-areas:
-      "day need"
-      "snow need";
-    column-gap: 1.15rem;
-    row-gap: 0.65rem;
-  }
-  html:not([data-mode="webi"]) .yield-auto > .result-pill {
-    grid-area: day;
-  }
-  html:not([data-mode="webi"]) #autonomySnow {
-    grid-area: snow;
-  }
-  html:not([data-mode="webi"]) #chapterRow > .slot-need {
-    grid-area: need;
-    align-self: start;
-  }
+  html:not([data-mode="webi"]) .slot-need { align-self: start; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
   html:not([data-mode="webi"]) .flow-arrow {
