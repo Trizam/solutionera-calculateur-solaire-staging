@@ -696,7 +696,11 @@ const hasConsoJourUi =
   html.includes('id="consoJourList"') &&
   html.includes('id="consoJourTotal"') &&
   html.includes("tpl-info-conso-jour") &&
-  html.includes("Le plus lourd en haut") &&
+  html.includes(">Usage<") &&
+  html.indexOf('id="consoJourTable"') < html.indexOf('id="consoJour"') &&
+  !html.includes("load-chip") &&
+  !app.includes("load-chip") &&
+  !html.includes("Le plus lourd en haut") &&
   html.includes("Pas de durée, pas de batterie") &&
   !html.includes("Le jour de décembre, les appareils et les batteries s’ouvrent") &&
   html.includes("Le retour à gauche ne compte que les panneaux.") &&

@@ -384,32 +384,14 @@
         </button>
       </h2>
       <div class="field field-conso-jour" id="field-conso-jour">
-        <div class="load-stage is-empty">
-          <p class="load-read" id="loadRead" hidden>Le plus lourd en haut.</p>
-          <div class="load-devices is-empty" id="consoJourList" role="list" aria-label="Appareils inclus dans la consommation par jour" aria-live="polite"></div>
-          <div class="slider-ends">
-            <span>0</span>
-            <span>maison pleinement autonome</span>
-          </div>
-          <div class="prod-control-row slider-row">
-            <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh/j</div>
-            <div class="slider-track">
-              <input id="consoJour" type="range" min="0" max="400" step="1" value="0" aria-label="Consommation par jour en kilowattheures" aria-valuemin="0" aria-valuemax="40" aria-valuenow="0" aria-valuetext="0 kilowattheure par jour" aria-describedby="consoJourHint" />
-              <div class="load-marks" aria-hidden="true">
-                <span class="load-mark" style="--mark: 0.1575">appareils de base</span>
-                <span class="load-mark" style="--mark: 0.45">chauffage</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="hint" id="consoJourHint">La valeur est la consommation du jour. Les appareils s’ajoutent au-dessus du curseur.</p>
-        <table class="load-table load-summary is-empty" id="consoJourTable" aria-label="Autre consommation et total par jour">
+        <table class="load-table is-empty" id="consoJourTable" aria-label="Appareils inclus dans la consommation par jour">
           <thead>
             <tr>
               <th scope="col">Usage</th>
               <th scope="col">kWh / j</th>
             </tr>
           </thead>
+          <tbody id="consoJourList"></tbody>
           <tbody>
             <tr class="load-custom-row">
               <th scope="row"><label for="consoExtra">Autre consommation</label></th>
@@ -426,6 +408,21 @@
             </tr>
           </tbody>
         </table>
+        <div class="slider-ends">
+          <span>0</span>
+          <span>maison pleinement autonome</span>
+        </div>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh/j</div>
+          <div class="slider-track">
+            <input id="consoJour" type="range" min="0" max="400" step="1" value="0" aria-label="Consommation par jour en kilowattheures" aria-valuemin="0" aria-valuemax="40" aria-valuenow="0" aria-valuetext="0 kilowattheure par jour" aria-describedby="consoJourHint" />
+            <div class="load-marks" aria-hidden="true">
+              <span class="load-mark" style="--mark: 0.1575">appareils de base</span>
+              <span class="load-mark" style="--mark: 0.45">chauffage</span>
+            </div>
+          </div>
+        </div>
+        <p class="hint" id="consoJourHint">La valeur est la consommation du jour. Le tableau au-dessus détaille les appareils.</p>
         <p class="calc-line" id="consoJourNote" hidden></p>
       </div>
     </section>
@@ -894,7 +891,7 @@
     <span data-info-title>Quels appareils je veux</span>
     <div class="info-block">
       <h4>Un seul curseur</h4>
-      <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Les appareils apparaissent au-dessus, le plus lourd en haut. La ligne libre ajoute des kWh/j en plus.</p>
+      <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Le tableau au-dessus liste les appareils, du plus léger au plus lourd. La ligne libre ajoute des kWh/j en plus.</p>
       <p>Ce total dimensionne la réserve. Ce n’est pas la facture annuelle, qui sert encore aux économies et au retour solaire.</p>
     </div>
   </template>
@@ -956,7 +953,7 @@
     <span data-info-title>Quels appareils je veux</span>
     <div class="info-block">
       <h4>En autonomie</h4>
-      <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Les appareils apparaissent au-dessus, le plus lourd en haut.</p>
+      <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Le tableau au-dessus liste les appareils, du plus léger au plus lourd.</p>
       <p>Un repère «&nbsp;appareils de base&nbsp;» marque 6,3&nbsp;kWh/j. Le repère «&nbsp;chauffage&nbsp;» marque 18&nbsp;kWh/j, là où le chauffe-eau entre. À droite, une maison pleinement autonome. Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
     </div>
     <div class="info-block">

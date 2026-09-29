@@ -80,7 +80,7 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), deu
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
 | Rendement | Mesurage net et le jour de décembre | Paire de boîtes vertes, à gauche, même hauteur. La neige reste sous le jour |
-| Besoin **4A** | Quels appareils je veux | Curseur de 0 à « maison pleinement autonome ». Repère « appareils de base » à 6,3 kWh/j, repère « chauffage » à 18. Le plus lourd en haut. Ligne libre conservée. Sans appareil, pas de bande vide |
+| Besoin **4A** | Quels appareils je veux | Curseur de 0 à « maison pleinement autonome ». Repère « appareils de base » à 6,3 kWh/j, repère « chauffage » à 18. Le tableau Usage / kWh/j est au-dessus du curseur, du plus léger au plus lourd. Ligne libre conservée. Sans appareil, pas de bande vide |
 | Durée **4B** | Pendant combien de temps je veux cette autonomie | Sous 4A, dans la colonne bleue. Secours jusqu’à 12 h. Autonomie de maison dès 1 jour, cran marqué « maison » |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |

@@ -1102,58 +1102,7 @@ section.block > h2,
 .load-table + .calc-line {
   margin-top: 0.55rem;
 }
-.load-table.load-summary thead { display: none; }
-.load-table.load-summary .load-custom-row th,
-.load-table.load-summary .load-total-row th {
-  padding-left: 0;
-}
-/* Devices sit above the slider, packed against its top edge, and fill
-   upward. The band is reserved up front (it does not grow), so the slider
-   and the viewport stay put. Heights cover 14 chips after wrap:
-   ~230px below 400px wide, ~142px from 480px, ~112px from 700px,
-   ~142px again in the desktop half-column (≥1100px). */
-.load-stage {
-  position: relative;
-  padding-top: 15.75rem;
-}
-.load-devices {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: calc(15.75rem - 0.45rem);
-  display: flex;
-  flex-wrap: wrap-reverse;
-  align-items: flex-end;
-  align-content: flex-start;
-  gap: 0.35rem;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 2;
-}
-@media (min-width: 480px) {
-  .load-stage { padding-top: 10rem; }
-  .load-devices { height: calc(10rem - 0.45rem); }
-}
-@media (min-width: 700px) {
-  .load-stage { padding-top: 8.25rem; }
-  .load-devices { height: calc(8.25rem - 0.45rem); }
-}
-@media (min-width: 1100px) {
-  .load-stage { padding-top: 10rem; }
-  .load-devices { height: calc(10rem - 0.45rem); }
-}
-/* Empty: one line, no reserved band. Specificity beats the media paddings. */
-.load-stage.is-empty { padding-top: 0; }
-.load-stage.is-empty .load-devices,
-.load-devices.is-empty { display: none; }
-.load-read {
-  margin: 0 0 0.35rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-.load-read[hidden] { display: none !important; }
+.load-table + .slider-ends { margin-top: 0.85rem; }
 .load-marks {
   position: relative;
   height: 1.65rem;
@@ -1182,25 +1131,6 @@ section.block > h2,
   border-radius: 999px;
   background: var(--border);
 }
-.load-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  max-width: 100%;
-  padding: 0.18rem 0.5rem 0.18rem 0.38rem;
-  border-radius: 999px;
-  background: var(--green-soft);
-  color: var(--green-dark);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.load-chip .load-kwh {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
 .slider-ends {
   display: flex;
   justify-content: space-between;
@@ -1214,9 +1144,6 @@ section.block > h2,
 }
 .slider-ends span:last-child { text-align: right; }
 #sec-auto { --prod-gutter: 9rem; }
-@media (prefers-reduced-motion: reduce) {
-  .load-chip { transition: none; }
-}
 .yield-auto {
   display: contents;
 }

@@ -461,24 +461,19 @@
 
   function renderDailyLoadRows(tenths) {
     const body = $("consoJourList");
+    const table = $("consoJourTable");
     if (!body) return;
     const n = loadsVisibleCount(tenths);
     let html = "";
     for (let i = 0; i < n; i++) {
       const load = DAILY_LOADS[i];
-      html += "<span class=\"load-chip\" role=\"listitem\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span><span class=\"load-kwh\">" + fmtKwhDay(load.tenths / 10) + "</span></span>";
+      html += "<tr><th scope=\"row\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span></th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
     }
     body.innerHTML = html;
-    body.classList.toggle("is-empty", n === 0);
-    if (n === 0) body.setAttribute("aria-hidden", "true");
-    else body.removeAttribute("aria-hidden");
-    const stage = typeof body.closest === "function" ? body.closest(".load-stage") : null;
-    if (stage) stage.classList.toggle("is-empty", n === 0);
-    const read = $("loadRead");
-    if (read) read.hidden = n === 0;
+    if (table) table.classList.toggle("is-empty", n === 0);
   }
 
-  /** Slider kWh; chips above it; total line adds the free kWh/day. Note vs December. */
+  /** Slider kWh; the device table sits above it. Total line adds the free kWh/day. Note vs December. */
   function updateConsoJourUi(prodDay) {
     const tenths = sliderTenths();
     const extra = consoExtraKwh();
