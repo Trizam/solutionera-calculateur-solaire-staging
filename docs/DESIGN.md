@@ -19,7 +19,7 @@ Deux hauteurs, selon le type de boîte.
 
 - Une grande carte (`.block`, case du plateau) prend la hauteur de son contenu. Le voisin ne l’étire pas. Sur le grand écran, chaque case du `.board` reste à cette hauteur (`align-self: start`), y compris 1A et 1B. Le statut de grille en bas de 1B ne garde pas de ligne vide une fois la grille prête.
 - Les boîtes vertes côte à côte ont toujours la même hauteur : celle de la plus haute de la rangée. Ça vaut pour une paire `.result-pair` (`.result-pill`) et pour le trio `.cards` (`.card-kpi`). La rangée étire (`align-items: stretch`). Dans une paire, le texte est centré. Dans le trio, le chiffre reste en haut.
-- Le plafond des économies (`.kpi-note`) est un drapeau jaune sous le trio, comme la note de neige. Le texte est centré, en graisse normale. Il ne rentre pas dans la carte du milieu et n’allonge pas les trois boîtes.
+- Le plafond des économies (`.surplus-alert`) est un drapeau jaune sous le trio, comme la note de neige. Il n’apparaît que si la production dépasse la consommation. Le texte est à gauche, en graisse normale, avec un titre en gras. Il ne rentre pas dans la carte du milieu et n’allonge pas les trois boîtes.
 - Dans le rendement, Mesurage net et Autonomie sont les deux boîtes de la rangée. La note de neige (`.autonomy-snow`) reste sous Autonomie. Elle n’allonge pas Mesurage net. En pile étroite (≤ 520px) elle passe sous les deux.
 - La flèche `.flow-arrow` est dans la carte de remplissage. Au grand écran elle est centrée (`top: 50%`) dans l’espace entre les deux colonnes. En pile étroite elle est masquée.
 - Curseur : reprendre `.slider-row`. La valeur de gauche (`.slider-val-left`) a exactement la hauteur du pouce (`--slider-hit`, 44px) et son centre est aligné sur la ligne du pouce.
@@ -55,7 +55,7 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 
 ## 1 ter. Thème jaune
 
-Les drapeaux portent `.theme-yellow` : la note de neige, le plafond des économies, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
+Les drapeaux portent `.theme-yellow` : la note de neige, la bannière de surplus (rachat HQ), et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
 
 ## 4. Case « Je veux les détails »
 

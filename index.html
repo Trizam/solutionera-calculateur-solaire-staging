@@ -592,7 +592,10 @@
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
-      <p class="kpi-note theme-yellow" id="kpiEcoNote" hidden role="status">Plafonné à votre consommation annuelle (on ne peut pas économiser plus que ce qu’on consomme).</p>
+      <p class="surplus-alert theme-yellow" id="surplusAlert" hidden role="status">
+        <strong>Moins optimal : tu produis plus que tu consommes.</strong>
+        Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
+      </p>
       <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
       <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
 
@@ -646,7 +649,7 @@
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
-        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec).</li>
+        <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Au-delà, une bannière jaune rappelle le rachat HQ du surplus (4,730&nbsp;¢/kWh, art.&nbsp;2.51) — moins payant que le kWh évité.</li>
         <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur pédagogique, de 0 à environ 6,3&nbsp;kWh/j (téléphone → cuisson), plus une ligne libre. Sans chauffage électrique. Ce n’est pas la consommation annuelle de la facture.</li>
         <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée choisie (crans de 0 à 3 jours). À 0, la colonne autonomie (4B, remplissage, batteries, total) disparaît. Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
         <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>

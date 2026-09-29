@@ -11,6 +11,9 @@
   --border: #cfe3d4;
   --accent: #40916c;
   --warn: #bc6c25;
+  --caution: #8a5a12;
+  --caution-soft: #fff6e0;
+  --caution-border: #e8c98a;
   /* Flag note: light yellow like the green cards, same colors in both themes */
   --flag-bg: #fff4cc;
   --flag-bg-end: #fffbeb;
@@ -1252,19 +1255,32 @@ section.block > h2,
   word-spacing: 0.12em;
   white-space: nowrap;
 }
-.kpi-note {
-  margin: 0.65rem 0 0;
+.surplus-alert {
+  margin: 0.85rem 0 0;
   padding: 0.7rem 0.85rem;
   border-radius: 12px;
+  border: 1px solid var(--flag-border);
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
   font-size: 0.86rem;
   font-weight: 400;
   line-height: 1.4;
-  text-align: center;
+  text-align: left;
   overflow-wrap: break-word;
   hyphens: auto;
 }
-.kpi-note[hidden] {
+.surplus-alert[hidden] {
   display: none !important;
+}
+.surplus-alert strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.88rem;
+}
+.surplus-alert #surplusKwh {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
 }
 .btn {
   display: inline-flex;
@@ -2041,7 +2057,7 @@ section.block h2 .field-info-btn {
   .brand { margin-bottom: 0.5rem; }
   .brand-logo { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   section.block, header.hero, .disclaimers,
-  .result-pill, .result-pair, .autonomy-snow, .kpi-note, .breakdown, .cards, .card-kpi {
+  .result-pill, .result-pair, .autonomy-snow, .surplus-alert, .breakdown, .cards, .card-kpi {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none;
@@ -2051,7 +2067,7 @@ section.block h2 .field-info-btn {
   .town-list, .town-caret-btn { display: none !important; }
   .autonomy-snow,
   .fill-shortfall,
-  .kpi-note {
+  .surplus-alert {
     background: linear-gradient(135deg, #fff4cc, #fffbeb) !important;
     border: 1px solid #ead98a !important;
     color: #1a1a1a !important;

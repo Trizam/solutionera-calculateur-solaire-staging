@@ -19,6 +19,8 @@
   // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
   const DEFAULT_RATE_CENTS = 12.811; // champ tarif: ¢/kWh (2e tranche TTC)
   const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
+  /** HQ art. 2.51 — coût moyen de fourniture, 1 avr 2026. HT = TTC (pas de TPS/TVQ). */
+  const BUYBACK_RATE = 0.04730;
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
   /**
@@ -604,6 +606,10 @@
     const conso = consoAnnuelleKwh();
     const kWhCredites = creditKwh(kWh, conso);
     const ecoClamped = conso != null && kWh > conso;
+    const surplusKwh = ecoClamped ? kWh - conso : 0;
+    const surplusBuyback = surplusKwh * BUYBACK_RATE;
+    const surplusIfAvoided = surplusKwh * rateOk;
+    const surplusGap = Math.max(0, surplusIfAvoided - surplusBuyback);
     const eco = kWhCredites * rateOk;
     const years = eco > 0 ? reel / eco : Infinity;
 
@@ -629,7 +635,7 @@
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
-      conso, kWhCredites, ecoClamped,
+      conso, kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
@@ -928,8 +934,16 @@
     }
     $("kpiReel").textContent = fmtShownMoney(r.reel);
     $("kpiEco").textContent = fmtShownMoney(r.eco);
-    const note = $("kpiEcoNote");
-    if (note) note.hidden = !r.ecoClamped;
+    const alert = $("surplusAlert");
+    if (alert) {
+      alert.hidden = !r.ecoClamped;
+      if (r.ecoClamped) {
+        if ($("surplusKwh")) $("surplusKwh").textContent = fmtShown(r.surplusKwh, 0) + " kWh / an";
+        if ($("surplusBuyback")) $("surplusBuyback").textContent = fmtShownMoney(r.surplusBuyback);
+        if ($("surplusAvoidedRate")) $("surplusAvoidedRate").textContent = fmtNum(r.rateOk * 100, 2) + " ¢/kWh";
+        if ($("surplusGap")) $("surplusGap").textContent = fmtShownMoney(r.surplusGap);
+      }
+    }
     $("kpiYears").textContent = fmtYears(r.years);
     const yearText = !isFinite(r.years) || r.years <= 0
       ? "—"
@@ -2717,6 +2731,7 @@
       RATE_D_T2_HT,
       DEFAULT_RATE_CENTS,
       DEFAULT_RATE,
+      BUYBACK_RATE,
       DEFAULT_DENEIGEMENT,
       DEFAULT_CONSO_KWH,
       FALLBACK_S30
