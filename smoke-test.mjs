@@ -483,7 +483,8 @@ const batteryColumn =
   /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Quels appareils je veux<\/label>/.test(html) &&
   /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
   html.includes("Pendant combien de temps je veux cette autonomie") &&
-  html.includes("je veux de l’autonomie") &&
+  !html.includes('id="wantAutonomy"') &&
+  !html.includes("je veux de l’autonomie") &&
   html.indexOf('id="sec-auto"') < html.indexOf('id="sec-reserve"') &&
   /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
   /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
@@ -688,8 +689,8 @@ const hasConsoJourUi =
   html.includes("appareils de base") &&
   html.includes("maison pleinement autonome") &&
   html.includes("La valeur est la consommation du jour.") &&
-  html.includes('id="wantAutonomy"') &&
-  html.includes('data-want-autonomy="off"') &&
+  !html.includes('id="wantAutonomy"') &&
+  !html.includes("data-want-autonomy") &&
   html.includes('id="consoExtra"') &&
   html.includes("Autre consommation") &&
   html.includes('id="consoJourList"') &&
@@ -697,7 +698,7 @@ const hasConsoJourUi =
   html.includes("tpl-info-conso-jour") &&
   html.includes("Le plus lourd en haut") &&
   html.includes("Pas de durée, pas de batterie") &&
-  html.includes("Le jour de décembre, les appareils et les batteries s’ouvrent") &&
+  !html.includes("Le jour de décembre, les appareils et les batteries s’ouvrent") &&
   html.includes("Le retour à gauche ne compte que les panneaux.") &&
   html.includes("Le retour des panneaux, plus haut, ne compte que les panneaux.") &&
   /id="consoJour"/.test(consoJourTag) &&
@@ -1895,7 +1896,6 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
       p.set(key, String(s[key]));
     });
-    if (s.autonomie === "1") p.set("autonomie", "1");
     return "?" + p.toString();
   }
   const roundTrips = [
@@ -1930,7 +1930,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
     ["?ville=../x", fullSearch()],
-    ["?autonomie=1", fullSearch({ autonomie: "1" })]
+    ["?autonomie=1", ""]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");

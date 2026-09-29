@@ -563,356 +563,9 @@
     document.documentElement.setAttribute("data-autonomy", on ? "on" : "off");
     const note = $("autonomyNone");
     if (!note) return;
-    const want = document.documentElement.getAttribute("data-want-autonomy") === "on";
-    note.hidden = !(want && !on);
+    note.hidden = on;
   }
 
-  /**
-   * Opt-in reveal. Cards above the December daily figure start higher and
-   * settle down toward that axis; cards below start lower and settle up.
-   * They land in the board’s own slots. The viewport then eases, like a
-   * map drag, onto the December day, level with 4A and 4B. A user
-   * scroll cancels the pan; once it stops, the view returns to that hinge.
-   */
-  const AUTONOMY_MOTION_MS = 620;
-  const AUTONOMY_SETTLE_MS = 180;
-  let autonomyAnims = [];
-  let autonomyPanStop = null;
-  let autonomySettleTimer = 0;
-  let autonomySettleOff = null;
-
-  function motionReduced() {
-    const win = typeof window !== "undefined" ? window : null;
-    if (!win || typeof win.matchMedia !== "function") return true;
-    try {
-      return !!win.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    } catch (err) {
-      return true;
-    }
-  }
-
-  function cancelAutonomyMotion() {
-    autonomyAnims.forEach(function (anim) {
-      try { anim.cancel(); } catch (err) { /* finished */ }
-    });
-    autonomyAnims = [];
-    if (typeof document.querySelectorAll === "function") {
-      const stuck = document.querySelectorAll("#board .block, #board .result-pill, #board .result-pair, .dec-daily");
-      Array.prototype.forEach.call(stuck || [], clearMotionStyles);
-    }
-    if (autonomyPanStop) autonomyPanStop();
-    clearAutonomySettle();
-  }
-
-  function axisCenterY() {
-    const axis = $("outKwhDay");
-    if (!axis || typeof axis.getBoundingClientRect !== "function") return null;
-    const r = axis.getBoundingClientRect();
-    if (!r || !(r.height > 0)) return null;
-    return r.top + r.height / 2;
-  }
-
-  function gravityTravel(el, axisY) {
-    if (axisY == null || !el || typeof el.getBoundingClientRect !== "function") return null;
-    if (el.id === "outKwhDay" || (typeof el.contains === "function" && el.contains($("outKwhDay")))) return null;
-    const r = el.getBoundingClientRect();
-    if (!r || !(r.height > 1) || !(r.width > 1)) return null;
-    const delta = (r.top + r.height / 2) - axisY;
-    if (Math.abs(delta) < 24) return null;
-    const travel = Math.min(96, Math.abs(delta) * 0.34);
-    return delta < 0 ? -travel : travel;
-  }
-
-  function autonomyMotionCards() {
-    const board = $("board");
-    if (!board || typeof board.querySelectorAll !== "function") return [];
-    const nodes = board.querySelectorAll(":scope > .block, :scope > .result-pill, :scope > .slot-yield > .result-pill, #chapterRow > .slot-need > .block");
-    return Array.prototype.slice.call(nodes || []);
-  }
-
-  function clearMotionStyles(el) {
-    if (!el || !el.style) return;
-    el.style.transform = "";
-    el.style.opacity = "";
-    el.style.willChange = "";
-  }
-
-  function playGravity() {
-    const axisY = axisCenterY();
-    const cards = autonomyMotionCards();
-    const freshSel = ".autonomy-column";
-    cards.forEach(function (el) {
-      const from = gravityTravel(el, axisY);
-      if (from == null) return;
-      const fresh = typeof el.closest === "function" && !!el.closest(freshSel);
-      if (motionReduced() || typeof el.animate !== "function") return;
-      el.style.willChange = "transform";
-      const frames = fresh
-        ? [
-          { transform: "translateY(" + from + "px)", opacity: 0 },
-          { transform: "translateY(0px)", opacity: 1 }
-        ]
-        : [
-          { transform: "translateY(" + from + "px)" },
-          { transform: "translateY(0px)" }
-        ];
-      if (fresh) el.style.opacity = "0";
-      el.style.transform = "translateY(" + from + "px)";
-      const anim = el.animate(frames, {
-        duration: AUTONOMY_MOTION_MS,
-        easing: "cubic-bezier(0.22, 0.61, 0.24, 1)",
-        fill: "both"
-      });
-      autonomyAnims.push(anim);
-      anim.onfinish = function () {
-        anim.cancel();
-        clearMotionStyles(el);
-      };
-    });
-    const decNodes = typeof document.querySelectorAll === "function"
-      ? document.querySelectorAll(".dec-daily")
-      : [];
-    Array.prototype.forEach.call(decNodes || [], function (el) {
-      if (!el || el.hidden || typeof el.animate !== "function") return;
-      const r = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : null;
-      if (!r || !(r.height > 1)) return;
-      if (motionReduced()) return;
-      el.style.opacity = "0";
-      const anim = el.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        { duration: 420, easing: "ease-out", fill: "both" }
-      );
-      autonomyAnims.push(anim);
-      anim.onfinish = function () {
-        anim.cancel();
-        clearMotionStyles(el);
-      };
-    });
-  }
-
-  /**
-   * Viewport Y of the anchor as laid out, without the gravity translate
-   * on an ancestor. Grid position comes from getBoundingClientRect;
-   * offsetTop would ignore it.
-   */
-  function layoutViewportTop(el) {
-    let adjust = 0;
-    let node = el.parentElement;
-    while (node && node !== document.body) {
-      let tr = "none";
-      try {
-        tr = window.getComputedStyle(node).transform;
-      } catch (err) {
-        tr = "none";
-      }
-      if (tr && tr !== "none" && typeof DOMMatrix !== "undefined") {
-        try {
-          adjust += new DOMMatrix(tr).m42 || 0;
-        } catch (err2) { /* keep the raw rect */ }
-      }
-      node = node.parentElement;
-    }
-    return el.getBoundingClientRect().top - adjust;
-  }
-
-  function panTargetY(anchor, margin) {
-    const win = window;
-    const current = win.scrollY || win.pageYOffset || 0;
-    return Math.max(0, current + layoutViewportTop(anchor) - margin);
-  }
-
-  /**
-   * The page eases anchor jumps (scroll-behavior: smooth). A map pan writes
-   * its own curve, so those writes have to land in the same frame.
-   */
-  function holdInstantScroll() {
-    const root = document.documentElement;
-    if (!root || !root.style) return function () {};
-    const prev = root.style.scrollBehavior;
-    root.style.scrollBehavior = "auto";
-    return function () {
-      root.style.scrollBehavior = prev;
-    };
-  }
-
-  function clampScrollY(win, y) {
-    const root = document.scrollingElement || document.documentElement;
-    const max = Math.max(0, (root.scrollHeight || 0) - (win.innerHeight || 0));
-    if (!isFinite(y)) return 0;
-    return Math.min(max, Math.max(0, y));
-  }
-
-  function clearAutonomySettle() {
-    const win = typeof window !== "undefined" ? window : null;
-    if (win && autonomySettleTimer) win.clearTimeout(autonomySettleTimer);
-    autonomySettleTimer = 0;
-    if (autonomySettleOff) autonomySettleOff();
-    autonomySettleOff = null;
-  }
-
-  /**
-   * After an interrupted opening pan, wait until scroll, wheel and touchend
-   * have been quiet, then return to the chapter row. One shot.
-   */
-  function armAutonomySettle() {
-    if (motionReduced()) return;
-    clearAutonomySettle();
-    const win = typeof window !== "undefined" ? window : null;
-    if (!win) return;
-    function bump() {
-      if (autonomySettleTimer) win.clearTimeout(autonomySettleTimer);
-      autonomySettleTimer = win.setTimeout(function () {
-        autonomySettleTimer = 0;
-        if (autonomySettleOff) autonomySettleOff();
-        autonomySettleOff = null;
-        panToChapter(false, { kind: "settle" });
-      }, AUTONOMY_SETTLE_MS);
-    }
-    function onActivity() { bump(); }
-    win.addEventListener("scroll", onActivity, true);
-    win.addEventListener("wheel", onActivity, true);
-    win.addEventListener("touchend", onActivity, true);
-    autonomySettleOff = function () {
-      win.removeEventListener("scroll", onActivity, true);
-      win.removeEventListener("wheel", onActivity, true);
-      win.removeEventListener("touchend", onActivity, true);
-    };
-    bump();
-  }
-
-  function panToChapter(instant, opts) {
-    const kind = opts && opts.kind ? opts.kind : "open";
-    clearAutonomySettle();
-    if (autonomyPanStop) autonomyPanStop();
-    const anchor = $("chapterRow") || $("outKwhDay");
-    const win = typeof window !== "undefined" ? window : null;
-    if (!anchor || !win || typeof anchor.getBoundingClientRect !== "function") return;
-    /* Land on the December day, the hinge of the chapter. */
-    const margin = 72;
-    const releaseScroll = holdInstantScroll();
-    const targetNow = panTargetY(anchor, margin);
-    if (instant || motionReduced() || typeof win.requestAnimationFrame !== "function" || typeof win.scrollTo !== "function") {
-      if (typeof win.scrollTo === "function") win.scrollTo(0, clampScrollY(win, targetNow));
-      releaseScroll();
-      return;
-    }
-    const start = win.scrollY || win.pageYOffset || 0;
-    if (Math.abs(targetNow - start) < 2) {
-      releaseScroll();
-      return;
-    }
-    const t0 = typeof win.performance !== "undefined" && win.performance.now ? win.performance.now() : Date.now();
-    let stopped = false;
-    let frameId = 0;
-    /* Last scrollY this pan wrote. A scroll event that lands elsewhere is the user. */
-    let lastSet = start;
-    function cleanup() {
-      stopped = true;
-      if (frameId) win.cancelAnimationFrame(frameId);
-      frameId = 0;
-      autonomyPanStop = null;
-      win.removeEventListener("wheel", onUser, true);
-      win.removeEventListener("touchstart", onUser, true);
-      win.removeEventListener("touchmove", onUser, true);
-      win.removeEventListener("keydown", onUser, true);
-      win.removeEventListener("scroll", onScroll, true);
-      releaseScroll();
-    }
-    function onUser(ev) {
-      if (stopped) return;
-      if (ev && ev.type === "keydown") {
-        const k = ev.key;
-        if (k !== "ArrowUp" && k !== "ArrowDown" && k !== "PageUp" && k !== "PageDown" && k !== "Home" && k !== "End" && k !== " ") return;
-      }
-      const settle = kind === "open";
-      cleanup();
-      if (settle) armAutonomySettle();
-    }
-    function onScroll() {
-      if (stopped) return;
-      const y = win.scrollY || win.pageYOffset || 0;
-      if (Math.abs(y - lastSet) > 2) {
-        const settle = kind === "open";
-        cleanup();
-        if (settle) armAutonomySettle();
-      }
-    }
-    win.addEventListener("wheel", onUser, true);
-    win.addEventListener("touchstart", onUser, true);
-    win.addEventListener("touchmove", onUser, true);
-    win.addEventListener("keydown", onUser, true);
-    win.addEventListener("scroll", onScroll, true);
-    autonomyPanStop = cleanup;
-    function frame(now) {
-      if (stopped) return;
-      const t = Math.min(1, ((now || Date.now()) - t0) / AUTONOMY_MOTION_MS);
-      const eased = 1 - Math.pow(1 - t, 3);
-      const liveTarget = panTargetY(anchor, margin);
-      const next = clampScrollY(win, start + (liveTarget - start) * eased);
-      /* Set before scrollTo so a synchronous scroll event matches this write. */
-      lastSet = next;
-      win.scrollTo(0, next);
-      if (stopped || t >= 1) {
-        if (!stopped) cleanup();
-        return;
-      }
-      frameId = win.requestAnimationFrame(frame);
-    }
-    frameId = win.requestAnimationFrame(frame);
-  }
-
-  function revealAutonomyView() {
-    cancelAutonomyMotion();
-    if (currentDisplayMode() === "webi") return;
-    if (motionReduced()) {
-      panToChapter(true, { kind: "open" });
-      return;
-    }
-    playGravity();
-    const win = typeof window !== "undefined" ? window : null;
-    if (win && typeof win.requestAnimationFrame === "function") {
-      win.requestAnimationFrame(function () { panToChapter(false, { kind: "open" }); });
-    } else {
-      panToChapter(true, { kind: "open" });
-    }
-  }
-
-  function afterLayout(fn) {
-    const win = typeof window !== "undefined" ? window : null;
-    if (!win || typeof win.requestAnimationFrame !== "function") {
-      fn();
-      return;
-    }
-    win.requestAnimationFrame(function () {
-      win.requestAnimationFrame(fn);
-    });
-  }
-
-  function setWantAutonomy(on, opts) {
-    const silent = !!(opts && opts.silent);
-    const root = document.documentElement;
-    if (!root) return;
-    const next = on ? "on" : "off";
-    const prev = root.getAttribute("data-want-autonomy");
-    root.setAttribute("data-want-autonomy", next);
-    const box = $("wantAutonomy");
-    if (box && box.checked !== !!on) box.checked = !!on;
-    syncAutonomyColumn(autonomyHours());
-    if (silent) {
-      cancelAutonomyMotion();
-      return;
-    }
-    if (prev === next) return;
-    cancelAutonomyMotion();
-    afterLayout(function () {
-      if (root.getAttribute("data-want-autonomy") !== next) return;
-      if (!on) {
-        panToChapter(motionReduced(), { kind: "close" });
-        return;
-      }
-      revealAutonomyView();
-    });
-  }
 
   function battPricePerKwh() {
     const el = $("battPrice");
@@ -1436,8 +1089,7 @@
     conso: DEFAULT_CONSO_KWH,
     rate: DEFAULT_RATE_CENTS,
     consoJour: 0,
-    consoExtra: 0,
-    autonomie: false
+    consoExtra: 0
   };
 
   function snapStep(n, min, max, step) {
@@ -1538,11 +1190,10 @@
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    const autonomie = parseFlagParam(q.has("autonomie") ? q.get("autonomie") : null, d.autonomie);
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autonomie };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autonomie"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1576,7 +1227,6 @@
       p.set("rate", trimNum(s.rate, 3));
       p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
-      if (s.autonomie) p.set("autonomie", "1");
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1594,7 +1244,6 @@
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
     if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
-    if (s.autonomie) p.set("autonomie", "1");
     return p.toString();
   }
 
@@ -1616,7 +1265,6 @@
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
-    setWantAutonomy(!!s.autonomie, { silent: true });
   }
 
   function readRange(id, min, max, step, fallback) {
@@ -1651,8 +1299,7 @@
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
       consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
-      ville: canonicalVille(selectedVille),
-      autonomie: document.documentElement.getAttribute("data-want-autonomy") === "on"
+      ville: canonicalVille(selectedVille)
     };
   }
 
@@ -2308,14 +1955,6 @@
     if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
     if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
     if (currentDisplayMode() !== "webi") setYearsPinned(true);
-    const wantAutonomy = $("wantAutonomy");
-    if (wantAutonomy) {
-      wantAutonomy.checked = document.documentElement.getAttribute("data-want-autonomy") === "on";
-      wantAutonomy.addEventListener("change", function () {
-        setWantAutonomy(!!wantAutonomy.checked);
-        onScenarioEdit();
-      });
-    }
     const yearsTargets = [];
     const yearsCard = document.querySelector(".card-kpi-years");
     const paybackLine = $("outPayback");
