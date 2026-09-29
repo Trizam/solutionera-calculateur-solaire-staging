@@ -323,41 +323,6 @@ html[data-theme="dark"] .theme-blue {
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
 }
-/* Full mode: December daily figure + blue column wait for the opt-in.
-   Webi keeps the December figure and never shows the column. */
-html[data-want-autonomy="off"]:not([data-mode="webi"]) .autonomy-column,
-html[data-want-autonomy="off"]:not([data-mode="webi"]) .dec-daily {
-  display: none !important;
-}
-/* Door of the chapter: the checkbox, on the same line as what it opens. */
-.autonomy-optin {
-  margin: 0;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.95rem 1.05rem 1rem;
-  border-radius: 12px;
-  border-left: 4px solid #2a5f8f;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.3;
-  background: var(--card);
-  box-shadow: var(--shadow);
-}
-.autonomy-optin input {
-  accent-color: #2a5f8f;
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.15rem;
-  flex-shrink: 0;
-}
-.autonomy-optin .sub {
-  font-weight: 400;
-  font-size: 0.86rem;
-  line-height: 1.35;
-}
-.autonomy-anchor {
-  display: none;
-}
 .hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -793,26 +758,6 @@ section.block > h2,
 }
 .check input { margin-top: 0.2rem; accent-color: var(--accent); }
 .check .sub { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
-#autonomyDoor {
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.95rem 1.05rem 1rem;
-  border-left: 4px solid #2a5f8f;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-#autonomyDoor input {
-  accent-color: #2a5f8f;
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.15rem;
-}
-#autonomyDoor .sub {
-  font-weight: 400;
-  font-size: 0.86rem;
-  line-height: 1.35;
-}
 .town-picker { position: relative; }
 .town-field {
   display: flex;
@@ -1031,62 +976,28 @@ section.block > h2,
 .autonomy-snow-rec {
   margin: 0;
 }
+/* Mesurage et le jour de décembre sont les deux cases de la rangée.
+   La note de neige occupe la ligne du dessous, sous ce jour. */
 .slot-yield {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
   align-items: stretch;
   min-width: 0;
 }
-.slot-yield > .result-pill,
-.chapter-row .result-pill {
-  margin-top: 0;
-}
-.chapter-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  min-width: 0;
-}
-/* Webi: mesurage | décembre, neige sous décembre. The door and 4A/4B
-   are .mode-full-only. display:contents lets those two pills join this grid. */
-html[data-mode="webi"] #sec-yield {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  gap: 0.65rem;
-}
-html[data-mode="webi"] #chapterRow {
-  display: contents;
-}
-html[data-mode="webi"] #sec-yield > .result-pill {
+.slot-yield > .result-pill {
   grid-column: 1;
   grid-row: 1;
+  margin-top: 0;
 }
-html[data-mode="webi"] .yield-auto > .result-pill {
+.yield-auto > .result-pill {
   grid-column: 2;
   grid-row: 1;
 }
-html[data-mode="webi"] .yield-auto .autonomy-snow {
+.yield-auto .autonomy-snow {
   grid-column: 2;
   grid-row: 2;
   margin-top: 0;
 }
-html[data-mode="webi"] #sec-yield > .result-pill,
-html[data-mode="webi"] .yield-auto > .result-pill {
-  padding: 0.85rem 0.65rem;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-html[data-mode="webi"] #sec-yield .result-pill .big {
-  font-size: 1.45rem;
-}
 @media (max-width: 520px) {
-  html[data-mode="webi"] .yield-auto .autonomy-snow {
-    grid-column: 1 / -1;
-  }
+  .slot-yield .autonomy-snow { grid-column: 1 / -1; }
 }
 .field-conso-jour {
   margin-top: var(--section-hairline-pad);
@@ -1191,58 +1102,7 @@ html[data-mode="webi"] #sec-yield .result-pill .big {
 .load-table + .calc-line {
   margin-top: 0.55rem;
 }
-.load-table.load-summary thead { display: none; }
-.load-table.load-summary .load-custom-row th,
-.load-table.load-summary .load-total-row th {
-  padding-left: 0;
-}
-/* Devices sit above the slider, packed against its top edge, and fill
-   upward. The band is reserved up front (it does not grow), so the slider
-   and the viewport stay put. Heights cover 14 chips after wrap:
-   ~230px below 400px wide, ~142px from 480px, ~112px from 700px,
-   ~142px again in the desktop half-column (≥1100px). */
-.load-stage {
-  position: relative;
-  padding-top: 15.75rem;
-}
-.load-devices {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: calc(15.75rem - 0.45rem);
-  display: flex;
-  flex-wrap: wrap-reverse;
-  align-items: flex-end;
-  align-content: flex-start;
-  gap: 0.35rem;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 2;
-}
-@media (min-width: 480px) {
-  .load-stage { padding-top: 10rem; }
-  .load-devices { height: calc(10rem - 0.45rem); }
-}
-@media (min-width: 700px) {
-  .load-stage { padding-top: 8.25rem; }
-  .load-devices { height: calc(8.25rem - 0.45rem); }
-}
-@media (min-width: 1100px) {
-  .load-stage { padding-top: 10rem; }
-  .load-devices { height: calc(10rem - 0.45rem); }
-}
-/* Empty: one line, no reserved band. Specificity beats the media paddings. */
-.load-stage.is-empty { padding-top: 0; }
-.load-stage.is-empty .load-devices,
-.load-devices.is-empty { display: none; }
-.load-read {
-  margin: 0 0 0.35rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-.load-read[hidden] { display: none !important; }
+.load-table + .slider-ends { margin-top: 0.85rem; }
 .load-marks {
   position: relative;
   height: 1.65rem;
@@ -1271,25 +1131,6 @@ html[data-mode="webi"] #sec-yield .result-pill .big {
   border-radius: 999px;
   background: var(--border);
 }
-.load-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  max-width: 100%;
-  padding: 0.18rem 0.5rem 0.18rem 0.38rem;
-  border-radius: 999px;
-  background: var(--green-soft);
-  color: var(--green-dark);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.load-chip .load-kwh {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
 .slider-ends {
   display: flex;
   justify-content: space-between;
@@ -1303,14 +1144,8 @@ html[data-mode="webi"] #sec-yield .result-pill .big {
 }
 .slider-ends span:last-child { text-align: right; }
 #sec-auto { --prod-gutter: 9rem; }
-@media (prefers-reduced-motion: reduce) {
-  .load-chip { transition: none; }
-}
 .yield-auto {
   display: contents;
-}
-.yield-auto .autonomy-snow {
-  margin-top: 0;
 }
 .fill-shortfall {
   margin: 0.75rem 0 0;
@@ -2227,11 +2062,10 @@ section.block h2 .field-info-btn {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "size size"
-      "prod prod"
-      "yield yield"
-      "cost fill"
-      "roi batt"
+      "size need"
+      "prod need"
+      "yield fill"
+      "cost batt"
       "roi total";
     column-gap: var(--board-gap);
     row-gap: 1rem;
@@ -2239,6 +2073,7 @@ section.block h2 .field-info-btn {
   }
   html:not([data-mode="webi"]) .slot-size { grid-area: size; align-self: start; }
   html:not([data-mode="webi"]) .slot-prod { grid-area: prod; align-self: start; }
+  html:not([data-mode="webi"]) .slot-need { grid-area: need; }
   html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
   html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
   html:not([data-mode="webi"]) .slot-cost { grid-area: cost; align-self: start; }
@@ -2250,45 +2085,15 @@ section.block h2 .field-info-btn {
     grid-row: fill-start / total-end;
     align-self: stretch;
   }
+  html:not([data-mode="webi"]) .slot-need,
   html:not([data-mode="webi"]) .slot-batt,
   html:not([data-mode="webi"]) .slot-total {
     display: flex;
     flex-direction: column;
   }
-  /* Chapter band: door | December day | 4A/4B. The green box stays its own height. */
-  html[data-want-autonomy="on"]:not([data-mode="webi"]) #chapterRow {
-    display: grid;
-    align-items: start;
-    grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1fr) minmax(0, 1.2fr);
-    grid-template-areas:
-      "door day need"
-      "door snow need";
-    column-gap: 1.15rem;
-    row-gap: 0.65rem;
-  }
-  html[data-want-autonomy="on"]:not([data-mode="webi"]) #autonomyDoor {
-    grid-area: door;
-  }
-  html[data-want-autonomy="on"]:not([data-mode="webi"]) .yield-auto > .result-pill {
-    grid-area: day;
-  }
-  html[data-want-autonomy="on"]:not([data-mode="webi"]) #autonomySnow {
-    grid-area: snow;
-  }
-  html[data-want-autonomy="on"]:not([data-mode="webi"]) #chapterRow > .slot-need {
-    grid-area: need;
-    align-self: start;
-  }
+  html:not([data-mode="webi"]) .slot-need { align-self: start; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
-  /* Solar path reads full width until the blue column is asked for. */
-  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-size,
-  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-prod,
-  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-yield,
-  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-cost,
-  html[data-want-autonomy="off"]:not([data-mode="webi"]) .slot-roi {
-    grid-column: 1 / -1;
-  }
   html:not([data-mode="webi"]) .flow-arrow {
     display: grid;
     place-items: center;
