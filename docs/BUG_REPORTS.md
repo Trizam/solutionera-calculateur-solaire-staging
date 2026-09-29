@@ -15,7 +15,7 @@ GitHub ferme l’issue au merge si le corps de la pull request contient `Fixes #
 
 La PR #109 l’a fait (`Fixes #106`, `#107`, `#108`). La PR #119 a appliqué #110, #112, #114, #115 et #118 sans ce mot : elles sont restées ouvertes jusqu’à une fermeture manuelle.
 
-Règle toujours active : `.cursor/rules/mark-issue-done.mdc`. Détail : `.cursor/skills/github-issue/SKILL.md`. Une issue `idea` ou `to-validate` ne se ferme pas tant que Master n’a pas dit oui. #95 (chantier) ne se ferme pas comme un bug.
+Dans ce dépôt : `.cursor/rules/mark-issue-done.mdc`. Partout (Cursor cloud, ordinateur, Grok Bot) : Team Rule du tableau de bord, portée sur Cursor et Grok Bot. Détail : `.cursor/skills/github-issue/SKILL.md`. Une issue `idea` ou `to-validate` ne se ferme pas tant que Master n’a pas dit oui. #95 (chantier) ne se ferme pas comme un bug.
 
 ## Client (Pages)
 

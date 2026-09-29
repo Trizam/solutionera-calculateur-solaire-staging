@@ -7,7 +7,7 @@ description: Fix a GitHub issue on this repo and mark it fixed on GitHub. Use wh
 
 Le mécanisme classique est celui de GitHub, pas un pack de skills tiers. Une pull request mergée qui contient `Fixes #N` ferme l’issue et la lie. Les skills Cursor `new-branch-and-pr` et `review-and-ship` s’arrêtent à l’ouverture de la PR : elles ne posent pas ce mot.
 
-La règle toujours active est `.cursor/rules/mark-issue-done.mdc`. Elle est dans chaque session, donc l’agent la voit même sans ouvrir ce skill. Ce skill est le détail.
+`.cursor/rules/mark-issue-done.mdc` ne couvre que ce dépôt, une fois mergé. Grok Bot et les autres dépôts ne le lisent pas. La règle qui couvre Cursor (cloud et ordinateur) et Grok Bot est une Team Rule du tableau de bord, portée sur les deux. Ce skill est le détail pour ce dépôt.
 
 Ne pas importer `gh-issue-management`, `issue-flow` ou `skill-github-flow`. Ils ajoutent un plan approuvé, des sous-issues et un tableau de projet que ce dépôt n’utilise pas.
 
