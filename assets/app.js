@@ -2307,6 +2307,7 @@
     }
     if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
     if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
+    if (currentDisplayMode() !== "webi") setYearsPinned(true);
     const wantAutonomy = $("wantAutonomy");
     if (wantAutonomy) {
       wantAutonomy.checked = document.documentElement.getAttribute("data-want-autonomy") === "on";
@@ -2315,13 +2316,22 @@
         onScenarioEdit();
       });
     }
+    const yearsTargets = [];
     const yearsCard = document.querySelector(".card-kpi-years");
-    if (yearsCard && typeof IntersectionObserver === "function" && document.body) {
+    const paybackLine = $("outPayback");
+    if (yearsCard) yearsTargets.push(yearsCard);
+    if (paybackLine) yearsTargets.push(paybackLine);
+    if (yearsTargets.length && typeof IntersectionObserver === "function" && document.body) {
+      const seen = new Map();
       const yearsWatch = new IntersectionObserver(function (entries) {
-        const entry = entries[entries.length - 1];
-        document.body.classList.toggle("is-years-source-visible", !!(entry && entry.isIntersecting));
-      }, { threshold: 0 });
-      yearsWatch.observe(yearsCard);
+        entries.forEach(function (entry) {
+          seen.set(entry.target, !!(entry.isIntersecting && entry.intersectionRatio > 0));
+        });
+        let visible = false;
+        seen.forEach(function (on) { if (on) visible = true; });
+        document.body.classList.toggle("is-years-source-visible", visible);
+      }, { threshold: [0, 0.15] });
+      yearsTargets.forEach(function (el) { yearsWatch.observe(el); });
     }
     const conso = $("conso");
     if (conso) {
