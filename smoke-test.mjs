@@ -695,6 +695,11 @@ const hasConsoJourUi =
   html.includes('id="consoJourList"') &&
   html.includes('id="consoJourTotal"') &&
   html.includes("tpl-info-conso-jour") &&
+  html.includes("Le plus lourd en haut") &&
+  html.includes("Pas de durée, pas de batterie") &&
+  html.includes("Le jour de décembre, les appareils et les batteries s’ouvrent") &&
+  html.includes("Le retour à gauche ne compte que les panneaux.") &&
+  html.includes("Le retour des panneaux, plus haut, ne compte que les panneaux.") &&
   /id="consoJour"/.test(consoJourTag) &&
   /type="range"/.test(consoJourTag) &&
   /min="0"/.test(consoJourTag) &&
@@ -710,12 +715,12 @@ const hasConsoJourUi =
   app.includes("tenths: 15");
 const yearsPinOk =
   html.includes('id="btnPinYears"') &&
-  html.includes("Épingler la rentabilité") &&
+  html.includes("Épingler le retour") &&
   html.includes('id="btnUnpinYears"') &&
-  html.includes("Désépingler la rentabilité") &&
+  html.includes("Désépingler le retour") &&
   html.includes('id="yearsPinBar"') &&
   html.includes('id="kpiYearsPin"') &&
-  html.includes(">Rentabilité<") &&
+  html.includes(">Retour<") &&
   app.includes("function setYearsPinned") &&
   app.includes("kpiYearsPin") &&
   css.includes(".years-pin") &&
@@ -1890,6 +1895,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
       p.set(key, String(s[key]));
     });
+    if (s.autonomie === "1") p.set("autonomie", "1");
     return "?" + p.toString();
   }
   const roundTrips = [
@@ -1923,7 +1929,8 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
-    ["?ville=../x", fullSearch()]
+    ["?ville=../x", fullSearch()],
+    ["?autonomie=1", fullSearch({ autonomie: "1" })]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
