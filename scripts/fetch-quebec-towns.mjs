@@ -2,7 +2,8 @@
 /**
  * Geocode Quebec MRC chefs-lieux + equivalent territories, then fetch PVWatts v8.
  *
- * Priority: Sud/30° for every town (dropdown yield), then full grids
+ * Priority: Sud/30° for every town (scale anchor), then full grids.
+ * The menu sorts on the stored sud 45° yield (ac_annual_s45).
  * (tilts 0/15/30/45/60/75/90 × azimuth every 15°; tilt 0 fetched once).
  *
  * Resume: towns.json keeps S/30 yields; scripts/pvwatts-progress/ keeps raw cells
@@ -265,6 +266,17 @@ function hasYield(v) {
   return isFinite(n) && n > 0;
 }
 
+/** Sud 45° from the town record, or from its saved PVWatts grid. */
+function measuredSouth45(t) {
+  if (hasYield(t && t.ac_annual_s45)) return Number(t.ac_annual_s45);
+  const rel = t && (t.grid_file || (t.grid === "full" && t.id ? "assets/town-grids/" + t.id + ".json" : ""));
+  if (!rel) return null;
+  const g = readJson(join(ROOT, rel));
+  const cell = g && g.cells && g.cells["45"] && g.cells["45"]["180"];
+  const n = cell && Number(cell.ac_annual);
+  return isFinite(n) && n > 0 ? n : null;
+}
+
 function sortTowns(towns) {
   return towns.slice().sort((a, b) => a.name.localeCompare(b.name, "fr-CA", { sensitivity: "base" }));
 }
@@ -299,6 +311,7 @@ function writeTowns(towns) {
       as_of_utc: new Date().toISOString()
     },
     towns: sorted.map((t) => {
+      const s45 = measuredSouth45(t);
       const out = {
         id: t.id,
         name: t.name,
@@ -307,9 +320,10 @@ function writeTowns(towns) {
         type: t.type,
         lat: t.lat,
         lon: t.lon,
-        ac_annual_s30: t.ac_annual_s30 == null ? null : t.ac_annual_s30,
-        grid: t.grid || "scaled"
+        ac_annual_s30: t.ac_annual_s30 == null ? null : t.ac_annual_s30
       };
+      if (s45 != null) out.ac_annual_s45 = s45;
+      out.grid = t.grid || "scaled";
       if (t.grid === "full" && t.grid_file) out.grid_file = t.grid_file;
       if (t.coord_note) out.coord_note = t.coord_note;
       return out;
@@ -834,6 +848,8 @@ async function fetchFullGrids(key, townsById, onlyIds) {
     if (!gridComplete(built)) throw new Error("incomplete grid " + place.id);
     const s30cell = built["30"] && built["30"]["180"];
     if (s30cell && Number(s30cell.ac_annual) > 0) row.ac_annual_s30 = s30cell.ac_annual;
+    const s45cell = built["45"] && built["45"]["180"];
+    if (s45cell && Number(s45cell.ac_annual) > 0) row.ac_annual_s45 = s45cell.ac_annual;
     const doc = {
       id: place.id,
       source: "pvwatts-v8-nsrdb",

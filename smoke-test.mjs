@@ -101,6 +101,9 @@ function townDataReport() {
     if (!isFinite(Number(t.ac_annual_s30)) || Number(t.ac_annual_s30) < 600 || Number(t.ac_annual_s30) > 1800) {
       problems.push("s30 " + t.name + "=" + t.ac_annual_s30);
     }
+    if (!isFinite(Number(t.ac_annual_s45)) || Number(t.ac_annual_s45) < 600 || Number(t.ac_annual_s45) > 1800) {
+      problems.push("s45 field " + t.name + "=" + t.ac_annual_s45);
+    }
     if (t.grid !== "full" && t.grid !== "scaled") problems.push("grid " + t.name);
     if (t.grid === "full") {
       const rel = t.grid_file || ("assets/town-grids/" + t.id + ".json");
@@ -1100,18 +1103,25 @@ function menuYieldReport() {
   if (Math.round(scaledActon) !== 1248) problems.push("acton scaled45 " + scaledActon);
   if (Math.round(measured) !== 1326) problems.push("montréal s45 " + measured);
   if (Math.round(measured) === Math.round(scaledMontreal)) problems.push("montréal measured equals scaled");
-  if (!html.includes("1&nbsp;270 kWh/kWc")) problems.push("placeholder");
+  if (!html.includes("1&nbsp;270 kWh/kWc/an")) problems.push("placeholder");
+  if (html.includes("ordre alphabétique")) problems.push("alpha order copy");
+  if (!html.includes("du productible le plus élevé au plus bas")) problems.push("yield order copy");
   if (!html.includes("productible sud 45°")) problems.push("copy 45");
   if (html.includes("productible sud 30°")) problems.push("copy still sud 30");
   if (!html.includes("rapport sud 30°")) problems.push("scaling copy removed");
   if (!html.includes("inclinaison <strong>45°</strong>")) problems.push("help tilt");
   if (html.includes("inclinaison <strong>30°</strong>")) problems.push("help still 30");
+  const byYield = towns.towns.slice().sort((a, b) => Number(b.ac_annual_s45) - Number(a.ac_annual_s45));
+  if (byYield[0].id !== "sainte-therese") problems.push("top yield " + byYield[0].id);
   const codeOk =
     app.includes("function menuYieldAnnual") &&
+    app.includes("function sortTownCatalog") &&
+    app.includes("return yb - ya") &&
     app.includes('southAnnual(cells, "45", "180")') &&
     app.includes("q45 * (s30 / quebecS30)") &&
     app.includes("function loadMenuFullGrids") &&
     app.includes("function refreshTownYields") &&
+    app.includes("kWh/kWc/an") &&
     !app.includes("fmtYield(town.ac_annual_s30)") &&
     !app.includes("fmtYield(quebecS30)");
   if (!codeOk) problems.push("app menu yield");
