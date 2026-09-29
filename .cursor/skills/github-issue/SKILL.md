@@ -5,7 +5,9 @@ description: Fix a GitHub issue on this repo and mark it fixed on GitHub. Use wh
 
 # Issue GitHub — la marquer réglée
 
-Le mécanisme classique est celui de GitHub, pas un pack de skills tiers. Une pull request mergée qui contient `Fixes #N` ferme l’issue et la lie. Les skills Cursor `new-branch-and-pr` et `review-and-ship` s’arrêtent à l’ouverture de la PR : elles ne posent pas ce mot. Ce skill ajoute seulement cette étape.
+Le mécanisme classique est celui de GitHub, pas un pack de skills tiers. Une pull request mergée qui contient `Fixes #N` ferme l’issue et la lie. Les skills Cursor `new-branch-and-pr` et `review-and-ship` s’arrêtent à l’ouverture de la PR : elles ne posent pas ce mot.
+
+La règle toujours active est `.cursor/rules/mark-issue-done.mdc`. Elle est dans chaque session, donc l’agent la voit même sans ouvrir ce skill. Ce skill est le détail.
 
 Ne pas importer `gh-issue-management`, `issue-flow` ou `skill-github-flow`. Ils ajoutent un plan approuvé, des sous-issues et un tableau de projet que ce dépôt n’utilise pas.
 
