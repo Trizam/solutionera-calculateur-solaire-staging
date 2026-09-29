@@ -198,7 +198,7 @@
               placeholder="Ville, MRC ou région"
               value="Québec"
             />
-            <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc</span>
+            <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc/an</span>
             <button type="button" class="town-caret-btn" id="villeCaret" tabindex="-1" aria-label="Afficher les villes">
               <span class="town-caret" aria-hidden="true"></span>
             </button>
@@ -208,7 +208,7 @@
             <option value="quebec" selected>Québec</option>
           </select>
         </div>
-        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°. Une ville, une MRC ou une région administrative filtre la liste.</p>
+        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°, en kWh/kWc/an. La liste va du plus haut au plus bas. Une ville, une MRC ou une région administrative filtre la liste.</p>
       </div>
       <div class="field">
         <div class="label-row field-info-wrap">
@@ -814,7 +814,7 @@
     <span data-info-title>Localisation</span>
     <div class="info-block">
       <h4>Ville et productible</h4>
-      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, en ordre alphabétique. La liste se déroule et se fait défiler.</p>
+      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, du productible le plus élevé au plus bas (sud, 45°, kWh/kWc/an). La liste se déroule et se fait défiler.</p>
       <p>Écrire un nom filtre les villes. Une MRC ou une région administrative filtre aussi, même si ces noms ne s’affichent pas&nbsp;: le menu ne montre que les villes.</p>
       <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
       <p>La boîte <strong>Efficacité de l’installation</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement choisis.</p>

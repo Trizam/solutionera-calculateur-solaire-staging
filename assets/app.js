@@ -2038,7 +2038,7 @@
 
   function fmtYield(n) {
     if (!isFinite(Number(n))) return "—";
-    return fmtGroupedInt(Math.round(Number(n))).replace(/ /g, "\u00A0") + " kWh/kWc";
+    return fmtGroupedInt(Math.round(Number(n))).replace(/ /g, "\u00A0") + " kWh/kWc/an";
   }
 
   function southAnnual(cells, tilt, az) {
@@ -2060,10 +2060,16 @@
     return q45 * (s30 / quebecS30);
   }
 
+  /** Sud 45° already stored on the town, so the menu can show and sort before grids load. */
+  function storedSouth45(town) {
+    const n = Number(town && town.ac_annual_s45);
+    return isFinite(n) && n > 0 ? n : NaN;
+  }
+
   /**
-   * Dropdown kWh/kWc: measured south 45° (tilt 45, azimuth 180) when that grid is loaded.
-   * Towns without a full grid use Québec’s south-45° cell scaled by their sud 30° ratio.
-   * NaN until the needed grid is available — the list is refreshed once it loads.
+   * Dropdown kWh/kWc/an: measured south 45° (tilt 45, azimuth 180) when that grid is loaded.
+   * Otherwise the stored sud 45° figure. Towns without either use Québec’s south-45° cell
+   * scaled by their sud 30° ratio. NaN until one of those is available.
    */
   function menuYieldAnnual(town) {
     if (!town) return NaN;
@@ -2071,8 +2077,12 @@
       const cells = usesQuebecGrid(town) ? baseCells : fullGridCells[town.id];
       const measured = southAnnual(cells, "45", "180");
       if (isFinite(measured)) return measured;
+      const stored = storedSouth45(town);
+      if (isFinite(stored)) return stored;
       if (!usesQuebecGrid(town) && !fullGridMiss[town.id]) return NaN;
     }
+    const stored = storedSouth45(town);
+    if (isFinite(stored)) return stored;
     return scaledSouth45(town);
   }
 
@@ -2080,6 +2090,19 @@
     const n = menuYieldAnnual(town);
     if (!isFinite(n)) return "";
     return fmtYield(n);
+  }
+
+  /** Menu order: sud 45° kWh/kWc/an, highest first. Same yield: French name. */
+  function sortTownCatalog() {
+    townCatalog.sort(function (a, b) {
+      const ya = menuYieldAnnual(a);
+      const yb = menuYieldAnnual(b);
+      const aOk = isFinite(ya);
+      const bOk = isFinite(yb);
+      if (aOk && bOk && ya !== yb) return yb - ya;
+      if (aOk !== bOk) return aOk ? -1 : 1;
+      return String(a.name).localeCompare(String(b.name), "fr-CA", { sensitivity: "base" });
+    });
   }
 
   function foldTownName(s) {
@@ -2531,7 +2554,11 @@
       }));
     });
     await Promise.all(jobs);
-    refreshTownYields();
+    const before = townCatalog.map(function (t) { return t.id; }).join("\n");
+    sortTownCatalog();
+    const after = townCatalog.map(function (t) { return t.id; }).join("\n");
+    if (before !== after) renderTownList();
+    else refreshTownYields();
   }
 
   function applyScaledTown(town, token) {
@@ -2611,10 +2638,8 @@
       if (!data || !Array.isArray(data.towns)) return;
       const towns = data.towns.filter(function (t) { return t && t.id && t.name; });
       if (!towns.length) return;
-      towns.sort(function (a, b) {
-        return String(a.name).localeCompare(String(b.name), "fr-CA", { sensitivity: "base" });
-      });
       townCatalog = towns;
+      sortTownCatalog();
       townByIdMap = {};
       towns.forEach(function (t) { townByIdMap[t.id] = t; });
       if (data.meta && isFinite(Number(data.meta.quebec_s30))) quebecS30 = Number(data.meta.quebec_s30);

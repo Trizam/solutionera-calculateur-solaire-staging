@@ -37,6 +37,7 @@
       "lat": 45.6472,
       "lon": -72.5654,
       "ac_annual_s30": 1232.2769,
+      "ac_annual_s45": 1245.9525,
       "grid": "full",
       "grid_file": "assets/town-grids/acton-vale.json"
     },
@@ -49,6 +50,7 @@
       "lat": 48.5489,
       "lon": -71.6515,
       "ac_annual_s30": 1227.5816,
+      "ac_annual_s45": 1243.7434,
       "grid": "full",
       "grid_file": "assets/town-grids/alma.json"
     },
@@ -61,6 +63,7 @@
       "lat": 48.5719,
       "lon": -78.1161,
       "ac_annual_s30": 1242.3781,
+      "ac_annual_s45": 1266.3086,
       "grid": "full",
       "grid_file": "assets/town-grids/amos.json"
     },
@@ -73,6 +76,7 @@
       "lat": 48.4657,
       "lon": -67.4315,
       "ac_annual_s30": 1220.7364,
+      "ac_annual_s45": 1242.2873,
       "grid": "full",
       "grid_file": "assets/town-grids/amqui.json"
     },
@@ -85,6 +89,7 @@
       "lat": 49.2118,
       "lon": -68.1801,
       "ac_annual_s30": 1280.288,
+      "ac_annual_s45": 1312.2096,
       "grid": "full",
       "grid_file": "assets/town-grids/baie-comeau.json"
     },
@@ -97,6 +102,7 @@
       "lat": 47.4443,
       "lon": -70.5054,
       "ac_annual_s30": 1259.7881,
+      "ac_annual_s45": 1285.2423,
       "grid": "full",
       "grid_file": "assets/town-grids/baie-saint-paul.json"
     },
@@ -109,6 +115,7 @@
       "lat": 46.2107,
       "lon": -70.7743,
       "ac_annual_s30": 1214.9727,
+      "ac_annual_s45": 1233.7628,
       "grid": "full",
       "grid_file": "assets/town-grids/beauceville.json"
     },
@@ -121,6 +128,7 @@
       "lat": 45.314,
       "lon": -73.8758,
       "ac_annual_s30": 1276.9911,
+      "ac_annual_s45": 1276.649,
       "grid": "full",
       "grid_file": "assets/town-grids/beauharnois.json"
     },
@@ -133,6 +141,7 @@
       "lat": 46.3416,
       "lon": -72.4335,
       "ac_annual_s30": 1234.0985,
+      "ac_annual_s45": 1249.2251,
       "grid": "full",
       "grid_file": "assets/town-grids/becancour.json"
     },
@@ -145,6 +154,7 @@
       "lat": 45.5643,
       "lon": -73.204,
       "ac_annual_s30": 1284.5403,
+      "ac_annual_s45": 1291.9056,
       "grid": "full",
       "grid_file": "assets/town-grids/beloeil.json"
     },
@@ -157,6 +167,7 @@
       "lat": 46.0828,
       "lon": -73.1747,
       "ac_annual_s30": 1283.4678,
+      "ac_annual_s45": 1295.6452,
       "grid": "full",
       "grid_file": "assets/town-grids/berthierville.json"
     },
@@ -169,6 +180,7 @@
       "lat": 45.7333,
       "lon": -76.6016,
       "ac_annual_s30": 1272.1394,
+      "ac_annual_s45": 1287.9702,
       "grid": "full",
       "grid_file": "assets/town-grids/campbells-bay.json"
     },
@@ -181,6 +193,7 @@
       "lat": 46.6702,
       "lon": -71.7751,
       "ac_annual_s30": 1238.9102,
+      "ac_annual_s45": 1255.7644,
       "grid": "full",
       "grid_file": "assets/town-grids/cap-sante.json"
     },
@@ -193,6 +206,7 @@
       "lat": 48.3492,
       "lon": -64.6776,
       "ac_annual_s30": 1238.712,
+      "ac_annual_s45": 1258.3461,
       "grid": "full",
       "grid_file": "assets/town-grids/chandler.json"
     },
@@ -205,6 +219,7 @@
       "lat": 46.9711,
       "lon": -71.0177,
       "ac_annual_s30": 1251.6635,
+      "ac_annual_s45": 1271.8022,
       "grid": "full",
       "grid_file": "assets/town-grids/chateau-richer.json"
     },
@@ -217,6 +232,7 @@
       "lat": 45.5032,
       "lon": -75.808,
       "ac_annual_s30": 1282.2333,
+      "ac_annual_s45": 1298.3166,
       "grid": "full",
       "grid_file": "assets/town-grids/chelsea.json"
     },
@@ -229,6 +245,7 @@
       "lat": 49.9137,
       "lon": -74.3714,
       "ac_annual_s30": 1189.6987,
+      "ac_annual_s45": 1214.3644,
       "grid": "full",
       "grid_file": "assets/town-grids/chibougamau.json",
       "coord_note": "Centre de la ville de Chibougamau (le premier géocodage visait le lac)."
@@ -242,6 +259,7 @@
       "lat": 47.6945,
       "lon": -70.2262,
       "ac_annual_s30": 1291.8736,
+      "ac_annual_s45": 1323.0828,
       "grid": "full",
       "grid_file": "assets/town-grids/clermont.json"
     },
@@ -254,6 +272,7 @@
       "lat": 45.1334,
       "lon": -71.8035,
       "ac_annual_s30": 1180.587,
+      "ac_annual_s45": 1183.964,
       "grid": "full",
       "grid_file": "assets/town-grids/coaticook.json"
     },
@@ -266,6 +285,7 @@
       "lat": 45.4125,
       "lon": -71.6291,
       "ac_annual_s30": 1205.3348,
+      "ac_annual_s45": 1215.6006,
       "grid": "full",
       "grid_file": "assets/town-grids/cookshire-eaton.json"
     },
@@ -278,6 +298,7 @@
       "lat": 50.4812,
       "lon": -59.783,
       "ac_annual_s30": 1151.6001,
+      "ac_annual_s45": 1184.9736,
       "grid": "full",
       "grid_file": "assets/town-grids/cote-nord-du-golfe-du-saint-laurent.json"
     },
@@ -290,6 +311,7 @@
       "lat": 45.2076,
       "lon": -72.7479,
       "ac_annual_s30": 1203.7796,
+      "ac_annual_s45": 1213.6083,
       "grid": "full",
       "grid_file": "assets/town-grids/cowansville.json"
     },
@@ -302,6 +324,7 @@
       "lat": 48.8832,
       "lon": -72.2337,
       "ac_annual_s30": 1215.8257,
+      "ac_annual_s45": 1241.6498,
       "grid": "full",
       "grid_file": "assets/town-grids/dolbeau-mistassini.json"
     },
@@ -314,6 +337,7 @@
       "lat": 45.8864,
       "lon": -72.5019,
       "ac_annual_s30": 1270.8836,
+      "ac_annual_s45": 1282.8967,
       "grid": "full",
       "grid_file": "assets/town-grids/drummondville.json"
     },
@@ -326,6 +350,7 @@
       "lat": 52.7984,
       "lon": -67.0881,
       "ac_annual_s30": 1230.8485,
+      "ac_annual_s45": 1275.0256,
       "grid": "full",
       "grid_file": "assets/town-grids/fermont.json"
     },
@@ -338,6 +363,7 @@
       "lat": 48.8317,
       "lon": -64.4838,
       "ac_annual_s30": 1272.5718,
+      "ac_annual_s45": 1299.0274,
       "grid": "full",
       "grid_file": "assets/town-grids/gaspe.json"
     },
@@ -350,6 +376,7 @@
       "lat": 45.5016,
       "lon": -75.6667,
       "ac_annual_s30": 1250.4304,
+      "ac_annual_s45": 1261.63,
       "grid": "full",
       "grid_file": "assets/town-grids/gatineau.json"
     },
@@ -362,6 +389,7 @@
       "lat": 46.0934,
       "lon": -76.0532,
       "ac_annual_s30": 1258.1141,
+      "ac_annual_s45": 1273.6856,
       "grid": "full",
       "grid_file": "assets/town-grids/gracefield.json"
     },
@@ -374,6 +402,7 @@
       "lat": 45.399,
       "lon": -72.7218,
       "ac_annual_s30": 1221.9004,
+      "ac_annual_s45": 1233.3427,
       "grid": "full",
       "grid_file": "assets/town-grids/granby.json"
     },
@@ -386,6 +415,7 @@
       "lat": 50.2464,
       "lon": -63.6004,
       "ac_annual_s30": 1207.6462,
+      "ac_annual_s45": 1237.6728,
       "grid": "full",
       "grid_file": "assets/town-grids/havre-saint-pierre.json"
     },
@@ -398,6 +428,7 @@
       "lat": 45.0873,
       "lon": -74.1739,
       "ac_annual_s30": 1275.9886,
+      "ac_annual_s45": 1283.2511,
       "grid": "full",
       "grid_file": "assets/town-grids/huntingdon.json"
     },
@@ -410,6 +441,7 @@
       "lat": 46.024,
       "lon": -73.442,
       "ac_annual_s30": 1279.1148,
+      "ac_annual_s45": 1293.0174,
       "grid": "full",
       "grid_file": "assets/town-grids/joliette.json"
     },
@@ -422,6 +454,7 @@
       "lat": 58.1067,
       "lon": -68.4039,
       "ac_annual_s30": 971.8593,
+      "ac_annual_s45": 1004.1345,
       "grid": "full",
       "grid_file": "assets/town-grids/kuujjuaq.json"
     },
@@ -434,6 +467,7 @@
       "lat": 45.8307,
       "lon": -73.4222,
       "ac_annual_s30": 1308.8219,
+      "ac_annual_s45": 1318.0783,
       "grid": "full",
       "grid_file": "assets/town-grids/lassomption.json"
     },
@@ -446,6 +480,7 @@
       "lat": 48.8001,
       "lon": -79.201,
       "ac_annual_s30": 1280.9059,
+      "ac_annual_s45": 1304.6054,
       "grid": "full",
       "grid_file": "assets/town-grids/la-sarre.json"
     },
@@ -458,6 +493,7 @@
       "lat": 47.4411,
       "lon": -72.7851,
       "ac_annual_s30": 1210.8828,
+      "ac_annual_s45": 1230.4767,
       "grid": "full",
       "grid_file": "assets/town-grids/la-tuque.json"
     },
@@ -470,6 +506,7 @@
       "lat": 46.3988,
       "lon": -70.5082,
       "ac_annual_s30": 1230.0306,
+      "ac_annual_s45": 1247.0685,
       "grid": "full",
       "grid_file": "assets/town-grids/lac-etchemin.json"
     },
@@ -482,6 +519,7 @@
       "lat": 45.5773,
       "lon": -70.882,
       "ac_annual_s30": 1185.6434,
+      "ac_annual_s45": 1198.5645,
       "grid": "full",
       "grid_file": "assets/town-grids/lac-megantic.json"
     },
@@ -494,6 +532,7 @@
       "lat": 45.656,
       "lon": -74.3401,
       "ac_annual_s30": 1283.0447,
+      "ac_annual_s45": 1297.4019,
       "grid": "full",
       "grid_file": "assets/town-grids/lachute.json"
     },
@@ -506,6 +545,7 @@
       "lat": 45.5571,
       "lon": -73.7212,
       "ac_annual_s30": 1308.4875,
+      "ac_annual_s45": 1319.6958,
       "grid": "full",
       "grid_file": "assets/town-grids/laval.json"
     },
@@ -518,6 +558,7 @@
       "lat": 48.3462,
       "lon": -69.4041,
       "ac_annual_s30": 1237.7893,
+      "ac_annual_s45": 1262.1169,
       "grid": "full",
       "grid_file": "assets/town-grids/les-escoumins.json"
     },
@@ -530,6 +571,7 @@
       "lat": 47.4083,
       "lon": -61.7806,
       "ac_annual_s30": 1220.8091,
+      "ac_annual_s45": 1217.2816,
       "grid": "full",
       "grid_file": "assets/town-grids/les-iles-de-la-madeleine.json"
     },
@@ -542,6 +584,7 @@
       "lat": 46.8033,
       "lon": -71.1779,
       "ac_annual_s30": 1249.6332,
+      "ac_annual_s45": 1266.3362,
       "grid": "full",
       "grid_file": "assets/town-grids/levis.json"
     },
@@ -554,6 +597,7 @@
       "lat": 45.5219,
       "lon": -73.4645,
       "ac_annual_s30": 1328.1521,
+      "ac_annual_s45": 1340.3012,
       "grid": "full",
       "grid_file": "assets/town-grids/longueuil.json"
     },
@@ -566,6 +610,7 @@
       "lat": 46.2556,
       "lon": -72.9475,
       "ac_annual_s30": 1220.8246,
+      "ac_annual_s45": 1231.0027,
       "grid": "full",
       "grid_file": "assets/town-grids/louiseville.json"
     },
@@ -578,6 +623,7 @@
       "lat": 45.2658,
       "lon": -72.1481,
       "ac_annual_s30": 1220.2112,
+      "ac_annual_s45": 1231.4639,
       "grid": "full",
       "grid_file": "assets/town-grids/magog.json"
     },
@@ -590,6 +636,7 @@
       "lat": 48.1741,
       "lon": -65.9822,
       "ac_annual_s30": 1242.5575,
+      "ac_annual_s45": 1270.3652,
       "grid": "full",
       "grid_file": "assets/town-grids/maria.json"
     },
@@ -602,6 +649,7 @@
       "lat": 45.4314,
       "lon": -73.1637,
       "ac_annual_s30": 1293.858,
+      "ac_annual_s45": 1302.5401,
       "grid": "full",
       "grid_file": "assets/town-grids/marieville.json"
     },
@@ -614,6 +662,7 @@
       "lat": 48.8469,
       "lon": -67.5295,
       "ac_annual_s30": 1212.4175,
+      "ac_annual_s45": 1227.766,
       "grid": "full",
       "grid_file": "assets/town-grids/matane.json"
     },
@@ -626,6 +675,7 @@
       "lat": 45.6323,
       "lon": -73.9838,
       "ac_annual_s30": 1304.905,
+      "ac_annual_s45": 1317.6885,
       "grid": "full",
       "grid_file": "assets/town-grids/mirabel.json"
     },
@@ -638,6 +688,7 @@
       "lat": 46.1137,
       "lon": -74.4805,
       "ac_annual_s30": 1241.7219,
+      "ac_annual_s45": 1256.9673,
       "grid": "full",
       "grid_file": "assets/town-grids/mont-blanc.json"
     },
@@ -650,6 +701,7 @@
       "lat": 48.5839,
       "lon": -68.1839,
       "ac_annual_s30": 1281.2129,
+      "ac_annual_s45": 1299.9528,
       "grid": "full",
       "grid_file": "assets/town-grids/mont-joli.json"
     },
@@ -662,6 +714,7 @@
       "lat": 46.5524,
       "lon": -75.4969,
       "ac_annual_s30": 1233.9112,
+      "ac_annual_s45": 1250.6277,
       "grid": "full",
       "grid_file": "assets/town-grids/mont-laurier.json"
     },
@@ -674,6 +727,7 @@
       "lat": 46.9826,
       "lon": -70.5559,
       "ac_annual_s30": 1273.0616,
+      "ac_annual_s45": 1290.4344,
       "grid": "full",
       "grid_file": "assets/town-grids/montmagny.json"
     },
@@ -686,6 +740,7 @@
       "lat": 45.5032,
       "lon": -73.5698,
       "ac_annual_s30": 1314.0979,
+      "ac_annual_s45": 1326.4286,
       "grid": "full",
       "grid_file": "assets/town-grids/montreal.json"
     },
@@ -698,6 +753,7 @@
       "lat": 51.6879,
       "lon": -76.2569,
       "ac_annual_s30": 1140.0734,
+      "ac_annual_s45": 1160.1908,
       "grid": "full",
       "grid_file": "assets/town-grids/nemaska.json"
     },
@@ -710,6 +766,7 @@
       "lat": 48.0088,
       "lon": -65.3245,
       "ac_annual_s30": 1306.3957,
+      "ac_annual_s45": 1336.0134,
       "grid": "full",
       "grid_file": "assets/town-grids/new-carlisle.json"
     },
@@ -722,6 +779,7 @@
       "lat": 46.2273,
       "lon": -72.6193,
       "ac_annual_s30": 1280.2395,
+      "ac_annual_s45": 1291.1681,
       "grid": "full",
       "grid_file": "assets/town-grids/nicolet.json"
     },
@@ -734,6 +792,7 @@
       "lat": 45.6188,
       "lon": -75.0201,
       "ac_annual_s30": 1258.1665,
+      "ac_annual_s45": 1270.1024,
       "grid": "full",
       "grid_file": "assets/town-grids/papineauville.json"
     },
@@ -746,6 +805,7 @@
       "lat": 46.2195,
       "lon": -71.772,
       "ac_annual_s30": 1219.8627,
+      "ac_annual_s45": 1237.6902,
       "grid": "full",
       "grid_file": "assets/town-grids/plessisville.json"
     },
@@ -758,6 +818,7 @@
       "lat": 46.813,
       "lon": -71.208,
       "ac_annual_s30": 1254.8064,
+      "ac_annual_s45": 1270.4443,
       "grid": "full",
       "grid_file": "assets/quebec-full-grid.json"
     },
@@ -770,6 +831,7 @@
       "lat": 46.0454,
       "lon": -73.7108,
       "ac_annual_s30": 1277.5753,
+      "ac_annual_s45": 1293.9126,
       "grid": "full",
       "grid_file": "assets/town-grids/rawdon.json"
     },
@@ -782,6 +844,7 @@
       "lat": 45.663,
       "lon": -72.1412,
       "ac_annual_s30": 1203.375,
+      "ac_annual_s45": 1216.6229,
       "grid": "full",
       "grid_file": "assets/town-grids/richmond.json"
     },
@@ -794,6 +857,7 @@
       "lat": 48.4502,
       "lon": -68.53,
       "ac_annual_s30": 1246.6357,
+      "ac_annual_s45": 1262.3075,
       "grid": "full",
       "grid_file": "assets/town-grids/rimouski.json"
     },
@@ -806,6 +870,7 @@
       "lat": 47.8358,
       "lon": -69.5368,
       "ac_annual_s30": 1262.8755,
+      "ac_annual_s45": 1286.9582,
       "grid": "full",
       "grid_file": "assets/town-grids/riviere-du-loup.json"
     },
@@ -818,6 +883,7 @@
       "lat": 48.5148,
       "lon": -72.2248,
       "ac_annual_s30": 1179.7905,
+      "ac_annual_s45": 1192.8421,
       "grid": "full",
       "grid_file": "assets/town-grids/roberval.json"
     },
@@ -830,6 +896,7 @@
       "lat": 48.2421,
       "lon": -79.0205,
       "ac_annual_s30": 1222.7447,
+      "ac_annual_s45": 1241.5404,
       "grid": "full",
       "grid_file": "assets/town-grids/rouyn-noranda.json",
       "coord_note": "Centre de Rouyn-Noranda (le premier géocodage visait Cadillac)."
@@ -843,6 +910,7 @@
       "lat": 48.406,
       "lon": -71.0692,
       "ac_annual_s30": 1233.1667,
+      "ac_annual_s45": 1253.9898,
       "grid": "full",
       "grid_file": "assets/town-grids/saguenay.json"
     },
@@ -855,6 +923,7 @@
       "lat": 45.3725,
       "lon": -73.5705,
       "ac_annual_s30": 1315.2958,
+      "ac_annual_s45": 1325.0783,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-constant.json"
     },
@@ -867,6 +936,7 @@
       "lat": 45.5646,
       "lon": -73.893,
       "ac_annual_s30": 1311.8441,
+      "ac_annual_s45": 1323.0264,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-eustache.json"
     },
@@ -879,6 +949,7 @@
       "lat": 46.123,
       "lon": -70.672,
       "ac_annual_s30": 1213.7091,
+      "ac_annual_s45": 1229.015,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-georges.json"
     },
@@ -891,6 +962,7 @@
       "lat": 48.5333,
       "lon": -71.0857,
       "ac_annual_s30": 1215.345,
+      "ac_annual_s45": 1234.7136,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-honore.json"
     },
@@ -903,6 +975,7 @@
       "lat": 45.6275,
       "lon": -72.9406,
       "ac_annual_s30": 1283.6148,
+      "ac_annual_s45": 1294.7536,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-hyacinthe.json"
     },
@@ -915,6 +988,7 @@
       "lat": 47.2144,
       "lon": -70.2692,
       "ac_annual_s30": 1238.6942,
+      "ac_annual_s45": 1259.8287,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-jean-port-joli.json"
     },
@@ -927,6 +1001,7 @@
       "lat": 45.3057,
       "lon": -73.2533,
       "ac_annual_s30": 1277.9062,
+      "ac_annual_s45": 1284.1384,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-jean-sur-richelieu.json"
     },
@@ -939,6 +1014,7 @@
       "lat": 45.778,
       "lon": -74.0033,
       "ac_annual_s30": 1303.0734,
+      "ac_annual_s45": 1317.963,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-jerome.json"
     },
@@ -951,6 +1027,7 @@
       "lat": 46.6549,
       "lon": -70.8052,
       "ac_annual_s30": 1214.3848,
+      "ac_annual_s45": 1226.9512,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-lazare-de-bellechasse.json"
     },
@@ -963,6 +1040,7 @@
       "lat": 46.496,
       "lon": -72.4198,
       "ac_annual_s30": 1252.7565,
+      "ac_annual_s45": 1268.1161,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-luc-de-vincennes.json"
     },
@@ -975,6 +1053,7 @@
       "lat": 45.2382,
       "lon": -73.5699,
       "ac_annual_s30": 1295.6035,
+      "ac_annual_s45": 1302.5948,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-michel.json"
     },
@@ -987,6 +1066,7 @@
       "lat": 47.5266,
       "lon": -69.8074,
       "ac_annual_s30": 1235.7217,
+      "ac_annual_s45": 1253.2509,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-pascal.json"
     },
@@ -999,6 +1079,7 @@
       "lat": 46.7285,
       "lon": -72.5647,
       "ac_annual_s30": 1240.1388,
+      "ac_annual_s45": 1257.3846,
       "grid": "full",
       "grid_file": "assets/town-grids/saint-tite.json"
     },
@@ -1011,6 +1092,7 @@
       "lat": 45.9519,
       "lon": -74.136,
       "ac_annual_s30": 1276.0497,
+      "ac_annual_s45": 1295.0428,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-adele.json"
     },
@@ -1023,6 +1105,7 @@
       "lat": 49.1263,
       "lon": -66.485,
       "ac_annual_s30": 1206.8819,
+      "ac_annual_s45": 1221.8478,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-anne-des-monts.json"
     },
@@ -1035,6 +1118,7 @@
       "lat": 46.622,
       "lon": -71.7363,
       "ac_annual_s30": 1252.1783,
+      "ac_annual_s45": 1269.8013,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-croix.json"
     },
@@ -1047,6 +1131,7 @@
       "lat": 46.9729,
       "lon": -70.9627,
       "ac_annual_s30": 1241.4373,
+      "ac_annual_s45": 1257.0875,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-famille-de-lile-dorleans.json"
     },
@@ -1059,6 +1144,7 @@
       "lat": 45.9624,
       "lon": -73.71,
       "ac_annual_s30": 1286.9496,
+      "ac_annual_s45": 1303.4213,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-julienne.json"
     },
@@ -1071,6 +1157,7 @@
       "lat": 46.4504,
       "lon": -71.0307,
       "ac_annual_s30": 1215.4509,
+      "ac_annual_s45": 1225.5718,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-marie.json"
     },
@@ -1083,6 +1170,7 @@
       "lat": 45.6343,
       "lon": -73.8362,
       "ac_annual_s30": 1342.954,
+      "ac_annual_s45": 1360.1874,
       "grid": "full",
       "grid_file": "assets/town-grids/sainte-therese.json"
     },
@@ -1095,6 +1183,7 @@
       "lat": 50.211,
       "lon": -66.3791,
       "ac_annual_s30": 1212.4782,
+      "ac_annual_s45": 1236.654,
       "grid": "full",
       "grid_file": "assets/town-grids/sept-iles.json"
     },
@@ -1107,6 +1196,7 @@
       "lat": 46.8866,
       "lon": -71.5166,
       "ac_annual_s30": 1255.5575,
+      "ac_annual_s45": 1275.0174,
       "grid": "full",
       "grid_file": "assets/town-grids/shannon.json"
     },
@@ -1119,6 +1209,7 @@
       "lat": 46.5397,
       "lon": -72.7519,
       "ac_annual_s30": 1243.9838,
+      "ac_annual_s45": 1261.4079,
       "grid": "full",
       "grid_file": "assets/town-grids/shawinigan.json"
     },
@@ -1131,6 +1222,7 @@
       "lat": 45.4017,
       "lon": -71.8954,
       "ac_annual_s30": 1195.2062,
+      "ac_annual_s45": 1206.7939,
       "grid": "full",
       "grid_file": "assets/town-grids/sherbrooke.json"
     },
@@ -1143,6 +1235,7 @@
       "lat": 46.0435,
       "lon": -73.1165,
       "ac_annual_s30": 1249.1123,
+      "ac_annual_s45": 1254.7065,
       "grid": "full",
       "grid_file": "assets/town-grids/sorel-tracy.json"
     },
@@ -1155,6 +1248,7 @@
       "lat": 47.6837,
       "lon": -68.8853,
       "ac_annual_s30": 1221.298,
+      "ac_annual_s45": 1242.7186,
       "grid": "full",
       "grid_file": "assets/town-grids/temiscouata-sur-le-lac.json"
     },
@@ -1167,6 +1261,7 @@
       "lat": 45.6952,
       "lon": -73.635,
       "ac_annual_s30": 1307.1337,
+      "ac_annual_s45": 1320.3573,
       "grid": "full",
       "grid_file": "assets/town-grids/terrebonne.json"
     },
@@ -1179,6 +1274,7 @@
       "lat": 46.0913,
       "lon": -71.3013,
       "ac_annual_s30": 1203.8002,
+      "ac_annual_s45": 1218.759,
       "grid": "full",
       "grid_file": "assets/town-grids/thetford-mines.json"
     },
@@ -1191,6 +1287,7 @@
       "lat": 48.1221,
       "lon": -69.1699,
       "ac_annual_s30": 1261.2776,
+      "ac_annual_s45": 1279.4744,
       "grid": "full",
       "grid_file": "assets/town-grids/trois-pistoles.json"
     },
@@ -1203,6 +1300,7 @@
       "lat": 46.3533,
       "lon": -72.5985,
       "ac_annual_s30": 1265.8506,
+      "ac_annual_s45": 1284.1825,
       "grid": "full",
       "grid_file": "assets/town-grids/trois-rivieres.json"
     },
@@ -1215,6 +1313,7 @@
       "lat": 48.1023,
       "lon": -77.7876,
       "ac_annual_s30": 1257.8265,
+      "ac_annual_s45": 1281.1643,
       "grid": "full",
       "grid_file": "assets/town-grids/val-dor.json"
     },
@@ -1227,6 +1326,7 @@
       "lat": 45.7766,
       "lon": -71.9323,
       "ac_annual_s30": 1194.3424,
+      "ac_annual_s45": 1206.7848,
       "grid": "full",
       "grid_file": "assets/town-grids/val-des-sources.json"
     },
@@ -1239,6 +1339,7 @@
       "lat": 45.3972,
       "lon": -74.0255,
       "ac_annual_s30": 1232.8724,
+      "ac_annual_s45": 1232.9147,
       "grid": "full",
       "grid_file": "assets/town-grids/vaudreuil-dorion.json"
     },
@@ -1251,6 +1352,7 @@
       "lat": 45.7728,
       "lon": -73.3554,
       "ac_annual_s30": 1291.4313,
+      "ac_annual_s45": 1299.7697,
       "grid": "full",
       "grid_file": "assets/town-grids/vercheres.json"
     },
@@ -1263,6 +1365,7 @@
       "lat": 46.0555,
       "lon": -71.9599,
       "ac_annual_s30": 1203.231,
+      "ac_annual_s45": 1216.887,
       "grid": "full",
       "grid_file": "assets/town-grids/victoriaville.json"
     },
@@ -1275,6 +1378,7 @@
       "lat": 47.3323,
       "lon": -79.438,
       "ac_annual_s30": 1287.9734,
+      "ac_annual_s45": 1305.5054,
       "grid": "full",
       "grid_file": "assets/town-grids/ville-marie.json"
     }
