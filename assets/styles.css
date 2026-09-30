@@ -1233,6 +1233,7 @@ html[data-theme="dark"] .result-info-btn:focus-visible { background: rgba(255, 2
 /* Mesurage et le jour de décembre sont les deux cases de la rangée.
    La note de neige occupe la ligne du dessous, sous ce jour. */
 .slot-yield {
+  position: relative;
   align-items: stretch;
   min-width: 0;
 }
@@ -2576,8 +2577,12 @@ section.block h2 .field-info-btn {
      courte descend s’appuyer sur la rangée centrale ; le vide reste au-dessus. */
   html:not([data-mode="webi"]) .slot-roof,
   html:not([data-mode="webi"]) .slot-need { align-self: end; }
-  /* #180 : 4A à zéro prend la place de « Temps pour remplir », posée sur la rangée Mesurage net. */
-  html:not([data-mode="webi"])[data-need="off"] .slot-need { grid-row: need-start / fill-end; }
+  /* #180 : 4A à zéro flotte centrée en hauteur avec Mesurage net / Autonomie (même rangée fill). */
+  html:not([data-mode="webi"])[data-need="off"] .slot-need {
+    grid-row: fill;
+    align-self: center;
+  }
+  html:not([data-mode="webi"])[data-need="off"] .slot-yield { align-self: center; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
   html:not([data-mode="webi"]) .flow-arrow {
@@ -2597,6 +2602,14 @@ section.block h2 .field-info-btn {
     transform: translate(-50%, -50%);
     z-index: 2;
     pointer-events: none;
+  }
+  /* Flèche de secours quand #sec-fill (et sa flèche) est masqué : depuis Mesurage net vers 4A. */
+  html:not([data-mode="webi"]) .flow-arrow-need { display: none; }
+  html:not([data-mode="webi"])[data-need="off"] .flow-arrow-need {
+    display: grid;
+    left: auto;
+    right: calc(var(--board-gap) / -2);
+    transform: translate(50%, -50%);
   }
 }
 

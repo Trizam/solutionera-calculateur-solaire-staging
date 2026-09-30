@@ -400,6 +400,12 @@
     </div>
 
     <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
+      <!-- #180 : flèche visible quand 4A est à zéro (la flèche de #sec-fill disparaît avec .need-only). -->
+      <div class="flow-arrow flow-arrow-need" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="18" height="18">
+          <path d="M5 16h18M16 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
       <div class="result-pill has-info" id="mesuragePill">
         <button type="button" class="field-info-btn result-info-btn" data-result-info="kwh" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Mesurage Net" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
         <div class="label">Mesurage Net</div>
@@ -785,7 +791,7 @@
         <ul>
           <li>Prix batterie : curseur en $/kWh, 100–500&nbsp;$, pas de 10, défaut 300. Un module Volthium de 16,1&nbsp;kWh coûte 16,1 × ce prix. Le nombre de modules est l’arrondi de la réserve ÷ 16,1 (au moins un). Brouillon à confirmer. Pas une soumission.</li>
           <li>Consommation par jour = curseur de 0 à 40&nbsp;kWh/j (pas de 0,1), plus la ligne libre. Ce n’est pas la facture annuelle. Le jour de décembre, les appareils et les batteries restent à l’écran.</li>
-          <li>4A à zéro (#179, #180)&nbsp;: <code>html[data-need="off"]</code> masque tout ce qui porte <code>.need-only</code> (note décembre, coche 100&nbsp;%, 4B, remplissage, 5, 6) ; le tableau suit <code>.is-zero</code> (#173) en direct. 4A descend à la place de « Temps pour remplir ». Le basculement attend la fin du glissement (<code>change</code>), pas chaque cran.</li>
+          <li>4A à zéro (#179, #180)&nbsp;: <code>html[data-need="off"]</code> masque tout ce qui porte <code>.need-only</code> (note décembre, coche 100&nbsp;%, 4B, remplissage, 5, 6) ; le tableau suit <code>.is-zero</code> (#173) en direct. 4A flotte centrée en hauteur avec Mesurage net / Autonomie ; la petite flèche reste entre les deux. Le basculement attend la fin du glissement (<code>change</code>), pas chaque cran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
           <li>Le lien du scénario conserve aussi la durée de réserve, le prix ($/kWh, <code>battKwh</code>) et les taxes des batteries, la consommation du jour et la ligne libre.</li>
