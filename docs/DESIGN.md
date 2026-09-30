@@ -108,6 +108,10 @@ Case `#showDetails`, en bas de page avec « Afficher les notes d’édition ». 
 - Cochée : les résultats s’affichent en précision de lecture (dollars au cent, kWh avec décimales). Les calculs ne changent pas.
 - Le choix est une préférence d’affichage (`localStorage`, clé `solar-details`), pas un paramètre du scénario dans l’URL.
 
+## 4 bis. Pas de cadre vert au clic
+
+Un clic dans le vide (hors bouton, champ, lien, ⓘ ou curseur) ne doit pas dessiner de cadre vert autour de `#main`, d’une carte ou de la page ; seuls les vrais contrôles gardent un contour au clavier (`:focus-visible`).
+
 ## 5. Où vivent les règles
 
 Les règles durables sont seulement dans ce fichier.

@@ -612,6 +612,12 @@ console.log(`  loss at d=20% tilt30: −${lossAt20}% (expect −14 integer) → 
 
 
 const hasSkipFocus = app.includes("focusSkipTarget") && app.includes("main.focus");
+const noClickGreenFrame =
+  /#main:focus-visible[\s\S]{0,200}outline:\s*none/.test(css) &&
+  /#sec-prod:focus-visible[\s\S]{0,120}outline:\s*none/.test(css) &&
+  !/#main:focus-visible\s*\{\s*outline:\s*2px\s+solid\s+var\(--green/.test(css) &&
+  css.includes(".field-info-btn:focus-visible") &&
+  /outline:\s*2px\s+solid\s+var\(--green/.test(css);
 const hasGridRetry = app.includes("fetchGridOnce");
 const hasAriaPressed = app.includes("aria-pressed");
 const safariRowTouch = css.includes("touch-action: none") && /\.slider-row[\s\S]{0,120}touch-action:\s*none/.test(css);
@@ -646,6 +652,7 @@ const printReport =
   css.includes(".print-appendix") &&
   /@page\s*\{[^}]*size:\s*A4 portrait/.test(css);
 console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
+console.log(`  no click green frame on #main/#sec-prod (controls keep focus): ${noClickGreenFrame ? "PASS" : "FAIL"}`);
 console.log(`  grid fetch retry once: ${hasGridRetry ? "PASS" : "FAIL"}`);
 console.log(`  unit aria-pressed: ${hasAriaPressed ? "PASS" : "FAIL"}`);
 console.log(`  slider-row Safari touch-action: ${safariRowTouch ? "PASS" : "FAIL"}`);
@@ -2782,6 +2789,7 @@ const pass =
   discTiltW &&
   lossOk &&
   hasSkipFocus &&
+  noClickGreenFrame &&
   hasGridRetry &&
   hasAriaPressed &&
   safariRowTouch &&

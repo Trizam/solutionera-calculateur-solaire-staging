@@ -3063,11 +3063,16 @@ section.block h2 .field-info-btn {
   .orient-val { font-size: 1.02rem; }
 }
 
-/* Skip target: allow programmatic focus without ugly ring flash, keep :focus-visible */
-#main:focus { outline: none; }
-#main:focus-visible { outline: 2px solid var(--green, #1b4332); outline-offset: 4px; }
+/* Skip/programmatic targets (tabindex=-1): never paint a green page/card frame on click.
+   Real controls keep their own :focus-visible rings. See docs/DESIGN.md. */
+#main:focus,
+#main:focus-visible,
 #sec-prod:focus,
-#sec-prod-b:focus { outline: none; }
+#sec-prod:focus-visible,
+#sec-prod-b:focus,
+#sec-prod-b:focus-visible {
+  outline: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
