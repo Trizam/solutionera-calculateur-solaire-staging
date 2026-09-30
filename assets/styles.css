@@ -2305,6 +2305,45 @@ html[data-theme="dark"] .bug-done {
 .bug-form-status[hidden] { display: none; }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 
+/* Optional GitHub identity row under the name field (hidden until the proxy offers it). */
+.bug-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin: -0.55rem 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.bug-identity[hidden] { display: none; }
+.bug-identity-text:empty { display: none; }
+.bug-identity-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.bug-identity-avatar[hidden] { display: none; }
+.bug-identity.is-linked .bug-identity-text { color: var(--text); font-weight: 600; }
+.bug-identity-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--green-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  min-height: 32px;
+}
+.bug-identity-btn:hover { color: var(--green); }
+.bug-identity-btn:focus-visible {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+html[data-theme="dark"] .bug-identity-btn { color: var(--green-mid); }
+
 /* Two columns. Narrow full mode: docs/DESIGN.md (peek + swipe). */
 .board-viewport { min-width: 0; }
 .board {

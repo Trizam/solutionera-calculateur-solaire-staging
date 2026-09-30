@@ -2218,6 +2218,185 @@
     return meta ? String(meta.getAttribute("content") || "").trim() : "";
   }
 
+  /* Optional GitHub identity: linked once via popup, then remembered in this browser.
+     Without it a report still goes out instantly through the site's bot account. */
+  const BUG_GH_STORAGE = "bugReportGithub";
+  const BUG_GH_DRAFT = "bugReportDraft";
+  const BUG_GH_MESSAGE = "bug-report-github-session";
+  const BUG_GH_HASH = "bug-report-session";
+  const BUG_GH_HEADER = "X-Bug-Report-Session";
+  let bugGithubOffered = null;
+  let bugGithubPopup = null;
+
+  function bugEndpointOrigin() {
+    try {
+      return new URL(bugReportEndpoint()).origin;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function bugGithubSession() {
+    try {
+      const raw = localStorage.getItem(BUG_GH_STORAGE);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || typeof data.session !== "string" || !data.session) return null;
+      if (typeof data.exp === "number" && data.exp <= Date.now()) {
+        localStorage.removeItem(BUG_GH_STORAGE);
+        return null;
+      }
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function storeBugGithubSession(data) {
+    try {
+      if (!data) localStorage.removeItem(BUG_GH_STORAGE);
+      else {
+        localStorage.setItem(BUG_GH_STORAGE, JSON.stringify({
+          session: String(data.session || ""),
+          login: String(data.login || ""),
+          avatar: String(data.avatar || ""),
+          exp: typeof data.exp === "number" ? data.exp : null
+        }));
+      }
+    } catch (_) {}
+    renderBugIdentity();
+  }
+
+  function renderBugIdentity() {
+    const row = $("bugIdentity");
+    if (!row) return;
+    const session = bugGithubSession();
+    const text = $("bugIdentityText");
+    const btn = $("btnBugGithub");
+    const avatar = $("bugIdentityAvatar");
+    if (session) {
+      row.hidden = false;
+      row.classList.add("is-linked");
+      if (avatar) {
+        avatar.hidden = !session.avatar;
+        if (session.avatar) avatar.src = session.avatar;
+      }
+      if (text) text.textContent = "Envoyé comme @" + session.login;
+      if (btn) btn.textContent = "Détacher";
+      return;
+    }
+    row.classList.remove("is-linked");
+    if (avatar) {
+      avatar.hidden = true;
+      avatar.removeAttribute("src");
+    }
+    if (!bugGithubOffered) {
+      row.hidden = true;
+      return;
+    }
+    row.hidden = false;
+    if (text) text.textContent = "";
+    if (btn) btn.textContent = "Signer avec mon compte GitHub";
+  }
+
+  function probeBugGithubOffer() {
+    if (bugGithubOffered !== null) return;
+    const endpoint = bugReportEndpoint();
+    if (!endpoint) {
+      bugGithubOffered = false;
+      return;
+    }
+    bugGithubOffered = false;
+    fetch(endpoint.replace(/\/+$/, "") + "/auth/config", { cache: "no-store" })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        bugGithubOffered = !!(data && data.github);
+        renderBugIdentity();
+      })
+      .catch(function () {});
+  }
+
+  function bugGithubStartUrl(mode) {
+    const endpoint = bugReportEndpoint().replace(/\/+$/, "");
+    const back = location.origin + location.pathname + location.search;
+    return endpoint + "/auth/github/start?mode=" + mode + "&return_to=" + encodeURIComponent(back);
+  }
+
+  function toggleBugGithub() {
+    if (bugGithubSession()) {
+      storeBugGithubSession(null);
+      return;
+    }
+    if (!bugReportEndpoint()) return;
+    let popup = null;
+    try {
+      popup = window.open(bugGithubStartUrl("popup"), "bugReportGithub", "popup=yes,width=620,height=760");
+    } catch (_) {
+      popup = null;
+    }
+    if (popup) {
+      bugGithubPopup = popup;
+      try { popup.focus(); } catch (_) {}
+      return;
+    }
+    // Popup blocked: keep the draft, round-trip the whole page instead.
+    try {
+      sessionStorage.setItem(BUG_GH_DRAFT, JSON.stringify({
+        bug: $("bugText") ? $("bugText").value : "",
+        name: $("bugName") ? $("bugName").value : ""
+      }));
+    } catch (_) {}
+    location.assign(bugGithubStartUrl("redirect"));
+  }
+
+  function acceptBugGithubMessage(data) {
+    if (!data || data.type !== BUG_GH_MESSAGE || typeof data.session !== "string") return false;
+    bugGithubOffered = true;
+    storeBugGithubSession(data);
+    setBugStatus("");
+    return true;
+  }
+
+  function onBugGithubMessage(e) {
+    const expected = bugEndpointOrigin();
+    if (!expected || e.origin !== expected) return;
+    if (acceptBugGithubMessage(e.data) && bugGithubPopup) {
+      try { bugGithubPopup.close(); } catch (_) {}
+      bugGithubPopup = null;
+    }
+  }
+
+  /* Full-page fallback lands on `#bug-report-session=…`; swallow it and reopen the sheet. */
+  function consumeBugGithubHash() {
+    const hash = String(location.hash || "");
+    const prefix = "#" + BUG_GH_HASH + "=";
+    if (hash.indexOf(prefix) !== 0) return false;
+    let data = null;
+    try {
+      const raw = decodeURIComponent(hash.slice(prefix.length));
+      data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    } catch (_) {
+      data = null;
+    }
+    try {
+      history.replaceState(null, "", location.pathname + location.search + "#bugModal");
+    } catch (_) {}
+    if (!acceptBugGithubMessage(data)) return false;
+    let draft = null;
+    try {
+      draft = JSON.parse(sessionStorage.getItem(BUG_GH_DRAFT) || "null");
+      sessionStorage.removeItem(BUG_GH_DRAFT);
+    } catch (_) {
+      draft = null;
+    }
+    openBugReport();
+    if (draft) {
+      if ($("bugText") && draft.bug) $("bugText").value = String(draft.bug);
+      if ($("bugName") && draft.name) $("bugName").value = String(draft.name);
+    }
+    return true;
+  }
+
   function formatBuildId(version, sha) {
     const ver = String(version || "0.2").replace(/^v/i, "");
     const shortSha = String(sha || "").replace(/^#/, "").slice(0, 7);
@@ -2384,6 +2563,8 @@
     hideBugDone();
     const already = bugModalOpen();
     if (!already) resetBugForm();
+    probeBugGithubOffer();
+    renderBugIdentity();
     openModal("bugModal");
     focusBugField();
   }
@@ -2438,13 +2619,17 @@
     if ($("btnBugSubmit")) $("btnBugSubmit").disabled = true;
     setBugStatus("");
     try {
+      const headers = { "Content-Type": "application/json" };
+      const session = bugGithubSession();
+      if (session) headers[BUG_GH_HEADER] = session.session;
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify(payload)
       });
       const data = await res.json().catch(function () { return {}; });
       if (data && data.ok) {
+        if (data.session === "expired") storeBugGithubSession(null);
         showBugDone();
         return;
       }
@@ -3602,6 +3787,8 @@
       } catch (_) {}
     }
     if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
+    if ($("btnBugGithub")) $("btnBugGithub").addEventListener("click", toggleBugGithub);
+    window.addEventListener("message", onBugGithubMessage);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
     document.querySelectorAll(".field-info-btn").forEach(function (btn) {
@@ -3684,7 +3871,7 @@
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
     try {
-      if (location.hash === "#bugModal") openBugReport();
+      if (!consumeBugGithubHash() && location.hash === "#bugModal") openBugReport();
     } catch (_) {}
   }
 

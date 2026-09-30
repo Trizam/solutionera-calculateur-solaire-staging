@@ -1157,6 +1157,11 @@
             <label for="bugName">Votre nom (si vous désirez)</label>
             <input id="bugName" name="name" type="text" maxlength="80" autocomplete="name" inputmode="text" />
           </div>
+          <div class="bug-identity" id="bugIdentity" hidden>
+            <img class="bug-identity-avatar" id="bugIdentityAvatar" alt="" width="22" height="22" hidden />
+            <span class="bug-identity-text" id="bugIdentityText"></span>
+            <button type="button" class="bug-identity-btn" id="btnBugGithub"></button>
+          </div>
           <p class="bug-form-status" id="bugFormStatus" role="status" hidden></p>
         </div>
         <button type="submit" class="btn" id="btnBugSubmit">Envoyer</button>

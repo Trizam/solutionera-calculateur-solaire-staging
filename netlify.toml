@@ -6,3 +6,9 @@
   to = "/.netlify/functions/bug-report"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/bug-report"
+  status = 200
+  force = true
