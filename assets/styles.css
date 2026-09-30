@@ -2543,11 +2543,25 @@ section.block h2 .field-info-btn {
     display: block !important;
     font: 9pt/1.3 Lato, Arial, sans-serif;
     color: #1a1a1a;
+    --bg: #f7faf7;
+    --card: #ffffff;
+    --green: #2d6a4f;
+    --green-soft: #d8f3dc;
+    --green-mid: #52b788;
+    --green-dark: #1b4332;
+    --text: #1a1a1a;
+    --muted: #5c6b5c;
+    --border: #cfe3d4;
+    --accent: #40916c;
+    --input-bg: #ffffff;
+    --pill-end: #e9f5ee;
+    --shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
   }
   .print-sheet {
     box-sizing: border-box;
   }
-  .print-card-page,
+  .print-card-page + .print-card-page,
+  .print-share-page,
   .print-appendix {
     break-before: page;
     page-break-before: always;
@@ -2569,48 +2583,35 @@ section.block h2 .field-info-btn {
     font-size: 18pt;
     line-height: 1.15;
   }
-  .print-summary-page { position: relative; }
-  .print-summary-context { margin: 0 0 0.7rem; color: #5c6b5c; }
-  .print-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.45rem;
-    min-height: 54mm;
-  }
-  .print-summary-card {
-    display: grid;
-    align-content: center;
-    gap: 0.25rem;
-    padding: 0.65rem;
-    text-align: center;
-    background: #e9f5ee;
-    border: 1px solid #cfe3d4;
-    border-radius: 8px;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  .print-summary-card strong { color: #1b4332; font-size: 17pt; line-height: 1; }
-  .print-summary-card span { color: #42584a; font-size: 8pt; }
+  .print-share-page { position: relative; padding-top: 12mm; text-align: center; }
+  .print-share-page h1 { margin-top: 12mm; }
+  .print-share-context { margin: 0; color: #5c6b5c; font-size: 10pt; }
   .print-share {
     display: grid;
     justify-items: center;
-    margin-top: 1.1rem;
-    padding-top: 0.8rem;
-    border-top: 1px solid #cfe3d4;
+    max-width: 160mm;
+    margin: 10mm auto 0;
+    padding: 10mm;
+    border: 1px solid #cfe3d4;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
     text-align: center;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
-  .print-share h2 { margin: 0 0 0.35rem; color: #1b4332; font-size: 13pt; }
+  .print-share h2 { margin: 0 0 0.55rem; color: #1b4332; font-size: 14pt; }
   .print-scenario-link {
-    max-width: 170mm;
+    max-width: 138mm;
     color: #205f88 !important;
-    font-size: 7.5pt;
+    font-size: 8pt;
     overflow-wrap: anywhere;
     text-decoration: underline !important;
   }
-  .print-qr { width: 45mm; height: 45mm; margin-top: 0.55rem; }
-  .print-qr-caption { margin: 0.2rem 0 0; color: #5c6b5c; font-size: 8pt; }
+  .print-qr { width: 58mm; height: 58mm; margin-top: 0.8rem; }
+  .print-qr-caption { margin: 0.3rem 0 0; color: #5c6b5c; font-size: 8.5pt; }
   .print-page-warning {
-    margin: 0.8rem auto 0;
+    margin: 8mm auto 0;
     max-width: 150mm;
     padding: 0.55rem 0.7rem;
     color: #5f4300;
@@ -2621,8 +2622,8 @@ section.block h2 .field-info-btn {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  .print-card-page { padding-top: 12mm; }
-  .print-card-page-costs { padding-top: 24mm; }
+  .print-card-page { padding-top: 0; }
+  .print-card-page-finance { padding-top: 12mm; }
   .print-card-page h1 { margin-bottom: 0.45rem; font-size: 15pt; }
   .print-card-grid {
     display: grid;
@@ -2631,46 +2632,54 @@ section.block h2 .field-info-btn {
     gap: 0.45rem;
     align-items: start;
   }
-  .print-card-page-production .print-card-grid {
-    margin-left: 9.5%;
+  .print-card-page-web .print-card-grid {
     zoom: 0.84;
-    grid-template-areas:
-      "size production"
-      "need reserve"
-      "need yield"
-      "need fill";
+    gap: 0.8rem;
   }
-  .print-card-page-production .print-card[data-print-source="sec-prod"] { grid-area: size; }
-  .print-card-page-production .print-card[data-print-source="sec-prod-b"] { grid-area: production; }
-  .print-card-page-production .print-card[data-print-source="sec-auto"] { grid-area: need; }
-  .print-card-page-production .print-card[data-print-source="sec-reserve"] { grid-area: reserve; }
-  .print-card-page-production .print-card[data-print-source="sec-yield"] { grid-area: yield; }
-  .print-card-page-production .print-card[data-print-source="sec-fill"] { grid-area: fill; }
+  .print-web-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-width: 0;
+  }
   .print-card {
     margin: 0 !important;
     padding: 0.55rem !important;
-    border-radius: 7px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--card) !important;
+    box-shadow: var(--shadow) !important;
     font-size: 7pt !important;
     line-height: 1.2 !important;
     break-inside: avoid;
     page-break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .print-card h2 { margin: 0 0 0.35rem !important; font-size: 9pt !important; line-height: 1.15 !important; }
   .print-card .field { margin: 0 !important; padding: 0.32rem 0 !important; }
-  .print-card .result-pill { padding: 0.42rem !important; min-height: 0 !important; }
+  .print-card .result-pill {
+    padding: 0.42rem !important;
+    min-height: 0 !important;
+    border-color: var(--border) !important;
+    background: linear-gradient(135deg, var(--green-soft), var(--pill-end)) !important;
+  }
   .print-card .big { font-size: 13pt !important; }
   .print-card .label, .print-card label, .print-card .field-label { font-size: 7pt !important; }
   .print-card .breakdown { margin-top: 0.25rem !important; padding: 0.4rem !important; }
   .print-card .cards { gap: 0.3rem !important; margin: 0.35rem 0 !important; }
-  .print-card .card-kpi { padding: 0.35rem !important; min-height: 0 !important; }
+  .print-card .card-kpi {
+    padding: 0.35rem !important;
+    min-height: 0 !important;
+    border-color: var(--border) !important;
+    background: var(--green-soft) !important;
+  }
   .print-card .kpi { font-size: 11pt !important; }
   .print-card .load-table { font-size: 6.5pt !important; }
   .print-card .load-table th, .print-card .load-table td { padding: 0.12rem 0.25rem !important; }
   .print-card .checks { gap: 0.2rem !important; }
   .print-card input, .print-card select { min-height: 0 !important; padding: 0.28rem !important; font-size: 7pt !important; }
-  .print-card-page-production .print-card[data-print-source="sec-yield"],
-  .print-card-page-production .print-card[data-print-source="sec-fill"] { align-self: stretch; }
-  .print-card-page-costs .print-card { align-self: start; }
+  .print-card-page-finance .print-card { align-self: start; }
   .print-card[data-print-source="sec-auto"] { --prod-gutter: 6rem; }
   .print-card[data-print-source="sec-reserve"] { --prod-gutter: 6rem; }
   .print-card[data-print-source="sec-total"] .project-cards { margin: 0.3rem 0 0.45rem; }
@@ -2828,7 +2837,24 @@ section.block h2 .field-info-btn {
     box-shadow: none;
     border-color: #ccc;
   }
-  .result-pill, .card-kpi, .town-field { background: #f3f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .result-pill {
+    background: linear-gradient(135deg, var(--green-soft), var(--pill-end)) !important;
+    border-color: var(--border) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .card-kpi {
+    background: var(--green-soft) !important;
+    border-color: var(--border) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .town-field {
+    background: var(--input-bg) !important;
+    border-color: var(--border) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   .town-list, .town-caret-btn { display: none !important; }
   .autonomy-snow,
   .fill-shortfall,

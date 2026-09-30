@@ -1898,22 +1898,17 @@
     history.replaceState(history.state, "", path);
   }
 
-  const PRINT_CARD_PAGES = [
-    ["sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"],
-    ["sec-cost", "sec-batt", "sec-value", "sec-total"]
+  const PRINT_WEB_COLUMNS = [
+    ["sec-prod", "sec-prod-b", "sec-yield"],
+    ["sec-auto", "sec-reserve", "sec-fill"]
   ];
+  const PRINT_FINANCE_CARDS = ["sec-cost", "sec-batt", "sec-value", "sec-total"];
 
   function printNode(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
     if (text !== undefined) node.textContent = text;
     return node;
-  }
-
-  function printValue(id, fallback) {
-    const node = $(id);
-    const value = node ? String(node.textContent || "").replace(/\s+/g, " ").trim() : "";
-    return value || fallback || "—";
   }
 
   function syncPrintControls(source, clone) {
@@ -1990,29 +1985,15 @@
     parent.appendChild(header);
   }
 
-  function appendPrintSummary(report, url) {
-    const page = printNode("section", "print-sheet print-summary-page");
+  function appendPrintSharePage(report, url) {
+    const page = printNode("section", "print-sheet print-share-page");
     appendPrintBrand(page, "Calculateur solaire");
-    page.appendChild(printNode("h1", "", "Résumé de votre projet solaire"));
+    page.appendChild(printNode("h1", "", "Rouvrir ce calcul exact"));
     const town = $("villeBtn");
-    page.appendChild(printNode("p", "print-summary-context", "Scénario calculé pour " + (town && town.value ? town.value : "la localisation choisie") + "."));
-
-    const summary = printNode("div", "print-summary-grid");
-    [
-      [printValue("outPv"), "panneaux solaires"],
-      [printValue("outKwh"), "production annuelle (kWh)"],
-      [printValue("autoStopVal"), "autonomie choisie"],
-      [printValue("outProject"), "coût total estimé"]
-    ].forEach(function (item) {
-      const card = printNode("div", "print-summary-card");
-      card.appendChild(printNode("strong", "", item[0]));
-      card.appendChild(printNode("span", "", item[1]));
-      summary.appendChild(card);
-    });
-    page.appendChild(summary);
+    page.appendChild(printNode("p", "print-share-context", "Scénario calculé pour " + (town && town.value ? town.value : "la localisation choisie") + "."));
 
     const share = printNode("section", "print-share");
-    share.appendChild(printNode("h2", "", "Rouvrir ce calcul exact"));
+    share.appendChild(printNode("h2", "", "Lien cliquable vers votre scénario"));
     const link = printNode("a", "print-scenario-link", url);
     link.href = url;
     share.appendChild(link);
@@ -2030,7 +2011,24 @@
     share.appendChild(qr);
     share.appendChild(printNode("p", "print-qr-caption", "Scannez avec l’appareil photo d’un cellulaire."));
     page.appendChild(share);
-    page.appendChild(printNode("p", "print-page-warning", "Attention : ce rapport est long. Vérifiez le nombre de pages sélectionnées avant d’imprimer."));
+    page.appendChild(printNode("p", "print-page-warning", "Les pages suivantes contiennent les hypothèses, les formules et les sources du calcul."));
+    report.appendChild(page);
+  }
+
+  function appendPrintWebPage(report) {
+    const page = printNode("section", "print-sheet print-card-page print-card-page-web");
+    appendPrintBrand(page, "Calculateur solaire");
+    page.appendChild(printNode("h1", "", "Estimation de votre projet"));
+    const grid = printNode("div", "print-card-grid print-web-columns");
+    PRINT_WEB_COLUMNS.forEach(function (cardIds, index) {
+      const column = printNode("div", "print-web-column print-web-column-" + (index + 1));
+      cardIds.forEach(function (id) {
+        const card = clonePrintCard(id);
+        if (card) column.appendChild(card);
+      });
+      grid.appendChild(column);
+    });
+    page.appendChild(grid);
     report.appendChild(page);
   }
 
@@ -2095,9 +2093,9 @@
     if (!report) return null;
     report.replaceChildren();
     const url = scenarioPrintUrl();
-    appendPrintSummary(report, url);
-    appendPrintCardPage(report, PRINT_CARD_PAGES[0], "Production et autonomie", "print-card-page-production");
-    appendPrintCardPage(report, PRINT_CARD_PAGES[1], "Coûts et valeur", "print-card-page-costs");
+    appendPrintWebPage(report);
+    appendPrintCardPage(report, PRINT_FINANCE_CARDS, "Coûts et valeur", "print-card-page-finance");
+    appendPrintSharePage(report, url);
     appendPrintAppendix(report);
     report.dataset.scenarioUrl = url;
     return report;
