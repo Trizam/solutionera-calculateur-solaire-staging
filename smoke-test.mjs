@@ -2601,7 +2601,7 @@ const yearsFloatOk =
 console.log(`  « Retour » flottant calé sur la colonne verte + se pose dans la carte 3: ${yearsFloatOk ? "PASS" : "FAIL"}`);
 
 // #179 / #180 — 4A à zéro : seule 4A reste (ligne libre, total, coche 100 %, 4B, remplissage, 5, 6 attendent),
-// 4A descend à la place de « Temps pour remplir », et la bascule attend la fin du glissement (change).
+// 4A flotte centrée avec Mesurage net / Autonomie, flèche entre les deux, bascule à la fin du glissement (change).
 const needOnlyMarkup =
   /<html lang="fr" data-mode="full" data-theme-pref="sys" data-need="off">/.test(html) &&
   html.includes('<tr class="load-custom-row">') &&
@@ -2613,10 +2613,14 @@ const needOnlyMarkup =
   /<section class="block mode-full-only slot-batt theme-blue autonomy-rest need-only" id="sec-batt"/.test(html) &&
   /<section class="block mode-full-only slot-total theme-blue autonomy-rest need-only" id="sec-total"/.test(html) &&
   /<aside class="autonomy-none mode-full-only need-only" id="autonomyNone" hidden>/.test(html) &&
+  html.includes('class="flow-arrow flow-arrow-need"') &&
   html.includes('id="fullAuto"');
 const needOnlyCss =
   /html\[data-need="off"\] \.need-only \{\s*display: none !important;\s*\}/.test(css) &&
-  css.includes('html:not([data-mode="webi"])[data-need="off"] .slot-need { grid-row: need-start / fill-end; }') &&
+  /html:not\(\[data-mode="webi"\]\)\[data-need="off"\] \.slot-need \{\s*grid-row: fill;\s*align-self: center;\s*\}/.test(css) &&
+  css.includes('html:not([data-mode="webi"])[data-need="off"] .slot-yield { align-self: center; }') &&
+  css.includes('html:not([data-mode="webi"]) .flow-arrow-need { display: none; }') &&
+  /html:not\(\[data-mode="webi"\]\)\[data-need="off"\] \.flow-arrow-need \{\s*display: grid;\s*left: auto;\s*right: calc\(var\(--board-gap\) \/ -2\);\s*transform: translate\(50%, -50%\);\s*\}/.test(css) &&
   css.includes('html:not([data-mode="webi"]) .slot-need { align-self: end; }');
 const needOnlyJs =
   app.includes("function syncNeedColumn(consoJour)") &&
