@@ -16,13 +16,8 @@
     "270": "270° (Ouest)", "285": "285°", "300": "300°", "315": "315° (Nord-Ouest)", "330": "330°", "345": "345°"
   };
   const TILTS = [0, 15, 30, 45, 60, 75, 90];
-  const SNOW_STOPS = [
-    { value: 100, label: "toujours" },
-    { value: 75, label: "75 %" },
-    { value: 50, label: "50 %" },
-    { value: 25, label: "25 %" },
-    { value: 0, label: "jamais" }
-  ];
+  /** Crans retenus : 0, 25, 50, 75, 100. Défaut 100 %, comme le curseur actuel. */
+  const SNOW_STOPS = [0, 25, 50, 75, 100].map((n) => ({ value: n, label: n + " %" }));
 
   /** Deux versants d’un toit à pignon : le meilleur au sud, l’autre à l’est. */
   const DEFAULT_PANS = [
@@ -52,7 +47,8 @@
     const parsed = raw.split(";").map((chunk) => {
       const [m2, az, tilt, snow] = chunk.split(":").map(Number);
       if (![m2, az, tilt, snow].every(isFinite)) return null;
-      return { m2: Math.max(0, m2), az: ((az % 360) + 360) % 360, tilt: Math.min(90, Math.max(0, tilt)), snow: Math.min(100, Math.max(0, snow)) };
+      const snowStop = Math.min(100, Math.max(0, Math.round(snow / 25) * 25));
+      return { m2: Math.max(0, m2), az: ((az % 360) + 360) % 360, tilt: Math.min(90, Math.max(0, tilt)), snow: snowStop };
     }).filter(Boolean).slice(0, MAX_PANS);
     if (parsed.length) pans = parsed;
   }

@@ -13,6 +13,8 @@
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="stylesheet" href="assets/styles.css" />
   <link rel="stylesheet" href="assets/mockup-multi-versant.css" />
+  <!-- Même porte que le site : ?mode=webi avant le premier affichage. -->
+  <script src="assets/display-mode.js"></script>
   <script src="assets/theme-mode.js"></script>
 </head>
 <body>
@@ -22,7 +24,7 @@
       <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="50" height="50" decoding="async" />
       <div class="brand-text">
         <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
-        <div class="brand-sub">Calculateur solaire · <span class="mockup-badge">Maquette multi-versant</span></div>
+        <div class="brand-sub">Calculateur solaire <span class="mode-badge mode-webi-only">Mode webi</span> · <span class="mockup-badge">Maquette multi-versant</span></div>
       </div>
     </div>
 
@@ -148,12 +150,13 @@
     <aside class="disclaimers mockup-notes">
       <div class="disc-head"><strong>Maquette — ce qui change</strong></div>
       <ul>
-        <li>La case « plusieurs versants » est la porte. Décochée, 1A et 1B restent tels quels.</li>
-        <li>Cochée&nbsp;: 1A garde la localisation. 1B devient le tableau, une rangée par versant, avec la densité au-dessus.</li>
-        <li>Par rangée&nbsp;: superficie (m²/pi² en tête de colonne), orientation, inclinaison et déneigement en menus. Sous la rangée&nbsp;: panneaux, kWc, efficacité.</li>
+        <li>Colonnes gardées&nbsp;: superficie, orientation, inclinaison, déneigement.</li>
+        <li>Une seule densité pour toute la toiture, au-dessus du tableau.</li>
+        <li>Déneigement&nbsp;: menu 0&nbsp;%, 25&nbsp;%, 50&nbsp;%, 75&nbsp;%, 100&nbsp;%. Défaut 100&nbsp;%.</li>
+        <li>Quatre versants au maximum.</li>
+        <li>Le même tableau en mode webi (<code>?mode=webi</code>)&nbsp;: 1A, le tableau et le rendement. Le coût, le retour et la colonne autonomie restent masqués, comme aujourd’hui.</li>
         <li>Par versant&nbsp;: kWc = m² × densité × 0,20&nbsp;; kWh/an = cellule (inclinaison × orientation) × kWc × (1 − (1−d)×W)&nbsp;; décembre = cellule déc × kWc × (1 − (1−d)×C).</li>
-        <li>Total&nbsp;: sommes des panneaux, des kWc, des kWh/an et des kWh/j de décembre. L’efficacité totale est pondérée par les kWc. Le coût, le retour et l’autonomie repartent de ces sommes.</li>
-        <li>Sur téléphone, chaque rangée devient une petite carte de versant.</li>
+        <li>Total&nbsp;: sommes des panneaux, des kWc, des kWh/an et des kWh/j de décembre. L’efficacité totale est pondérée par les kWc.</li>
       </ul>
     </aside>
 
