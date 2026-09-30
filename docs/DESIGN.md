@@ -64,12 +64,13 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 
 ## 1 ter. Thème jaune
 
-Les drapeaux portent `.theme-yellow` : la note de neige, la bannière de surplus (rachat HQ), la consommation annuelle trop basse face à 4A, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
+Les drapeaux portent `.theme-yellow` : la note de neige, la bannière de surplus (rachat HQ), la consommation annuelle trop basse face à 4A, le remplissage qui dépasse 3 jours, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
 
 - Chaque drapeau porte `data-flag="Nom du problème"`. Il reçoit un petit triangle jaune « i » (`.flag-mark`) en haut à droite.
 - Tant qu’au moins un drapeau est visible, une petite boîte jaune fixe (`#flagDock`) flotte au coin inférieur droit de l’écran. Un drapeau : son nom. Plusieurs : leur nombre, à côté du triangle.
 - Survol (ordinateur) ou toucher (mobile) : la liste des drapeaux s’ouvre. Un clic amène au drapeau, qui s’intensifie un instant (`.is-flag-focus`).
 - Masqué en mode webi et à l’impression.
+- Remplissage (issue #175). Plus de 3 jours : drapeau jaune « Ça commence à être long pour remplir. » La réserve ne se remplit pas : « Vous produisez moins d’énergie que vous en consommez en autonomie. » Ce dernier passe au rouge (`.theme-red`, triangle rouge) seulement si « Je suis 100 % autonome » est coché ; la boîte du coin le suit. Sinon il reste jaune.
 
 ## 1 quinquies. Bulle bug au-dessus de tout (issue #166)
 
@@ -127,7 +128,7 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 | Rendement | Mesurage net et le jour de décembre | Paire de boîtes vertes, à gauche, même hauteur. La neige reste sous le jour |
 | Besoin **4A** | Quels appareils je veux en autonomie ? | Curseur de 0 à « maison pleinement autonome », sans repère sur la piste (issue #169). Le tableau Usage / kWh/j est au-dessus du curseur, du plus léger au plus lourd ; il s’arrête à la thermopompe (30 kWh/j), pas de ligne « Chauffage ». À zéro, pas de tableau ni de ligne « Autre consommation » ; dès le premier cran, « Téléphone » et « Autre consommation » apparaissent, et la ligne libre reste ensuite (issue #173) |
 | Durée **4B** | Pendant combien de temps je veux cette autonomie | Sous 4A, dans la colonne bleue. Piste sans repère (issue #171). Phrase avec la flèche : « → Secours jusqu’à 12 h. Autonomie de maison dès 1 jour. » (issue #172) |
-| Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée. Toujours en jours (une décimale sous 10 jours). Sous la boîte : heures de plein soleil par jour en décembre (production du jour ÷ kWc), selon orientation, inclinaison et déneigement |
+| Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée. Toujours en jours (une décimale sous 10 jours). Sous la boîte : heures de plein soleil par jour en décembre (production du jour ÷ kWc), selon orientation, inclinaison et déneigement. Au-dessus de 3 jours, drapeau jaune. Si ça ne se remplit pas, la notice devient rouge quand « 100 % autonome » est coché (issue #175) |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, comme la carte 2 : curseur du prix en $/kWh de batterie (100–500, issue #168), case « Inclure les taxes » (cochée), case figée « Non admissible à la subvention ». Détail : sous-total HT, taxes, subvention 0 $, total estimé pour l’autonomie |
 | Retour **3** | Valeur des panneaux | Trio `.card-kpi`. La petite boîte qui flotte dit « Retour », comme la boîte. Elle se pose dans la boîte des années quand celle-ci arrive à l’écran, et en ressort quand elle le quitte (§ 1 quater) |

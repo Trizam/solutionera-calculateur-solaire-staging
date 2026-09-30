@@ -618,6 +618,9 @@
     return Math.max(1, Math.round(reserveKwh / BATT_MODULE_KWH));
   }
 
+  /** Above this many days, filling the reserve earns a yellow flag (issue #175). */
+  const FILL_LONG_DAYS = 3;
+
   /** Fill duration in days at the December daily rate. One decimal under 10 days. Display only. */
   function fmtFillDuration(days) {
     if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
@@ -1484,8 +1487,17 @@
         ? "Décembre : " + fmtShown(r.sunHoursDec, 2) + " h de plein soleil / j"
         : "—";
     }
+    // #175 : plus de 3 jours → triangle jaune. Ça ne se remplit pas → la notice,
+    // rouge seulement si « Je suis 100 % autonome » est coché.
+    const longFlag = $("fillLongFlag");
+    if (longFlag) longFlag.hidden = !(r.fillState === "ok" && r.fillDays > FILL_LONG_DAYS);
     const flag = $("permaFlag");
-    if (flag) flag.hidden = !r.shortfall;
+    if (flag) {
+      const critical = r.shortfall && r.fullAuto;
+      flag.hidden = !r.shortfall;
+      flag.classList.toggle("theme-red", critical);
+      flag.classList.toggle("theme-yellow", !critical);
+    }
     syncFlagDock();
     syncScenarioUrl();
   }
@@ -1557,15 +1569,25 @@
     if (!flags.length) {
       flagDockKey = "";
       setFlagMenu(false);
+      const idle = $("flagDockBtn");
+      if (idle) {
+        idle.classList.remove("theme-red");
+        idle.classList.add("theme-yellow");
+      }
       return;
     }
     const names = flags.map(function (el) { return el.getAttribute("data-flag"); });
-    const key = names.join("|");
+    const critical = flags.some(function (el) { return el.classList.contains("theme-red"); });
+    const key = names.join("|") + (critical ? "#red" : "");
+    const btn = $("flagDockBtn");
+    if (btn) {
+      btn.classList.toggle("theme-red", critical);
+      btn.classList.toggle("theme-yellow", !critical);
+    }
     if (key === flagDockKey) return;
     flagDockKey = key;
     const label = $("flagDockLabel");
     if (label) label.textContent = flags.length === 1 ? names[0] : String(flags.length);
-    const btn = $("flagDockBtn");
     if (btn) {
       btn.setAttribute("aria-label", flags.length === 1
         ? "Point à vérifier : " + names[0]

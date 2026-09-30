@@ -349,6 +349,18 @@ html[data-theme="dark"] .tone-blend .prod-num {
   --flag-bg-end: #fffbeb;
   --flag-border: #ead98a;
   --flag-text: #1a1a1a;
+  --flag-mark: #e0a800;
+  border: 1px solid var(--flag-border);
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
+}
+/* #175 : la notice « ça ne se remplit pas » passe au rouge en pleine autonomie. */
+.theme-red {
+  --flag-bg: #fde2e1;
+  --flag-bg-end: #fff5f4;
+  --flag-border: #e7b2ae;
+  --flag-text: #1a1a1a;
+  --flag-mark: #c0392b;
   border: 1px solid var(--flag-border);
   background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
   color: var(--flag-text);
@@ -392,7 +404,7 @@ html[data-theme="dark"] .theme-green {
   width: 1.2rem;
   height: 1.05rem;
   padding-bottom: 0.08rem;
-  background: #e0a800;
+  background: var(--flag-mark, #e0a800);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   color: #1a1a1a;
   font: 700 0.64rem/1 var(--font);
@@ -416,8 +428,20 @@ html[data-theme="dark"] .theme-green {
   }
   100% { box-shadow: 0 0 0 0 rgba(224, 168, 0, 0); }
 }
+.theme-red.is-flag-focus {
+  animation: flag-focus-red 1.6s ease-out;
+}
+@keyframes flag-focus-red {
+  0%, 45% {
+    background: #f6b2ad;
+    border-color: #c0392b;
+    box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.4);
+  }
+  100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+}
 @media (prefers-reduced-motion: reduce) {
   .theme-yellow.is-flag-focus { animation: none; outline: 3px solid #d4a300; }
+  .theme-red.is-flag-focus { animation: none; outline: 3px solid #c0392b; }
 }
 .flag-dock {
   position: fixed;
@@ -2844,6 +2868,10 @@ section.block h2 .field-info-btn {
     color: #1a1a1a !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+  .fill-shortfall.theme-red {
+    background: linear-gradient(135deg, #fde2e1, #fff5f4) !important;
+    border-color: #e7b2ae !important;
   }
   .result-pair { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: repeat(3, 1fr); }

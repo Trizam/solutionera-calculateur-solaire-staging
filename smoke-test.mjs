@@ -1315,11 +1315,18 @@ const recFn =
   !prodBHtml.includes("autonomySnow");
 const shortfallInFill =
   fillHtml.includes('id="permaFlag"') &&
-  fillHtml.includes("La réserve ne peut pas se remplir") &&
-  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.includes('id="fillLongFlag"') &&
+  fillHtml.includes("Ça commence à être long pour remplir.") &&
+  fillHtml.includes("Vous produisez moins d’énergie que vous en consommez en autonomie.") &&
+  !fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="fillLongFlag"') &&
+  fillHtml.indexOf('id="fillLongFlag"') < fillHtml.indexOf('id="permaFlag"') &&
   fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
   !html.includes("perma-flag") &&
-  css.includes(".fill-shortfall");
+  css.includes(".fill-shortfall") &&
+  css.includes(".theme-red") &&
+  app.includes("FILL_LONG_DAYS = 3") &&
+  app.includes('flag.classList.toggle("theme-red", critical)');
 const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
 const productiblePill =
   prodBHtml.includes('id="outKwhKwc"') &&
@@ -2158,6 +2165,19 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(snowAuto.showVerticalRec === true && snowAuto.snowFlag === true, "snow note shown with fullAuto");
   live.el("fullAuto").checked = false;
   live.el("deneige").value = "100";
+  // #175 : plus de 3 jours → drapeau jaune ; ça ne se remplit pas → rouge seulement en pleine autonomie.
+  const fillLong = await bootScenario("?consoJour=10&autoStop=11");
+  const fillLongCalc = fillLong.api.calc();
+  expect(fillLongCalc.fillState === "ok" && fillLongCalc.fillDays > 3, `10 kWh/j fills in ${fillLongCalc.fillDays} days`);
+  expect(fillLong.el("fillLongFlag").hidden === false, "long fill shows the yellow note");
+  expect(fillLong.el("permaFlag").hidden === true, "long fill is not the shortfall note");
+  const fillShort = await bootScenario("?consoJour=30&autoStop=11");
+  expect(fillShort.api.calc().shortfall === true, "30 kWh/j never fills in December");
+  expect(fillShort.el("fillLongFlag").hidden === true, "no long note when it never fills");
+  expect(fillShort.el("permaFlag").hidden === false && fillShort.el("permaFlag").classList.contains("theme-yellow") && !fillShort.el("permaFlag").classList.contains("theme-red"), "shortfall stays yellow without fullAuto");
+  fillShort.el("fullAuto").checked = true;
+  fillShort.el("fullAuto").dispatchEvent({ type: "change", target: fillShort.el("fullAuto") });
+  expect(fillShort.el("permaFlag").classList.contains("theme-red") && !fillShort.el("permaFlag").classList.contains("theme-yellow"), "fullAuto turns the shortfall note red");
   expect(live.api.fmtFillDuration(0.371).num === "0,4" && live.api.fmtFillDuration(0.371).unit === "jour · décembre", "fill 0,4 jour");
   expect(live.api.fmtFillDuration(3.25).num === "3,3" && live.api.fmtFillDuration(3.25).unit === "jours · décembre", "fill 3,3 jours");
   expect(live.api.fmtFillDuration(14.6).num === "15", "fill ≥ 10 days → 2 sig figs");
