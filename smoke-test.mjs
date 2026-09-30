@@ -614,6 +614,23 @@ const btnManipulation = css.includes("touch-action: manipulation") && /\.btn\s*\
 const pageMargin = css.includes("@page") && /@page\s*\{[^}]*margin\s*:/.test(css);
 const modalDvh = css.includes("88dvh") || css.includes("100dvh");
 const pdfPrintOnly = /function\s+printPdf\s*\([^)]*\)\s*\{\s*window\.print\s*\(\s*\)\s*;\s*\}/.test(app) || (app.includes("window.print()") && app.includes("function printPdf") && !/printPdf[\s\S]{0,80}jspdf|html2canvas|pdf-lib/i.test(app));
+const printReport =
+  html.includes('id="printReport"') &&
+  app.includes("PRINT_CARD_PAGES") &&
+  app.includes('"sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"') &&
+  app.includes('"sec-cost", "sec-batt", "sec-value", "sec-total"') &&
+  app.includes("buildPrintReport") &&
+  app.includes("appendPrintAppendix") &&
+  html.includes("assets/vendor/qrcode-generator.js") &&
+  app.includes('qrcode(0, "M")') &&
+  app.includes("createDataURL(5, 4)") &&
+  !app.includes("quickchart.io/qr") &&
+  app.includes("scenarioPrintUrl") &&
+  css.includes(".print-summary-page") &&
+  css.includes(".print-card-page-production") &&
+  css.includes(".print-card-page-costs") &&
+  css.includes(".print-appendix") &&
+  /@page\s*\{[^}]*size:\s*A4 portrait/.test(css);
 console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
 console.log(`  grid fetch retry once: ${hasGridRetry ? "PASS" : "FAIL"}`);
 console.log(`  unit aria-pressed: ${hasAriaPressed ? "PASS" : "FAIL"}`);
@@ -624,6 +641,7 @@ console.log(`  btn touch-action manipulation: ${btnManipulation ? "PASS" : "FAIL
 console.log(`  @page print margin: ${pageMargin ? "PASS" : "FAIL"}`);
 console.log(`  modal max-height dvh: ${modalDvh ? "PASS" : "FAIL"}`);
 console.log(`  btnPdf window.print only: ${pdfPrintOnly ? "PASS" : "FAIL"}`);
+console.log(`  structured A4 print report (summary, QR, cards, appendix): ${printReport ? "PASS" : "FAIL"}`);
 
 const hasPointerDrag = app.includes("wireRangePointerDrag") && app.includes("setPointerCapture");
 const thumb44 = /::-webkit-slider-thumb[\s\S]{0,220}?width:\s*44px/.test(css);
@@ -920,7 +938,7 @@ const infoSheetUi =
   html.includes('data-info="tilt"') &&
   html.includes("tpl-info-tilt") &&
   html.includes("Maximum de production") &&
-  html.includes("entre 35° et 40°") &&
+  html.includes("45° d’inclinaison donne généralement le maximum de production") &&
   html.includes("maximum de production") &&
   html.includes("plein sud") &&
   html.includes("vivent en autonomie") &&
@@ -956,9 +974,9 @@ console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ?
 console.log(`  ⓘ floating cards + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
 const orientVersantTip =
   html.includes("tpl-info-orient") &&
-  html.includes("Indiquez un seul versant à la fois") &&
-  html.includes("refaites le calcul") &&
-  html.includes("additionnez les résultats") &&
+  html.includes("laissez la case décochée") &&
+  html.includes("Ma toiture a plusieurs versants") &&
+  html.includes("Le total additionne les productions") &&
   !html.includes("Ne répartissez pas le calcul");
 console.log(`  ⓘ orientation un seul versant + addition: ${orientVersantTip ? "PASS" : "FAIL"}`);
 const orientAzimuthHint =
@@ -1100,7 +1118,7 @@ const htmlSplit1A =
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
   /id="outKw"/.test(html) &&
-  html.includes(">kWc<") &&
+  html.includes(">Wc<") &&
   html.indexOf('id="area"') < html.indexOf('id="util"') &&
   html.indexOf('id="util"') < html.indexOf('id="outPv"');
 const htmlSplit1B =
@@ -1116,7 +1134,7 @@ const htmlSplit1B =
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
-  html.includes("kWh / j déc") &&
+  html.includes("kWh / j en décembre") &&
   !html.includes("±&nbsp;4") &&
   !html.includes("+/- 4") &&
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
@@ -1193,7 +1211,7 @@ const htmlAllowlist =
   html.includes('id="sec-prod-b"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
-const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j déc");
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j en décembre");
 const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an") && html.includes("Mesurage Net");
 const prodPillEqualType =
   html.includes('class="big prod-line" id="outKwhDay"') &&
@@ -1205,8 +1223,8 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
-  html.includes(">kWc<") &&
+  /kwNum\.textContent = fmtShown\(r\.kW \* 1000, 0\)/.test(app) &&
+  html.includes(">Wc<") &&
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
   app.includes("PANEL_M2") &&
@@ -1476,7 +1494,7 @@ const prodUsesSig2 =
   /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
   app.includes("fmtShown(r.kWhDay, 2)") &&
   app.includes("fmtShown(r.kWh, 0)") &&
-  app.includes("fmtShown(r.kW, 2)") &&
+  app.includes("fmtShown(r.kW * 1000, 0)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1901,6 +1919,12 @@ function scenarioSnapshot(page) {
     subv: page.el("subv").checked,
     conso: page.el("conso").value,
     rate: page.el("rate").value,
+    consoJour: page.el("consoJour").value,
+    consoExtra: page.el("consoExtra").value,
+    autoStop: page.el("autoStop").value,
+    battPrice: page.el("battPrice").value,
+    battTaxes: page.el("battTaxes").checked,
+    fullAuto: page.el("fullAuto").checked,
     m2: calc.m2,
     push: page.history.pushCount
   };
@@ -1933,10 +1957,14 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       conso: 17000,
       rate: "12.811",
       consoJour: "0",
-      consoExtra: "0"
+      consoExtra: "0",
+      autoStop: "11",
+      battPrice: "4800",
+      battTaxes: "1",
+      fullAuto: "0"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -1970,6 +1998,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
+    ["?autoStop=15&battPrice=5600&battTaxes=0", fullSearch({ autoStop: 15, battPrice: 5600, battTaxes: "0" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
     ["?ville=../x", fullSearch()],
@@ -2022,18 +2051,27 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.el("consoJour").value === "0", "daily slider starts at 0");
   live.el("consoJour").value = "63";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "1200";
+  live.el("battPrice").value = "4800";
+  live.el("battTaxes").checked = false;
   const reserveMath = live.api.calc();
   expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
   expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
-  expect(Math.abs(reserveMath.battCost - 7560) < 1e-6, "battery cost = reserve × $/kWh");
-  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 7560) < 1e-6, "battery taxes off → HT only");
+  expect(reserveMath.battModules === 1, "6.3 kWh is one 16.1 kWh module");
+  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 4800) < 1e-6, "battery taxes off → one module × price");
+  expect(Math.abs(reserveMath.battCost - 4800) < 1e-6, "battery cost = modules × module price");
   live.el("battTaxes").checked = true;
   const battTaxed = live.api.calc();
-  expect(Math.abs(battTaxed.battCost - 7560 * 1.14975) < 1e-6, "battery taxes on → HT × 1,14975");
+  expect(Math.abs(battTaxed.battCost - 4800 * 1.14975) < 1e-6, "battery taxes on → module HT × 1,14975");
   expect(Math.abs(battTaxed.projectTotal - (battTaxed.reel + battTaxed.battCost)) < 1e-6, "project = panels + taxed batteries");
   live.el("battTaxes").checked = false;
+  live.el("consoJour").value = "333";
+  live.el("battPrice").value = "4800";
+  const volthium = live.api.calc();
+  expect(Math.abs(volthium.reserveKwh - 33.3) < 1e-9, "33.3 kWh reserve");
+  expect(volthium.battModules === 2, "33.3 kWh is two 16.1 kWh modules");
+  expect(Math.abs(volthium.battHT - 9600) < 1e-6, "two Volthium modules × 4 800 $");
   live.el("consoJour").value = "400";
+  live.el("battPrice").value = "4800";
   live.el("conso").value = "12 000";
   const shortConso = live.api.calc();
   expect(shortConso.consoShort === true && shortConso.consoMin === 14600, `conso flag min 365×40 = ${shortConso.consoMin}`);
@@ -2050,12 +2088,13 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(sunCalc.sunHoursDec - sunCalc.kWhDay / sunCalc.kW) < 1e-9, "December sun hours = kWh/j ÷ kWc");
   live.el("consoJour").value = "0";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "1200";
+  live.el("battPrice").value = "4800";
+  live.el("battTaxes").checked = true;
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -2104,6 +2143,30 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
   expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
   expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+  const multiPage = await bootScenario("?multi=1&pans=40:180:45:100;20:90:45:0");
+  const multiCalc = multiPage.api.calc();
+  const slopeA = await bootScenario("?area=40&orient=180&tilt=45&deneige=100");
+  const slopeB = await bootScenario("?area=20&orient=90&tilt=45&deneige=0");
+  const a = slopeA.api.calc();
+  const b = slopeB.api.calc();
+  expect(multiPage.el("multi").checked === true, "multi checkbox from URL");
+  expect(Math.abs(multiCalc.kW - (a.kW + b.kW)) < 1e-9, `multi kWc sums ${multiCalc.kW} vs ${a.kW}+${b.kW}`);
+  expect(multiCalc.nPv === a.nPv + b.nPv, `multi panels sum ${multiCalc.nPv}`);
+  expect(Math.abs(multiCalc.kWh - (a.kWh + b.kWh)) < 1e-6, "multi annual kWh sums");
+  expect(Math.abs(multiCalc.kWhDec - (a.kWhDec + b.kWhDec)) < 1e-6, "multi December kWh sums");
+  expect(multiCalc.showVerticalRec === true, "one uncleared slope recommends vertical");
+  expect(multiPage.location.search.includes("multi=1"), "URL keeps multi=1");
+  expect(multiPage.location.search.includes("pans=40"), "URL keeps pans");
+  const singleStill = await bootScenario("");
+  expect(singleStill.el("multi").checked === false, "multi off by default");
+  expect(singleStill.api.calc().panRows == null, "single slope has no pan rows");
+
+  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=5600&battTaxes=0");
+  expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");
+  expect(batteryScenario.el("battPrice").value === "5600", "shared battery price");
+  expect(batteryScenario.el("battTaxes").checked === false, "shared battery taxes");
+  expect(batteryScenario.api.calc().reserveKwh === 20, "shared reserve calculation");
+  expect(batteryScenario.api.calc().battCost === 5600, "shared battery total calculation");
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -2189,6 +2252,29 @@ const yearsFloatOk =
   /prefers-reduced-motion: reduce\) \{\s*\.years-pin-card \{ transition: none !important; \}/.test(css);
 console.log(`  « Retour » flottant calé sur la colonne verte + se pose dans la carte 3: ${yearsFloatOk ? "PASS" : "FAIL"}`);
 
+const goodFirstUi =
+  html.includes('id="priceSurprise"') &&
+  html.includes("peut-être surprenant") &&
+  html.includes('id="priceW" type="range" min="1"') &&
+  app.includes("PRICE_W_LOW") &&
+  app.includes("function wireRateWheel") &&
+  app.includes("passive: false") &&
+  html.includes('id="battDraftNote" hidden') &&
+  html.includes("Brouillon — le prix du module Volthium reste à confirmer.") &&
+  app.includes("battDraft.hidden") &&
+  html.includes("16,1") &&
+  html.includes('min="2400"') &&
+  app.includes("BATT_MODULE_KWH = 16.1") &&
+  html.includes("tone-green") &&
+  css.includes(".tone-green") &&
+  css.includes(".town-region") &&
+  app.includes('region.className = "town-region"') &&
+  html.includes("selon l’orientation, l’inclinaison et le déneigement") &&
+  html.includes("Le chiffre à droite est le productible pour 1") &&
+  !html.includes('id="locHint"') &&
+  html.includes('id="outFillSun"') &&
+  html.includes("jours · décembre");
+console.log(`  good first issues (rate wheel, $/W, batteries, copy): ${goodFirstUi ? "PASS" : "FAIL"}`);
 const pass =
   ok &&
   !bad &&
@@ -2234,6 +2320,7 @@ const pass =
   logisCopy &&
   subvDefaultJs &&
   batteryColumn &&
+  goodFirstUi &&
   designRules &&
   infoBtn &&
   tiltViz &&
@@ -2258,6 +2345,7 @@ const pass =
   pageMargin &&
   modalDvh &&
   pdfPrintOnly &&
+  printReport &&
   hasPointerDrag &&
   thumb44 &&
   overscrollRow &&
@@ -2360,7 +2448,8 @@ const pass =
   scenarioOk &&
   paneOk &&
   resultInfoOk &&
-  yearsFloatOk;
+  yearsFloatOk &&
+  goodFirstUi;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

@@ -11,7 +11,7 @@
   <!-- Lato: CDN when online; system fallback offline -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="assets/styles.css" />
@@ -86,14 +86,19 @@
       Narrow full mode keeps both columns side by side: swipe, with a peek.
       Rules: docs/DESIGN.md
     -->
+    <label class="check check-multi" id="multiCheck">
+      <input type="checkbox" id="multi" />
+      <span>Ma toiture a plusieurs versants<span class="sub">→ 1A garde la localisation. 1B devient un tableau : une rangée par versant (superficie, orientation, inclinaison, déneigement 0–25–50–75–100&nbsp;%). Quatre versants au maximum. Même tableau en mode webi.</span></span>
+    </label>
     <div class="board-viewport" id="boardViewport">
     <div class="board" id="board">
     <div class="col col-solar">
 
     <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
-      <h2 id="h-prod"><span class="num">1A</span> Combien de panneaux puis-je installer sur ma toiture&nbsp;?</h2>
-      <div class="field">
+      <h2 id="h-prod"><span class="num">1A</span> <span id="h-prod-title">Combien de panneaux puis-je installer sur ma toiture&nbsp;?</span></h2>
+      <div id="slotLoc" class="multi-slot"></div>
+      <div class="field single-only" id="field-area">
         <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
         <div class="label-row field-info-wrap">
           <label for="area">Superficie de l’installation</label>
@@ -121,7 +126,7 @@
         </div>
         <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
       </div>
-      <div class="field">
+      <div class="field" id="field-util">
         <div class="label-row field-info-wrap">
           <label for="util">Densité d’installation (utilisation du toit)</label>
           <button
@@ -145,7 +150,7 @@
         <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
       </div>
       <!-- result-info pattern : .has-info > .result-info-btn (top right) → « Comment c’est calculé » sheet -->
-      <div class="result-pair">
+      <div class="result-pair" id="sizeResults">
         <div class="result-pill has-info">
           <button type="button" class="field-info-btn result-info-btn" data-result-info="pv" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Panneaux solaires installés" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
           <div class="label">Panneaux solaires installés</div>
@@ -158,7 +163,7 @@
           <div class="label">Puissance</div>
           <div class="big prod-line" id="outKw">
             <span class="prod-num">—</span>
-            <span class="prod-unit">kWc</span>
+            <span class="prod-unit">Wc</span>
           </div>
         </div>
       </div>
@@ -166,7 +171,8 @@
 
     <!-- 1B · Production — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-prod" id="sec-prod-b" data-slot="prod" aria-labelledby="h-prod-b">
-      <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
+      <h2 id="h-prod-b"><span class="num">1B</span> <span id="h-prod-b-title">Combien d'énergie électrique vais-je produire&nbsp;?</span></h2>
+      <div id="slotUtil" class="multi-slot"></div>
       <div class="field" id="field-loc">
         <div class="label-row field-info-wrap">
           <label class="field-label" id="locLabel" for="villeBtn">Localisation</label>
@@ -193,7 +199,6 @@
               aria-haspopup="listbox"
               aria-expanded="false"
               aria-controls="villeList"
-              aria-describedby="locHint"
               autocomplete="off"
               autocapitalize="none"
               autocorrect="off"
@@ -212,9 +217,8 @@
             <option value="quebec" selected>Québec</option>
           </select>
         </div>
-        <p class="hint" id="locHint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°, en kWh/kWc/an. La liste va du plus haut au plus bas. Une ville, une MRC ou une région administrative filtre la liste.</p>
       </div>
-      <div class="field">
+      <div class="field single-only" id="field-orient">
         <div class="label-row field-info-wrap">
           <label for="orient">Orientation des panneaux solaires</label>
           <button
@@ -277,7 +281,7 @@
         </div>
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
       </div>
-      <div class="field">
+      <div class="field single-only" id="field-tilt">
         <div class="label-row field-info-wrap">
           <label for="tilt">Inclinaison de la toiture</label>
           <button
@@ -311,8 +315,9 @@
             <div class="slider-meta"><span>0&nbsp;°</span><span>90&nbsp;°</span></div>
           </div>
         </div>
+        <p class="hint">→ 45° d’inclinaison donne généralement le maximum de production.</p>
       </div>
-      <div class="field" id="field-deneige">
+      <div class="field single-only" id="field-deneige">
         <div class="label-row field-info-wrap">
           <label for="deneige">Fréquence de déneigement</label>
           <button
@@ -334,7 +339,7 @@
           </div>
         </div>
       </div>
-      <div class="result-pill has-info">
+      <div class="result-pill single-only has-info" id="effPill">
         <button type="button" class="field-info-btn result-info-btn" data-result-info="kwhkwc" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Efficacité de l’installation" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
         <div class="label">Efficacité de l’installation</div>
         <div class="big prod-line" id="outKwhKwc">
@@ -342,7 +347,48 @@
           <span class="prod-unit">kWh/kWc/An</span>
         </div>
       </div>
-      <p class="hint">→ Kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement.</p>
+      <p class="hint single-only">→ Kilowattheures par kilowatt-crête installé par an, selon l’orientation, l’inclinaison et le déneigement.</p>
+      <div class="field field-pans multi-only" id="field-pans">
+        <table class="pans-table" id="pansTable" aria-label="Versants de la toiture">
+          <thead>
+            <tr>
+              <th scope="col" class="pans-th-area">
+                <div class="pans-th-head">
+                  <span class="pans-th-label">Superficie</span>
+                  <div class="unit-toggle unit-toggle-mini" role="group" aria-label="Unité de surface">
+                    <button type="button" data-unit-btn="m2" class="active" aria-pressed="true">m²</button>
+                    <button type="button" data-unit-btn="sqft" aria-pressed="false">pi²</button>
+                  </div>
+                </div>
+              </th>
+              <th scope="col" class="pans-th-az"><span class="pans-th-label">Orientation</span></th>
+              <th scope="col" class="pans-th-tilt"><span class="pans-th-label">Inclinaison</span></th>
+              <th scope="col" class="pans-th-snow"><span class="pans-th-label">Déneigement</span></th>
+              <th scope="col" class="pans-th-x"><span class="sr-only">Retirer</span></th>
+            </tr>
+          </thead>
+          <tbody id="pansBody"></tbody>
+          <tfoot>
+            <tr class="pans-add-row">
+              <td colspan="5">
+                <button type="button" class="pans-add" id="pansAdd">+ Ajouter un versant</button>
+              </td>
+            </tr>
+            <tr class="pans-total-row">
+              <th scope="row" colspan="5">
+                <div class="pans-total">
+                  <span class="pans-total-word">Total</span>
+                  <span class="pans-out"><strong id="totPv">—</strong> panneaux</span>
+                  <span class="pans-out"><strong id="totKw">—</strong> kWc</span>
+                  <span class="pans-out"><strong id="totEff">—</strong> efficacité</span>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+        <p class="hint">→ Efficacité en kWh/kWc/an, selon l’orientation, l’inclinaison et le déneigement de chaque versant. Le total est la moyenne pondérée par la puissance.</p>
+      </div>
+      <div id="slotResults" class="multi-slot"></div>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
     </section>
 
@@ -361,7 +407,7 @@
           <div class="label">Autonomie</div>
           <div class="big prod-line" id="outKwhDay">
             <span class="prod-num">—</span>
-            <span class="prod-unit">kWh / j déc</span>
+            <span class="prod-unit">kWh / j en décembre</span>
           </div>
         </div>
         <aside class="autonomy-snow theme-yellow dec-daily" id="autonomySnow" data-flag="Neige en décembre" hidden>
@@ -381,10 +427,11 @@
         <div class="slider-row">
           <div class="slider-val-left" id="priceVal">3,00 $/W</div>
           <div class="slider-track">
-            <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
-            <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
+            <input id="priceW" type="range" min="1" max="4.5" step="0.05" value="3" />
+            <div class="slider-meta"><span>1,00&nbsp;$</span><span>4,50&nbsp;$</span></div>
           </div>
         </div>
+        <p class="price-bubble theme-yellow" id="priceSurprise" hidden>Sous 2,50&nbsp;$/W, le prix est peut-être surprenant. 2,50&nbsp;$/W, c’est vraiment le bas.</p>
         <p class="hint">Bas → toit accessible, pose simple · Haut → plus de défis (accès, structure, complexité)</p>
         <p class="calc-line" id="outLight">—</p>
       </div>
@@ -595,7 +642,7 @@
       <div class="label" id="h-fill">Temps pour remplir</div>
       <div class="big prod-line" id="outFill">
         <span class="prod-num" id="outFillNum">—</span>
-        <span class="prod-unit" id="outFillUnit">au rythme de décembre</span>
+        <span class="prod-unit" id="outFillUnit">jours · décembre</span>
       </div>
       <p class="fill-sun" id="outFillSun">—</p>
       <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" data-flag="Réserve ne se remplit pas" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
@@ -606,25 +653,26 @@
       <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
       <div class="field">
         <div class="label-row field-info-wrap">
-          <label for="battPrice">Prix au kWh installé</label>
+          <label for="battPrice">Prix d’un module (16,1&nbsp;kWh)</label>
           <button
             type="button"
             class="field-info-btn"
             data-info="battprice"
             aria-haspopup="dialog"
             aria-controls="fieldInfoModal"
-            aria-label="Aide : Prix au kWh installé"
+            aria-label="Aide : Prix d’un module"
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
         <div class="slider-row">
-          <div class="slider-val-left" id="battPriceVal">1&nbsp;200&nbsp;$</div>
+          <div class="slider-val-left" id="battPriceVal">4&nbsp;800&nbsp;$</div>
           <div class="slider-track">
-            <input id="battPrice" type="range" min="600" max="1800" step="50" value="1200" />
-            <div class="slider-meta"><span>600&nbsp;$</span><span>1&nbsp;800&nbsp;$</span></div>
+            <input id="battPrice" type="range" min="2400" max="7200" step="100" value="4800" />
+            <div class="slider-meta"><span>2&nbsp;400&nbsp;$</span><span>7&nbsp;200&nbsp;$</span></div>
           </div>
         </div>
+        <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix du module Volthium reste à confirmer.</p>
       </div>
       <div class="field" role="group" aria-labelledby="battOptsLabel">
         <div class="field-label" id="battOptsLabel">Options sur le prix</div>
@@ -639,6 +687,7 @@
           </label>
         </div>
       </div>
+      <p class="calc-line" id="outBatt">—</p>
       <div class="breakdown" aria-live="polite">
         <div class="line"><span>Sous-total (HT)</span><span id="lineBattHT">—</span></div>
         <div class="line"><span>Taxes</span><span id="lineBattTaxes">—</span></div>
@@ -675,7 +724,7 @@
           <div class="kpi-label">Batteries<br />total (carte 5)</div>
         </div>
       </div>
-      <div class="result-pill has-info" id="projectOut">
+      <div class="result-pill tone-green has-info" id="projectOut">
         <button type="button" class="field-info-btn result-info-btn" data-result-info="project" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Coût total" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
         <div class="label">Coût total</div>
         <div class="big prod-line">
@@ -705,7 +754,8 @@
       </div>
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
-        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, après l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
+        <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, selon l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
+        <li>Plusieurs versants&nbsp;: la case en haut du calculateur. Une densité pour toute la toiture. Jusqu’à quatre rangées. Chaque versant a sa superficie, son orientation, son inclinaison et son déneigement (0, 25, 50, 75 ou 100&nbsp;%). Les kWh/an et le jour de décembre sont la somme. L’efficacité du total est pondérée par les kWc.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -730,11 +780,12 @@
         <h2>Notes d’édition</h2>
         <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
         <ul>
-          <li>Prix batterie : fourchette pédagogique 600–1&nbsp;800&nbsp;$/kWh, défaut 1&nbsp;200. Brouillon à confirmer. Pas une soumission.</li>
+          <li>Prix batterie : module Volthium 16,1&nbsp;kWh, curseur 2&nbsp;400–7&nbsp;200&nbsp;$, défaut 4&nbsp;800. Le nombre de modules est l’arrondi de la réserve ÷ 16,1 (au moins un). Brouillon à confirmer. Pas une soumission.</li>
           <li>Consommation par jour = curseur de 0 à 40&nbsp;kWh/j (pas de 0,1), plus la ligne libre. Ce n’est pas la facture annuelle. Le jour de décembre, les appareils et les batteries restent à l’écran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
-          <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. La consommation du jour (kWh/j) et la ligne libre, oui.</li>
+          <li>Le lien du scénario conserve aussi la durée de réserve, le prix et les taxes des batteries, la consommation du jour et la ligne libre.</li>
+          <li>Plusieurs versants : case en haut. Une densité. Quatre rangées maximum. Déneigement par crans de 25 %. L’URL ajoute <code>multi=1</code> et <code>pans=m²:azimut:inclinaison:neige</code>.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
       </aside>
@@ -747,6 +798,9 @@
     </footer>
     </main>
   </div>
+
+  <!-- Rebuilt from the current scenario immediately before browser printing. -->
+  <article class="print-report" id="printReport" aria-hidden="true"></article>
 
   <!-- Pedagogical info modal -->
   <div class="modal-backdrop info-sheet mode-full-only" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
@@ -785,7 +839,7 @@
         <div class="info-block">
           <h4>Batterie</h4>
           <p>Réserve = consommation par jour (curseur, plus la ligne libre) × durée choisie.</p>
-          <p>Coût des batteries = réserve × prix au kWh, taxes en option. LogisVert ne couvre pas les batteries.</p>
+          <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × prix du module, plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
           <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
@@ -877,10 +931,10 @@
     <span data-info-title>Localisation</span>
     <div class="info-block">
       <h4>Ville et productible</h4>
-      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, du productible le plus élevé au plus bas (sud, 45°, kWh/kWc/an). La liste se déroule et se fait défiler.</p>
-      <p>Écrire un nom filtre les villes. Une MRC ou une région administrative filtre aussi, même si ces noms ne s’affichent pas&nbsp;: le menu ne montre que les villes.</p>
-      <p>Le chiffre à droite est le productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
-      <p>La boîte <strong>Efficacité de l’installation</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé et par an, après l’orientation, l’inclinaison et le déneigement choisis.</p>
+      <p>→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°, en kWh/kWc/an. La liste va du plus haut au plus bas. Une ville, une MRC ou une région administrative filtre la liste.</p>
+      <p>Le menu liste les chefs-lieux des 87&nbsp;MRC et les 17&nbsp;territoires équivalents, du productible le plus élevé au plus bas. La ville reste en gras. La région administrative suit, en léger, et s’efface avant le chiffre si la ligne est trop longue.</p>
+      <p>Productible PVWatts pour <strong>1&nbsp;kWc</strong>, orientation <strong>sud</strong>, inclinaison <strong>45°</strong> (kWh par kW crête).</p>
+      <p>La boîte <strong>Efficacité de l’installation</strong> en bas de l’étape donne les kilowattheures par kilowatt-crête installé par an, selon l’orientation, l’inclinaison et le déneigement.</p>
       <p>Québec utilise la grille PVWatts complète. Les autres villes utilisent leur grille complète lorsqu’elle est prête. Sinon, la grille de Québec est mise à l’échelle du rapport sud 30° réel de la ville. Le chiffre du menu est le productible sud 45° pour 1&nbsp;kWc : la cellule mesurée si la grille est complète, sinon la cellule sud 45° de Québec à l’échelle de ce rapport.</p>
     </div>
   </template>
@@ -892,9 +946,9 @@
       <p>Plus vous êtes proche du plein sud (180°), plus la production d’énergie est élevée.</p>
     </div>
     <div class="info-block">
-      <h4>Un seul versant</h4>
-      <p>Indiquez un seul versant à la fois.</p>
-      <p>Pour plusieurs versants, refaites le calcul une fois par orientation et superficie, notez chaque production, puis additionnez les résultats.</p>
+      <h4>Plusieurs versants</h4>
+      <p>Un seul versant&nbsp;: laissez la case décochée et indiquez-le ici.</p>
+      <p>Plusieurs versants&nbsp;: cochez «&nbsp;Ma toiture a plusieurs versants&nbsp;». Chaque rangée a sa superficie, son orientation, son inclinaison et son déneigement. Le total additionne les productions.</p>
     </div>
   </template>
   <template id="tpl-info-area">
@@ -913,7 +967,7 @@
     <span data-info-title>Inclinaison de la toiture</span>
     <div class="info-block">
       <h4>Maximum de production</h4>
-      <p>L’inclinaison idéale au Québec pour le maximum de production est entre 35° et 40°.</p>
+      <p>45° d’inclinaison donne généralement le maximum de production.</p>
     </div>
     <div class="info-block">
       <h4>Autonomie et neige</h4>
@@ -953,6 +1007,7 @@
     <span data-info-title>Temps pour remplir la réserve</span>
     <div class="info-block">
       <h4>Décembre d’abord</h4>
+      <p>Le temps s’affiche en jours. Sous 10 jours, une décimale.</p>
       <p>La production du jour de décembre couvre d’abord la consommation. Seul le surplus remplit la réserve.</p>
       <p>Le rythme est toujours celui de décembre, même si l’été produit plus. Il tient compte de l’orientation, de l’inclinaison et du déneigement choisis.</p>
       <p>Temps (jours) = réserve (kWh) ÷ (production du jour de décembre − consommation du jour).</p>
@@ -960,10 +1015,11 @@
     </div>
   </template>
   <template id="tpl-info-battprice">
-    <span data-info-title>Prix au kWh installé</span>
+    <span data-info-title>Prix d’un module</span>
     <div class="info-block">
       <h4>Coût de la réserve</h4>
-      <p>Sous-total (HT) = réserve (kWh) × prix au kWh installé.</p>
+      <p>Un module Volthium fait 16,1&nbsp;kWh. Sous-total (HT) = nombre de modules × prix du module (défaut 4&nbsp;800&nbsp;$).</p>
+      <p>Le nombre de modules est l’arrondi de la réserve ÷ 16,1. Pour 33&nbsp;kWh, cela fait deux modules. Au moins un module dès qu’il y a une réserve.</p>
       <p>Taxes (TPS+TVQ, 15&nbsp;%) si la case est cochée. Les batteries ne sont pas admissibles à LogisVert&nbsp;: subvention 0&nbsp;$.</p>
     </div>
   </template>
@@ -1106,6 +1162,7 @@
     </div>
   </div>
 
+  <script src="assets/vendor/qrcode-generator.js"></script>
   <script src="assets/app.js"></script>
   <script src="assets/board-panes.js"></script>
 </body>

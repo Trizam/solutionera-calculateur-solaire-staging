@@ -60,8 +60,20 @@
   const DAILY_KWH_MAX = 40;
   const DAILY_TENTH_MAX = DAILY_KWH_MAX * 10;
   const CONSO_EXTRA_MAX = 100;
-  /** Draft installed-battery range until a real $/kWh band is chosen. */
-  const BATT_PRICE_DEFAULT = 1200;
+  /** Installed $/W slider. Below 2,50 $/W a yellow note says the price is surprisingly low. */
+  const PRICE_W_MIN = 1;
+  const PRICE_W_MAX = 4.5;
+  const PRICE_W_STEP = 0.05;
+  const PRICE_W_LOW = 2.5;
+  /**
+   * Volthium module: 16.1 kWh at a module price (default 4 800 $).
+   * 33 kWh of reserve is two modules, not reserve × a $/kWh draft.
+   */
+  const BATT_MODULE_KWH = 16.1;
+  const BATT_PRICE_MIN = 2400;
+  const BATT_PRICE_MAX = 7200;
+  const BATT_PRICE_STEP = 100;
+  const BATT_PRICE_DEFAULT = 4800;
   /**
    * Reserve duration stops. The left label is the stop name.
    * The kWh reserve stays exact (finer than these names).
@@ -566,11 +578,21 @@
   }
 
 
-  function battPricePerKwh() {
+  /** Price of one 16.1 kWh module. The slider is not a $/kWh rate. */
+  function battModulePrice() {
     const el = $("battPrice");
     if (!el) return NaN;
     const v = parseFloat(el.value);
     return isFinite(v) ? v : NaN;
+  }
+
+  /**
+   * Whole modules. Round the reserve to the nearest 16.1 kWh module.
+   * A reserve that exists still needs at least one module.
+   */
+  function battModuleCount(reserveKwh) {
+    if (!isFinite(reserveKwh) || reserveKwh <= 0) return 0;
+    return Math.max(1, Math.round(reserveKwh / BATT_MODULE_KWH));
   }
 
   /** Fill duration in days at the December daily rate. One decimal under 10 days. Display only. */
@@ -620,33 +642,337 @@
     return Math.min(kWhProd, kWhConso);
   }
 
+  const MAX_PANS = 4;
+  const SNOW_STOPS = [0, 25, 50, 75, 100];
+  const SNOW_REC_SINGLE = "Vous ne déneigez pas à 100\u00a0%. En pleine autonomie, mettez les panneaux à la verticale\u00a0: la neige n’accumule pas, et décembre ne tombe pas à zéro.";
+  const SNOW_REC_MULTI = "Un versant n’est pas déneigé à 100\u00a0%. En pleine autonomie, mettez ses panneaux à la verticale\u00a0: la neige n’accumule pas, et décembre ne tombe pas à zéro.";
+  /** m² par versant. null tant que le mode n’est pas ouvert. */
+  let pans = null;
+  let pansFromUrl = false;
+  let multiWasOn = false;
+  const multiHomes = {};
+
+  function multiOn() {
+    const el = $("multi");
+    return !!(el && el.checked);
+  }
+
+  function snowStop(n) {
+    const x = Number(n);
+    if (!isFinite(x)) return 100;
+    return Math.min(100, Math.max(0, Math.round(x / 25) * 25));
+  }
+
+  function snapTilt(n) {
+    const v = snapStep(n, 0, 90, 15);
+    return isFinite(v) ? v : 45;
+  }
+
+  /** Un versant, mêmes formules que le versant unique. */
+  function calcOnePan(p, util) {
+    const m2 = Math.max(0, Number(p.m2) || 0);
+    const usedM2 = m2 * util;
+    const kW = usedM2 * PANEL_KW_PER_M2;
+    const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : 0;
+    const tilt = snapTilt(p.tilt);
+    const az = snapAzimuth(p.az);
+    const deneige = snowStop(p.snow) / 100;
+    const cell = lookupCell(String(tilt), String(az));
+    const table = cell.ac_annual;
+    const W = winterWFromTilt(tilt);
+    const snowCover = snowCoverFromTilt(tilt);
+    const kWhPerKwc = applyDeneigement(table, deneige, W);
+    const kWhAnnuel = table * kW;
+    const kWh = applyDeneigement(kWhAnnuel, deneige, W);
+    const decCell = isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec;
+    const kWhDecMonth = decCell * kW;
+    const kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
+    return {
+      m2, kW, nPv, table, kWhAnnuel, kWh, kWhPerKwc, kWhDecMonth, kWhDec, W, snowCover,
+      source: cell.source,
+      showVerticalRec: recommendVerticalPanels(deneige, tilt)
+    };
+  }
+
+  function panFromSingle() {
+    return {
+      m2: areaM2(),
+      az: snapAzimuth($("orient") ? $("orient").value : 180),
+      tilt: snapTilt($("tilt") ? $("tilt").value : 45),
+      snow: snowStop(deneigeFrac() * 100)
+    };
+  }
+
+  function secondPan(first) {
+    return { m2: 20, az: first.az === 90 ? 270 : 90, tilt: first.tilt, snow: first.snow };
+  }
+
+  function ensurePans() {
+    if (pans && pans.length) return;
+    const first = panFromSingle();
+    pans = [first, secondPan(first)];
+  }
+
+  function shownArea(m2) {
+    const v = areaUnit === "sqft" ? m2 * SQFT_PER_M2 : m2;
+    return String(Math.max(0, Math.round(v)));
+  }
+
+  function m2FromShown(raw) {
+    const n = parseFloat(String(raw == null ? "" : raw).trim().replace(",", "."));
+    const shown = isFinite(n) && n > 0 ? n : 0;
+    return areaUnit === "sqft" ? shown / SQFT_PER_M2 : shown;
+  }
+
+  function writePanToSingle(p) {
+    if ($("area")) $("area").value = shownArea(p.m2);
+    if ($("orient")) $("orient").value = String(snapAzimuth(p.az));
+    if ($("tilt")) $("tilt").value = String(snapTilt(p.tilt));
+    if ($("deneige")) $("deneige").value = String(snowStop(p.snow));
+  }
+
+  function parsePansParam(raw) {
+    if (raw == null || String(raw).trim() === "") return [];
+    return String(raw).split(";").map(function (chunk) {
+      const parts = chunk.split(":").map(Number);
+      if (parts.length < 4 || !parts.every(isFinite)) return null;
+      return {
+        m2: Math.max(0, parts[0]),
+        az: snapAzimuth(parts[1]),
+        tilt: snapTilt(parts[2]),
+        snow: snowStop(parts[3])
+      };
+    }).filter(Boolean).slice(0, MAX_PANS);
+  }
+
+  function formatPansParam(list) {
+    return (list || []).map(function (p) {
+      return [Math.round(p.m2), snapAzimuth(p.az), snapTilt(p.tilt), snowStop(p.snow)].join(":");
+    }).join(";");
+  }
+
+  function rememberHome(key, node) {
+    if (!node || multiHomes[key] || !node.parentNode) return;
+    multiHomes[key] = { parent: node.parentNode, next: node.nextSibling };
+  }
+
+  function parkNode(node, slot) {
+    if (!node || !slot || typeof slot.appendChild !== "function") return;
+    if (node.parentNode === slot) return;
+    slot.appendChild(node);
+  }
+
+  function restoreHome(key, node) {
+    const home = multiHomes[key];
+    if (!node || !home || typeof home.parent.insertBefore !== "function") return;
+    if (node.parentNode === home.parent && node.nextSibling === home.next) return;
+    home.parent.insertBefore(node, home.next);
+  }
+
+  function setHeading(id, text) {
+    const el = $(id);
+    if (el) el.textContent = text;
+  }
+
+  function syncMultiLayout() {
+    const on = multiOn();
+    if (document.documentElement) document.documentElement.setAttribute("data-multi", on ? "on" : "off");
+    const loc = $("field-loc");
+    const util = $("field-util");
+    const results = $("sizeResults");
+    rememberHome("loc", loc);
+    rememberHome("util", util);
+    rememberHome("results", results);
+    if (on && !multiWasOn) {
+      if (!pans || !pans.length) {
+        const first = panFromSingle();
+        pans = [first, secondPan(first)];
+      } else if (!pansFromUrl) {
+        pans[0] = panFromSingle();
+      }
+      pansFromUrl = false;
+    }
+    if (!on && multiWasOn && pans && pans[0]) writePanToSingle(pans[0]);
+    if (on) {
+      parkNode(loc, $("slotLoc"));
+      parkNode(util, $("slotUtil"));
+      parkNode(results, $("slotResults"));
+      setHeading("h-prod-title", "Où est ma toiture ?");
+      setHeading("h-prod-b-title", "Mes versants : combien de panneaux, combien d’énergie ?");
+    } else {
+      restoreHome("results", results);
+      restoreHome("util", util);
+      restoreHome("loc", loc);
+      setHeading("h-prod-title", "Combien de panneaux puis-je installer sur ma toiture\u00a0?");
+      setHeading("h-prod-b-title", "Combien d'énergie électrique vais-je produire\u00a0?");
+    }
+    const snowRec = $("autonomySnowRec");
+    if (snowRec) snowRec.textContent = on ? SNOW_REC_MULTI : SNOW_REC_SINGLE;
+    multiWasOn = on;
+  }
+
+  function fillSelect(sel, options, value) {
+    sel.innerHTML = options.map(function (o) {
+      return '<option value="' + o.value + '"' + (String(o.value) === String(value) ? " selected" : "") + ">" + o.label + "</option>";
+    }).join("");
+  }
+
+  function buildPanRows() {
+    const body = $("pansBody");
+    if (!body || typeof document.createElement !== "function" || !pans) return;
+    body.innerHTML = "";
+    pans.forEach(function (p, i) {
+      const row = document.createElement("tr");
+      row.className = "pans-row";
+      row.innerHTML =
+        '<td class="pans-td-area"><div class="pans-area"><input type="number" class="pan-area" min="0" step="1" inputmode="numeric" autocomplete="off" aria-label="Superficie du versant ' + (i + 1) + '" /><span class="pans-area-unit" data-unit>' + (areaUnit === "sqft" ? "pi²" : "m²") + "</span></div></td>" +
+        '<td class="pans-td-az"><select class="pan-az" aria-label="Orientation du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-tilt"><select class="pan-tilt" aria-label="Inclinaison du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-snow"><select class="pan-snow" aria-label="Déneigement du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-x"><button type="button" class="pans-remove" aria-label="Retirer le versant ' + (i + 1) + '">×</button></td>';
+      const area = row.querySelector(".pan-area");
+      area.value = shownArea(p.m2);
+      fillSelect(row.querySelector(".pan-az"), Object.keys(AZ_LABELS).map(function (k) { return { value: k, label: AZ_LABELS[k] }; }), snapAzimuth(p.az));
+      fillSelect(row.querySelector(".pan-tilt"), [0, 15, 30, 45, 60, 75, 90].map(function (t) { return { value: t, label: t + "°" }; }), snapTilt(p.tilt));
+      fillSelect(row.querySelector(".pan-snow"), SNOW_STOPS.map(function (n) { return { value: n, label: n + " %" }; }), snowStop(p.snow));
+      const rm = row.querySelector(".pans-remove");
+      rm.disabled = pans.length <= 1;
+      area.addEventListener("input", function () {
+        p.m2 = m2FromShown(area.value);
+        onScenarioEdit();
+      });
+      row.querySelector(".pan-az").addEventListener("change", function (e) { p.az = snapAzimuth(e.target.value); onScenarioEdit(); });
+      row.querySelector(".pan-tilt").addEventListener("change", function (e) { p.tilt = snapTilt(e.target.value); onScenarioEdit(); });
+      row.querySelector(".pan-snow").addEventListener("change", function (e) { p.snow = snowStop(e.target.value); onScenarioEdit(); });
+      rm.addEventListener("click", function () {
+        if (pans.length <= 1) return;
+        pans.splice(i, 1);
+        buildPanRows();
+        onScenarioEdit();
+      });
+      const sub = document.createElement("tr");
+      sub.className = "pans-sub";
+      sub.innerHTML = '<td colspan="5"><div class="pans-sub-line"><span class="pans-sub-name">Versant ' + (i + 1) + '</span><span class="pans-out"><strong data-pv>—</strong> panneaux</span><span class="pans-out"><strong data-kw>—</strong> kWc</span><span class="pans-out"><strong data-eff>—</strong> efficacité</span></div></td>';
+      body.appendChild(row);
+      body.appendChild(sub);
+    });
+    const add = $("pansAdd");
+    if (add) {
+      add.disabled = pans.length >= MAX_PANS;
+      add.textContent = pans.length >= MAX_PANS ? "Maximum " + MAX_PANS + " versants" : "+ Ajouter un versant";
+    }
+  }
+
+  function paintPanStats(rows) {
+    if (!rows || typeof document.querySelectorAll !== "function") return;
+    const subs = document.querySelectorAll("#pansBody .pans-sub");
+    if (subs.length !== rows.length) {
+      buildPanRows();
+    }
+    const fresh = document.querySelectorAll("#pansBody .pans-sub");
+    rows.forEach(function (row, i) {
+      const sub = fresh[i];
+      if (!sub || typeof sub.querySelector !== "function") return;
+      const pv = sub.querySelector("[data-pv]");
+      const kw = sub.querySelector("[data-kw]");
+      const eff = sub.querySelector("[data-eff]");
+      if (pv) pv.textContent = row.nPv > 0 ? String(row.nPv) : "—";
+      if (kw) kw.textContent = row.kW > 0 ? fmtShown(row.kW, 1) : "—";
+      if (eff) eff.textContent = isFinite(row.kWhPerKwc) ? fmtGroupedInt(Math.round(row.kWhPerKwc)).replace(/ /g, "\u00A0") : "—";
+    });
+    const totPv = $("totPv");
+    const totKw = $("totKw");
+    const totEff = $("totEff");
+    const kW = rows.reduce(function (s, r) { return s + r.kW; }, 0);
+    const nPv = rows.reduce(function (s, r) { return s + r.nPv; }, 0);
+    const kWh = rows.reduce(function (s, r) { return s + r.kWh; }, 0);
+    if (totPv) totPv.textContent = nPv > 0 ? String(nPv) : "—";
+    if (totKw) totKw.textContent = kW > 0 ? fmtShown(kW, 1) : "—";
+    if (totEff) totEff.textContent = kW > 0 ? fmtGroupedInt(Math.round(kWh / kW)).replace(/ /g, "\u00A0") : "—";
+  }
+
+  function paintPanAreas() {
+    if (!pans || typeof document.querySelectorAll !== "function") return;
+    const inputs = document.querySelectorAll(".pan-area");
+    inputs.forEach(function (input, i) {
+      if (!pans[i] || document.activeElement === input) return;
+      input.value = shownArea(pans[i].m2);
+      const unit = input.parentNode && input.parentNode.querySelector ? input.parentNode.querySelector("[data-unit]") : null;
+      if (unit) unit.textContent = areaUnit === "sqft" ? "pi²" : "m²";
+    });
+  }
+
   function calc() {
-    const m2 = areaM2();
     const util = utilFrac();
-    const deneige = deneigeFrac();
-    const tilt = String($("tilt").value);
-    const az = String($("orient").value);
     const priceW = parseFloat($("priceW").value);
     const taxesOn = $("taxes").checked;
     const subvOn = $("subv").checked;
     const rateOk = rateDollarsPerKwh($("rate").value);
 
-    const cell = lookupCell(tilt, az);
-    const table = cell.ac_annual;
-    // v0.2: W from tilt model (not per-cell orientation W)
-    const W = winterWFromTilt(tilt);
+    let m2;
+    let deneige;
+    let tilt;
+    let az;
+    let table;
+    let W;
+    let kW;
+    let nPv;
+    let kWhAnnuel;
+    let kWh;
+    let kWhPerKwc;
+    let kWhDecMonth;
+    let kWhDec;
+    let snowCover;
+    let showVerticalRec;
+    let panRows = null;
+    let cellSource = "fallback";
+    let usedM2;
+    let acDec = NaN;
 
-    const usedM2 = m2 * util;
-    const kW = usedM2 * PANEL_KW_PER_M2;
-    const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
-    const kWhAnnuel = table * kW;
-    const kWh = applyDeneigement(kWhAnnuel, deneige, W);
-    const kWhPerKwc = applyDeneigement(table, deneige, W);
-    const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
-    // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
-    const snowCover = snowCoverFromTilt(tilt);
-    const kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
-    const showVerticalRec = recommendVerticalPanels(deneige, tilt);
+    if (multiOn()) {
+      ensurePans();
+      panRows = pans.map(function (p) { return calcOnePan(p, util); });
+      m2 = panRows.reduce(function (s, r) { return s + r.m2; }, 0);
+      kW = panRows.reduce(function (s, r) { return s + r.kW; }, 0);
+      nPv = panRows.reduce(function (s, r) { return s + r.nPv; }, 0);
+      if (!(kW > 0)) nPv = NaN;
+      kWhAnnuel = panRows.reduce(function (s, r) { return s + r.kWhAnnuel; }, 0);
+      kWh = panRows.reduce(function (s, r) { return s + r.kWh; }, 0);
+      kWhDecMonth = panRows.reduce(function (s, r) { return s + r.kWhDecMonth; }, 0);
+      kWhDec = panRows.reduce(function (s, r) { return s + r.kWhDec; }, 0);
+      kWhPerKwc = kW > 0 ? kWh / kW : NaN;
+      table = kW > 0 ? kWhAnnuel / kW : panRows[0].table;
+      showVerticalRec = panRows.some(function (r) { return r.showVerticalRec; });
+      tilt = String(snapTilt(pans[0].tilt));
+      az = String(snapAzimuth(pans[0].az));
+      deneige = snowStop(pans[0].snow) / 100;
+      W = winterWFromTilt(tilt);
+      snowCover = snowCoverFromTilt(tilt);
+      cellSource = panRows[0].source;
+      usedM2 = m2 * util;
+    } else {
+      m2 = areaM2();
+      deneige = deneigeFrac();
+      tilt = String($("tilt").value);
+      az = String($("orient").value);
+      const cell = lookupCell(tilt, az);
+      table = cell.ac_annual;
+      // v0.2: W from tilt model (not per-cell orientation W)
+      W = winterWFromTilt(tilt);
+      usedM2 = m2 * util;
+      kW = usedM2 * PANEL_KW_PER_M2;
+      nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
+      kWhAnnuel = table * kW;
+      kWh = applyDeneigement(kWhAnnuel, deneige, W);
+      kWhPerKwc = applyDeneigement(table, deneige, W);
+      kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
+      // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
+      snowCover = snowCoverFromTilt(tilt);
+      kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
+      showVerticalRec = recommendVerticalPanels(deneige, tilt);
+      cellSource = cell.source;
+      acDec = isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec;
+    }
 
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
@@ -685,23 +1011,24 @@
       }
     }
     const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
-    const battPrice = battPricePerKwh();
+    const battPrice = battModulePrice();
+    const battModules = battModuleCount(reserveKwh);
     const battTaxOn = battTaxesOn();
-    const battHT = isFinite(reserveKwh) && isFinite(battPrice) ? reserveKwh * battPrice : NaN;
+    const battHT = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
     const battTaxes = battTaxOn ? battHT * (TAX_MULT - 1) : 0;
-    const battCost = battHT + battTaxes;
+    const battCost = isFinite(battHT) ? battHT + (battTaxOn ? battHT * (TAX_MULT - 1) : 0) : NaN;
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      usedM2, acDec: cell.ac_dec,
+      usedM2, acDec, panRows,
       kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec,
       conso, fullAuto, consoFromAuto, consoShort, consoMin,
       kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
-      battPrice, battTaxOn, battHT, battTaxes, battCost, projectTotal,
-      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
+      battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
+      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cellSource
     };
   }
 
@@ -934,6 +1261,8 @@
     const r = calc();
     if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
+    const priceSurprise = $("priceSurprise");
+    if (priceSurprise) priceSurprise.hidden = !(isFinite(r.priceW) && r.priceW < PRICE_W_LOW);
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
       $("deneigeLive").innerHTML = detailsOn()
@@ -971,13 +1300,14 @@
     }
     if ($("outKw")) {
       const kwNum = $("outKw").querySelector(".prod-num");
-      if (kwNum) kwNum.textContent = fmtShown(r.kW, 2);
+      if (kwNum) kwNum.textContent = fmtShown(r.kW * 1000, 0);
     }
     const snowBox = $("autonomySnow");
     if (snowBox) {
       snowBox.hidden = !r.showVerticalRec;
       snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
+    if (r.panRows) paintPanStats(r.panRows);
     updateConsoJourUi(r.kWhDay);
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
@@ -1047,6 +1377,15 @@
     syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
+    }
+    if ($("outBatt")) {
+      if (!(r.battModules > 0) || !isFinite(r.battHT)) {
+        $("outBatt").textContent = "Aucun module";
+      } else {
+        const word = r.battModules > 1 ? "modules" : "module";
+        $("outBatt").textContent =
+          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(r.battPrice, 0) + " $ = " + fmtShownMoney(r.battHT);
+      }
     }
     if ($("lineBattHT")) $("lineBattHT").textContent = fmtShownMoney(r.battHT);
     if ($("lineBattTaxes")) $("lineBattTaxes").textContent = r.battTaxOn ? fmtShownMoney(r.battTaxes) : "—";
@@ -1225,6 +1564,14 @@
     $("unitSqft").setAttribute("aria-pressed", !m2 ? "true" : "false");
     const pu = $("printUnit");
     if (pu) pu.textContent = m2 ? "m²" : "pi²";
+    if (typeof document.querySelectorAll === "function") {
+      document.querySelectorAll("[data-unit-btn]").forEach(function (btn) {
+        const on = btn.getAttribute("data-unit-btn") === areaUnit;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    paintPanAreas();
   }
 
   function setUnit(u) {
@@ -1256,7 +1603,12 @@
     conso: DEFAULT_CONSO_KWH,
     rate: DEFAULT_RATE_CENTS,
     consoJour: 0,
-    consoExtra: 0
+    consoExtra: 0,
+    autoStop: RESERVE_DEFAULT_INDEX,
+    battPrice: BATT_PRICE_DEFAULT,
+    battTaxes: true,
+    fullAuto: false,
+    multi: false
   };
 
   function snapStep(n, min, max, step) {
@@ -1319,7 +1671,7 @@
     }
     let priceW = d.priceW;
     if (q.has("priceW")) {
-      const v = snapStep(q.get("priceW"), 2.5, 4.5, 0.05);
+      const v = snapStep(q.get("priceW"), PRICE_W_MIN, PRICE_W_MAX, PRICE_W_STEP);
       if (isFinite(v)) priceW = v;
     }
     const taxes = parseFlagParam(q.has("taxes") ? q.get("taxes") : null, d.taxes);
@@ -1352,15 +1704,29 @@
     }
     let consoExtra = d.consoExtra;
     if (q.has("consoExtra")) consoExtra = clampExtraKwh(q.get("consoExtra"));
+    let autoStop = d.autoStop;
+    if (q.has("autoStop")) {
+      const v = snapStep(q.get("autoStop"), 0, RESERVE_STOPS.length - 1, 1);
+      if (isFinite(v)) autoStop = v;
+    }
+    let battPrice = d.battPrice;
+    if (q.has("battPrice")) {
+      const v = snapStep(q.get("battPrice"), BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP);
+      if (isFinite(v)) battPrice = v;
+    }
+    const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
+    const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
+    const multi = parseFlagParam(q.has("multi") ? q.get("multi") : null, d.multi);
+    const pansParsed = q.has("pans") ? parsePansParam(q.get("pans")) : [];
     let ville = d.ville;
     if (q.has("ville")) {
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battPrice, battTaxes, fullAuto, multi, pans: pansParsed };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto", "multi", "pans"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1394,6 +1760,14 @@
       p.set("rate", trimNum(s.rate, 3));
       p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
+      p.set("autoStop", String(s.autoStop));
+      p.set("battPrice", String(s.battPrice));
+      p.set("battTaxes", s.battTaxes ? "1" : "0");
+      p.set("fullAuto", s.fullAuto ? "1" : "0");
+      if (s.multi) {
+        p.set("multi", "1");
+        if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
+      }
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1411,6 +1785,14 @@
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
     if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
+    if (s.autoStop !== d.autoStop) p.set("autoStop", String(s.autoStop));
+    if (s.battPrice !== d.battPrice) p.set("battPrice", String(s.battPrice));
+    if (!s.battTaxes) p.set("battTaxes", "0");
+    if (s.fullAuto) p.set("fullAuto", "1");
+    if (s.multi) {
+      p.set("multi", "1");
+      if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
+    }
     return p.toString();
   }
 
@@ -1429,6 +1811,18 @@
     $("rate").value = trimNum(s.rate, 3);
     if ($("consoJour")) $("consoJour").value = String(Math.round(s.consoJour * 10));
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
+    if ($("autoStop")) $("autoStop").value = String(s.autoStop);
+    if ($("battPrice")) $("battPrice").value = String(s.battPrice);
+    if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
+    if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
+    if (s.pans && s.pans.length) {
+      pans = s.pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; });
+      pansFromUrl = true;
+    } else if (s.multi) {
+      pans = null;
+    }
+    if ($("multi")) $("multi").checked = !!s.multi;
+    syncMultiLayout();
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
@@ -1459,13 +1853,19 @@
       orient: snapAzimuth($("orient") ? $("orient").value : d.orient),
       tilt: readRange("tilt", 0, 90, 15, d.tilt),
       deneige: readRange("deneige", 0, 100, 1, d.deneige),
-      priceW: readRange("priceW", 2.5, 4.5, 0.05, d.priceW),
+      priceW: readRange("priceW", PRICE_W_MIN, PRICE_W_MAX, PRICE_W_STEP, d.priceW),
       taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
       consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
+      autoStop: reserveStopIndex(),
+      battPrice: readRange("battPrice", BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP, d.battPrice),
+      battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
+      fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
+      multi: multiOn(),
+      pans: multiOn() && pans ? pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; }) : [],
       ville: canonicalVille(selectedVille)
     };
   }
@@ -1484,8 +1884,232 @@
     history.replaceState(history.state, "", path);
   }
 
-  function printPdf() {
+  const PRINT_CARD_PAGES = [
+    ["sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"],
+    ["sec-cost", "sec-batt", "sec-value", "sec-total"]
+  ];
+
+  function printNode(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function printValue(id, fallback) {
+    const node = $(id);
+    const value = node ? String(node.textContent || "").replace(/\s+/g, " ").trim() : "";
+    return value || fallback || "—";
+  }
+
+  function syncPrintControls(source, clone) {
+    const sourceControls = source.querySelectorAll("input, select, textarea");
+    const cloneControls = clone.querySelectorAll("input, select, textarea");
+    sourceControls.forEach(function (control, index) {
+      const copy = cloneControls[index];
+      if (!copy) return;
+      copy.value = control.value;
+      if ("checked" in control) copy.checked = control.checked;
+      if (copy.tagName === "SELECT") {
+        Array.from(copy.options).forEach(function (option, optionIndex) {
+          option.selected = optionIndex === control.selectedIndex;
+        });
+      }
+    });
+  }
+
+  function namespacePrintIds(root, sourceId) {
+    const idMap = new Map();
+    const nodes = [root].concat(Array.from(root.querySelectorAll("[id]")));
+    nodes.forEach(function (node, index) {
+      if (!node.id) return;
+      const next = "print-" + sourceId + "-" + index + "-" + node.id;
+      idMap.set(node.id, next);
+      node.id = next;
+    });
+    ["for", "aria-labelledby", "aria-describedby", "aria-controls"].forEach(function (attr) {
+      [root].concat(Array.from(root.querySelectorAll("[" + attr + "]"))).forEach(function (node) {
+        const value = node.getAttribute(attr);
+        if (!value) return;
+        node.setAttribute(attr, value.split(/\s+/).map(function (id) {
+          return idMap.get(id) || id;
+        }).join(" "));
+      });
+    });
+  }
+
+  function clonePrintCard(sourceId) {
+    const source = $(sourceId);
+    if (!source) return null;
+    const clone = source.cloneNode(true);
+    syncPrintControls(source, clone);
+    namespacePrintIds(clone, sourceId);
+    clone.classList.remove("mode-full-only", "mode-webi-only");
+    clone.querySelectorAll(".mode-full-only, .mode-webi-only").forEach(function (node) {
+      node.classList.remove("mode-full-only", "mode-webi-only");
+    });
+    clone.classList.add("print-card");
+    clone.setAttribute("data-print-source", sourceId);
+    clone.removeAttribute("tabindex");
+    return clone;
+  }
+
+  function scenarioPrintUrl() {
+    syncScenarioUrl();
+    const url = new URL(window.location.href);
+    url.hash = "";
+    return url.href;
+  }
+
+  function appendPrintBrand(parent, subtitle) {
+    const header = printNode("header", "print-report-brand");
+    const logo = document.querySelector(".brand-logo");
+    if (logo) {
+      const logoCopy = logo.cloneNode(true);
+      logoCopy.removeAttribute("class");
+      header.appendChild(logoCopy);
+    }
+    const words = printNode("div", "print-report-brand-words");
+    words.appendChild(printNode("strong", "", "Solution ERA | DÉFI Autonomie Énergétique"));
+    words.appendChild(printNode("span", "", subtitle));
+    header.appendChild(words);
+    parent.appendChild(header);
+  }
+
+  function appendPrintSummary(report, url) {
+    const page = printNode("section", "print-sheet print-summary-page");
+    appendPrintBrand(page, "Calculateur solaire");
+    page.appendChild(printNode("h1", "", "Résumé de votre projet solaire"));
+    const town = $("villeBtn");
+    page.appendChild(printNode("p", "print-summary-context", "Scénario calculé pour " + (town && town.value ? town.value : "la localisation choisie") + "."));
+
+    const summary = printNode("div", "print-summary-grid");
+    [
+      [printValue("outPv"), "panneaux solaires"],
+      [printValue("outKwh"), "production annuelle (kWh)"],
+      [printValue("autoStopVal"), "autonomie choisie"],
+      [printValue("outProject"), "coût total estimé"]
+    ].forEach(function (item) {
+      const card = printNode("div", "print-summary-card");
+      card.appendChild(printNode("strong", "", item[0]));
+      card.appendChild(printNode("span", "", item[1]));
+      summary.appendChild(card);
+    });
+    page.appendChild(summary);
+
+    const share = printNode("section", "print-share");
+    share.appendChild(printNode("h2", "", "Rouvrir ce calcul exact"));
+    const link = printNode("a", "print-scenario-link", url);
+    link.href = url;
+    share.appendChild(link);
+    const qr = document.createElement("img");
+    qr.className = "print-qr";
+    qr.alt = "Code QR pour rouvrir ce calcul";
+    qr.width = 190;
+    qr.height = 190;
+    if (typeof qrcode === "function") {
+      const code = qrcode(0, "M");
+      code.addData(url, "Byte");
+      code.make();
+      qr.src = code.createDataURL(5, 4);
+    }
+    share.appendChild(qr);
+    share.appendChild(printNode("p", "print-qr-caption", "Scannez avec l’appareil photo d’un cellulaire."));
+    page.appendChild(share);
+    page.appendChild(printNode("p", "print-page-warning", "Attention : ce rapport est long. Vérifiez le nombre de pages sélectionnées avant d’imprimer."));
+    report.appendChild(page);
+  }
+
+  function appendPrintCardPage(report, cardIds, title, pageClass) {
+    const page = printNode("section", "print-sheet print-card-page " + pageClass);
+    appendPrintBrand(page, "Détails du scénario");
+    page.appendChild(printNode("h1", "", title));
+    const grid = printNode("div", "print-card-grid");
+    cardIds.forEach(function (id) {
+      const card = clonePrintCard(id);
+      if (card) grid.appendChild(card);
+    });
+    page.appendChild(grid);
+    report.appendChild(page);
+  }
+
+  function appendPrintDetailSection(parent, title, content) {
+    const section = printNode("section", "print-detail-section");
+    section.appendChild(printNode("h2", "", title));
+    section.appendChild(content);
+    parent.appendChild(section);
+  }
+
+  function appendPrintAppendix(report) {
+    const appendix = printNode("section", "print-appendix");
+    appendPrintBrand(appendix, "Détails de calcul");
+    appendix.appendChild(printNode("h1", "", "Hypothèses, formules et sources"));
+    appendix.appendChild(printNode("p", "print-appendix-intro", "Les sections suivantes regroupent les explications disponibles dans les boutons d’information du calculateur."));
+
+    const general = $("infoDesc");
+    if (general) appendPrintDetailSection(appendix, "Méthode de calcul", general.cloneNode(true));
+    const rate = $("rateDesc");
+    if (rate) appendPrintDetailSection(appendix, "Tarif Hydro-Québec", rate.cloneNode(true));
+
+    const seen = new Set();
+    document.querySelectorAll("[data-info]").forEach(function (button) {
+      const key = button.getAttribute("data-info");
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const template = $("tpl-info-" + key);
+      if (!template) return;
+      const fragment = template.content.cloneNode(true);
+      const titleNode = fragment.querySelector("[data-info-title]");
+      const title = titleNode ? titleNode.textContent.trim() : "Information";
+      if (titleNode) titleNode.remove();
+      const body = printNode("div", "print-detail-body");
+      body.appendChild(fragment);
+      appendPrintDetailSection(appendix, title, body);
+    });
+
+    const disclaimers = document.querySelector(".disclaimers");
+    if (disclaimers) {
+      const assumptions = disclaimers.cloneNode(true);
+      assumptions.querySelectorAll("button").forEach(function (button) { button.remove(); });
+      appendPrintDetailSection(appendix, "À retenir", assumptions);
+    }
+    report.appendChild(appendix);
+  }
+
+  function buildPrintReport() {
+    const report = $("printReport");
+    if (!report) return null;
+    report.replaceChildren();
+    const url = scenarioPrintUrl();
+    appendPrintSummary(report, url);
+    appendPrintCardPage(report, PRINT_CARD_PAGES[0], "Production et autonomie", "print-card-page-production");
+    appendPrintCardPage(report, PRINT_CARD_PAGES[1], "Coûts et valeur", "print-card-page-costs");
+    appendPrintAppendix(report);
+    report.dataset.scenarioUrl = url;
+    return report;
+  }
+
+  function waitForPrintImages(report) {
+    if (!report) return Promise.resolve();
+    const pending = Array.from(report.querySelectorAll("img")).filter(function (img) {
+      return !img.complete;
+    });
+    if (!pending.length) return Promise.resolve();
+    return Promise.race([
+      Promise.all(pending.map(function (img) {
+        return new Promise(function (resolve) {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+        });
+      })),
+      new Promise(function (resolve) { window.setTimeout(resolve, 4000); })
+    ]);
+  }
+
+  async function printPdf() {
     closeInfo();
+    const report = buildPrintReport();
+    await waitForPrintImages(report);
     window.print();
   }
 
@@ -1874,6 +2498,14 @@
     return row("Superficie de l’installation", shown, "input");
   }
   function usedAreaRows(r) {
+    if (r.panRows) {
+      return [
+        row("Versants", r.panRows.length + (r.panRows.length > 1 ? " versants" : " versant"), "input", "superficie, orientation, inclinaison et déneigement de chacun"),
+        row("Superficie totale", fmtNum(r.m2, 1) + "\u00A0m²", "input"),
+        row("Densité d’installation", pct(r.util), "input", "une seule valeur pour toute la toiture"),
+        row("Surface utile", fmtNum(r.usedM2, 2) + "\u00A0m²", "calc", "somme des versants × densité")
+      ];
+    }
     return [
       areaRow(r),
       row("Densité d’installation", pct(r.util), "input"),
@@ -1881,6 +2513,13 @@
     ];
   }
   function locationRows(r) {
+    if (r.panRows) {
+      return [
+        row("Localisation", selectedTownLabel(), "input"),
+        row("Versants", String(r.panRows.length), "input", "chacun a son orientation, son inclinaison et son déneigement"),
+        row("Productible moyen pour 1\u00A0kWc", fmtNum(r.table, 1) + "\u00A0kWh/kWc/an", "calc", "production brute ÷ kWc, avant la neige")
+      ];
+    }
     const src = r.cellSource === "scaled"
       ? "grille de Québec mise à l’échelle de cette ville"
       : (r.cellSource === "fallback" ? "cellule de secours (grille non chargée)" : "cellule PVWatts de la ville");
@@ -1911,8 +2550,10 @@
   function battRows(r) {
     return [
       row("Réserve", kwhVal(r.reserveKwh, 3), "calc", "boîte Réserve de 4B"),
-      row("Prix au kWh installé", fmtMoney(r.battPrice), "input"),
-      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "réserve × prix"),
+      row("Module", "16,1\u00A0kWh", "std", "module Volthium"),
+      row("Nombre de modules", fmtNum(r.battModules, 0), "calc", "arrondi de la réserve ÷ 16,1, au moins 1"),
+      row("Prix d’un module", fmtMoney(r.battPrice), "input"),
+      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "modules × prix"),
       row("Taxes TPS + TVQ", r.battTaxOn ? fmtMoney(r.battTaxes) : "non comprises", r.battTaxOn ? "std" : "input", r.battTaxOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
       row("Subvention", "0\u00A0$", "std", "LogisVert ne couvre pas les batteries")
     ];
@@ -1950,6 +2591,20 @@
       };
     },
     kwhkwc: function (r) {
+      if (r.panRows) {
+        return {
+          title: "Efficacité de l’installation",
+          rows: locationRows(r).concat([
+            row("Production annuelle", kwhVal(r.kWh, 1) + " / an", "calc", "somme des versants, après la neige"),
+            row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc")
+          ]),
+          formula: "kWh/kWc/an = production annuelle ÷ kWc",
+          exact: fmtNum(r.kWhPerKwc, 2) + "\u00A0kWh/kWc/an",
+          shown: fmtGroupedInt(Math.round(r.kWhPerKwc)) + "\u00A0kWh/kWc/an",
+          shownNote: "arrondi à l’entier, comme le menu des villes",
+          notes: [NOTE_PVWATTS, "Chaque versant a son orientation, son inclinaison et son déneigement. L’efficacité est pondérée par les kWc."]
+        };
+      }
       return {
         title: "Efficacité de l’installation",
         rows: locationRows(r).concat(snowRows(r, r.W, "Part de l’année à risque neige (W)")),
@@ -1961,6 +2616,19 @@
       };
     },
     kwh: function (r) {
+      if (r.panRows) {
+        return {
+          title: "Mesurage Net",
+          rows: locationRows(r).concat([
+            row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "somme des versants"),
+            row("Production annuelle", kwhVal(r.kWh, 1) + " / an", "calc", "chaque versant : kWc × productible × facteur neige")
+          ]),
+          formula: "kWh/an = somme des versants",
+          exact: kwhVal(r.kWh, 1) + " / an",
+          shown: fmtShown(r.kWh, 0) + "\u00A0kWh / an",
+          notes: [NOTE_PVWATTS, "Mesurage net\u00A0: les kWh produits sont crédités sur la facture Hydro-Québec. Le crédit ne dépasse pas la consommation annuelle (voir Économies).", NOTE_ROUNDING]
+        };
+      }
       return {
         title: "Mesurage Net",
         rows: [row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "boîte Puissance de 1A")]
@@ -1974,6 +2642,20 @@
       };
     },
     kwhday: function (r) {
+      if (r.panRows) {
+        return {
+          title: "Autonomie — un jour de décembre",
+          rows: locationRows(r).concat([
+            row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "somme des versants"),
+            row("Décembre, après la neige", kwhVal(r.kWhDec, 2), "calc", "somme des versants"),
+            row("Jours en décembre", "31", "std")
+          ]),
+          formula: "kWh/j = décembre (somme des versants) ÷ 31",
+          exact: fmtNum(r.kWhDay, 3) + "\u00A0kWh/j",
+          shown: fmtShown(r.kWhDay, 2) + "\u00A0kWh/j",
+          notes: ["Chaque versant applique sa propre part de décembre à risque neige, selon son inclinaison et son déneigement.", NOTE_PVWATTS, NOTE_ROUNDING]
+        };
+      }
       return {
         title: "Autonomie — un jour de décembre",
         rows: [row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "boîte Puissance de 1A")]
@@ -2073,10 +2755,10 @@
       return {
         title: "Coût des batteries",
         rows: battRows(r),
-        formula: r.battTaxOn ? "batteries = HT + taxes" : "batteries = HT",
+        formula: r.battTaxOn ? "batteries = modules × prix + taxes" : "batteries = modules × prix",
         exact: fmtMoney(r.battCost),
         shown: fmtShownMoney(r.battCost),
-        notes: ["Le prix au kWh installé est une fourchette pédagogique (600 à 1\u00A0800\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING]
+        notes: ["Le prix d’un module est une fourchette pédagogique (2\u00A0400 à 7\u00A0200\u00A0$). Estimation, pas une soumission.", NOTE_ROUNDING]
       };
     },
     project: function (r) {
@@ -2084,7 +2766,7 @@
         title: "Coût total du projet",
         rows: [
           row("Panneaux solaires (coût réel)", fmtMoney(r.reel), "calc", "carte 2\u00A0: HT + taxes − subvention"),
-          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: réserve × prix + taxes")
+          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: modules × prix + taxes")
         ],
         formula: "total = panneaux + batteries",
         exact: fmtMoney(r.projectTotal),
@@ -2613,6 +3295,31 @@
     return { wire: wire, schedule: schedule, reset: reset, follow: follow };
   })();
 
+  /**
+   * Wheel over the marginal rate steps the decimals (the field step, 0,001 ¢)
+   * instead of scrolling the page. Hover is enough; the field need not be focused.
+   */
+  function wireRateWheel() {
+    const el = $("rate");
+    if (!el || el._rateWheel) return;
+    el._rateWheel = true;
+    el.addEventListener("wheel", function (e) {
+      if (!e || !e.deltaY) return;
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      const step = parseFloat(el.step);
+      const dec = isFinite(step) && step > 0 ? step : 0.001;
+      const dir = e.deltaY < 0 ? 1 : -1;
+      const raw = parseFloat(String(el.value).trim().replace(",", "."));
+      const base = isFinite(raw) ? raw : DEFAULT_RATE_CENTS;
+      const places = (String(dec).split(".")[1] || "").length;
+      const scale = Math.pow(10, places);
+      let next = Math.round((base + dir * dec) * scale) / scale;
+      if (next < dec) next = dec;
+      el.value = next.toFixed(places);
+      onScenarioEdit();
+    }, { passive: false });
+  }
+
   function wireUi() {
     wireFlagDock();
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((id) => {
@@ -2655,6 +3362,8 @@
       showNotes.checked = prefGet("solar-notes") === "1";
       const applyNotes = function () {
         if (editorNotes) editorNotes.hidden = !showNotes.checked;
+        const battDraft = $("battDraftNote");
+        if (battDraft) battDraft.hidden = !showNotes.checked;
         showNotes.setAttribute("aria-expanded", showNotes.checked ? "true" : "false");
       };
       applyNotes();
@@ -2663,6 +3372,7 @@
         applyNotes();
       });
     }
+    wireRateWheel();
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
@@ -2772,12 +3482,34 @@
       trapModalTab(e);
     });
 
+    const multiBox = $("multi");
+    if (multiBox) {
+      multiBox.addEventListener("change", function () {
+        syncMultiLayout();
+        onScenarioEdit();
+      });
+    }
+    const pansAdd = $("pansAdd");
+    if (pansAdd) {
+      pansAdd.addEventListener("click", function () {
+        if (!multiOn()) return;
+        ensurePans();
+        if (pans.length >= MAX_PANS) return;
+        const last = pans[pans.length - 1];
+        pans.push({ m2: 20, az: last.az === 270 ? 180 : 270, tilt: last.tilt, snow: 100 });
+        buildPanRows();
+        onScenarioEdit();
+      });
+    }
+    if (typeof document.querySelectorAll === "function") {
+      document.querySelectorAll("[data-unit-btn]").forEach(function (btn) {
+        btn.addEventListener("click", function () { setUnit(btn.getAttribute("data-unit-btn")); });
+      });
+    }
     wireTownPicker();
 
     let initialSearch = "";
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
-    scenarioSnapshot = searchHasScenario(initialSearch);
-    applyScenario(parseScenarioSearch(initialSearch));
     if ($("autoStop")) {
       $("autoStop").min = "0";
       $("autoStop").max = String(RESERVE_STOPS.length - 1);
@@ -2785,6 +3517,8 @@
       $("autoStop").value = String(RESERVE_DEFAULT_INDEX);
     }
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+    scenarioSnapshot = searchHasScenario(initialSearch);
+    applyScenario(parseScenarioSearch(initialSearch));
     try {
       if (location.hash === "#bugModal") openBugReport();
     } catch (_) {}
@@ -3114,13 +3848,22 @@
     li.id = "ville-opt-" + town.id;
     li.setAttribute("data-id", town.id);
     li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
+    const label = document.createElement("span");
+    label.className = "town-label";
     const name = document.createElement("span");
     name.className = "town-name";
     name.textContent = town.name;
+    label.appendChild(name);
+    if (town.region) {
+      const region = document.createElement("span");
+      region.className = "town-region";
+      region.textContent = town.region;
+      label.appendChild(region);
+    }
     const yieldEl = document.createElement("span");
     yieldEl.className = "town-yield";
     yieldEl.textContent = menuYieldText(town) || "—";
-    li.appendChild(name);
+    li.appendChild(label);
     li.appendChild(yieldEl);
     list.appendChild(li);
   }
@@ -3551,6 +4294,13 @@
 
   window.addEventListener("beforeprint", () => {
     closeInfo();
+    const report = $("printReport");
+    if (report && !report.hasChildNodes()) buildPrintReport();
+  });
+
+  window.addEventListener("afterprint", () => {
+    const report = $("printReport");
+    if (report) report.replaceChildren();
   });
 
   // Skip-link: browsers often leave focus on <body> after hash jump — force #main
