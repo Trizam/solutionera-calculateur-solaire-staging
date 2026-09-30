@@ -58,8 +58,17 @@
   const DAILY_KWH_MAX = 40;
   const DAILY_TENTH_MAX = DAILY_KWH_MAX * 10;
   const CONSO_EXTRA_MAX = 100;
-  /** Draft installed-battery range until a real $/kWh band is chosen. */
-  const BATT_PRICE_DEFAULT = 1200;
+  /** Installed $/W slider. Below 2,50 $/W a yellow note says the price is surprisingly low. */
+  const PRICE_W_MIN = 1;
+  const PRICE_W_MAX = 4.5;
+  const PRICE_W_STEP = 0.05;
+  const PRICE_W_LOW = 2.5;
+  /**
+   * Volthium module: 16.1 kWh at a module price (default 4 800 $).
+   * 33 kWh of reserve is two modules, not reserve × a $/kWh draft.
+   */
+  const BATT_MODULE_KWH = 16.1;
+  const BATT_PRICE_DEFAULT = 4800;
   /**
    * Reserve duration stops. The left label is the stop name.
    * The kWh reserve stays exact (finer than these names).
@@ -564,22 +573,34 @@
   }
 
 
-  function battPricePerKwh() {
+  /** Price of one 16.1 kWh module. The slider is not a $/kWh rate. */
+  function battModulePrice() {
     const el = $("battPrice");
     if (!el) return NaN;
     const v = parseFloat(el.value);
     return isFinite(v) ? v : NaN;
   }
 
-  /** Fill duration at the December daily rate. Display only. */
+  /**
+   * Whole modules. Round the reserve to the nearest 16.1 kWh module.
+   * A reserve that exists still needs at least one module.
+   */
+  function battModuleCount(reserveKwh) {
+    if (!isFinite(reserveKwh) || reserveKwh <= 0) return 0;
+    return Math.max(1, Math.round(reserveKwh / BATT_MODULE_KWH));
+  }
+
+  /**
+   * Fill time in days, at the December surplus (production of the month ÷ 31,
+   * minus the daily load). Single-digit day counts keep a decimal, same habit
+   * as the two-digit display law. Longer counts stay whole.
+   */
   function fmtFillDuration(days) {
     if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
-    if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
-    const minutes = days * 24 * 60;
-    if (minutes < 90) return { num: fmtShown(minutes, 0), unit: "min · décembre" };
-    const hours = days * 24;
-    if (hours < 48) return { num: fmtShown(hours, 1), unit: "h · décembre" };
-    return { num: fmtShown(days, 1), unit: "jours · décembre" };
+    if (days > 365) return { num: "> 1 an", unit: "soleil de décembre" };
+    const num = days < 10 ? fmtShown(days, 1) : fmtShown(days, 0);
+    const one = num === "1" || num === "1,0";
+    return { num: num, unit: (one ? "jour" : "jours") + " · soleil de décembre" };
   }
 
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
@@ -668,8 +689,9 @@
       }
     }
     const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
-    const battPrice = battPricePerKwh();
-    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? reserveKwh * battPrice : NaN;
+    const battPrice = battModulePrice();
+    const battModules = battModuleCount(reserveKwh);
+    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
@@ -678,7 +700,7 @@
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
-      battPrice, battCost, projectTotal,
+      battPrice, battModules, battCost, projectTotal,
       gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
     };
   }
@@ -912,6 +934,8 @@
     const r = calc();
     if ($("utilVal")) $("utilVal").textContent = Math.round(r.util * 100) + " %";
     if ($("priceVal")) $("priceVal").textContent = fmtNum(r.priceW, 2) + " $/W";
+    const priceSurprise = $("priceSurprise");
+    if (priceSurprise) priceSurprise.hidden = !(isFinite(r.priceW) && r.priceW < PRICE_W_LOW);
     if ($("deneigeLive")) {
       const lossPct = (1 - r.deneige) * r.W * 100;
       $("deneigeLive").innerHTML = detailsOn()
@@ -949,7 +973,7 @@
     }
     if ($("outKw")) {
       const kwNum = $("outKw").querySelector(".prod-num");
-      if (kwNum) kwNum.textContent = fmtShown(r.kW, 2);
+      if (kwNum) kwNum.textContent = fmtShown(r.kW * 1000, 0);
     }
     const snowBox = $("autonomySnow");
     if (snowBox) {
@@ -1021,6 +1045,15 @@
     syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
+    }
+    if ($("outBatt")) {
+      if (!(r.battModules > 0) || !isFinite(r.battCost)) {
+        $("outBatt").textContent = "Aucun module";
+      } else {
+        const word = r.battModules > 1 ? "modules" : "module";
+        $("outBatt").textContent =
+          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(r.battPrice, 0) + " $ = " + fmtShownMoney(r.battCost);
+      }
     }
     if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
     if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
@@ -1161,7 +1194,7 @@
     }
     let priceW = d.priceW;
     if (q.has("priceW")) {
-      const v = snapStep(q.get("priceW"), 2.5, 4.5, 0.05);
+      const v = snapStep(q.get("priceW"), PRICE_W_MIN, PRICE_W_MAX, PRICE_W_STEP);
       if (isFinite(v)) priceW = v;
     }
     const taxes = parseFlagParam(q.has("taxes") ? q.get("taxes") : null, d.taxes);
@@ -1301,7 +1334,7 @@
       orient: snapAzimuth($("orient") ? $("orient").value : d.orient),
       tilt: readRange("tilt", 0, 90, 15, d.tilt),
       deneige: readRange("deneige", 0, 100, 1, d.deneige),
-      priceW: readRange("priceW", 2.5, 4.5, 0.05, d.priceW),
+      priceW: readRange("priceW", PRICE_W_MIN, PRICE_W_MAX, PRICE_W_STEP, d.priceW),
       taxes: $("taxes") ? !!$("taxes").checked : d.taxes,
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
@@ -1948,6 +1981,31 @@
     });
   }
 
+  /**
+   * Wheel over the marginal rate steps the decimals (the field step, 0,001 ¢)
+   * instead of scrolling the page. Hover is enough; the field need not be focused.
+   */
+  function wireRateWheel() {
+    const el = $("rate");
+    if (!el || el._rateWheel) return;
+    el._rateWheel = true;
+    el.addEventListener("wheel", function (e) {
+      if (!e || !e.deltaY) return;
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      const step = parseFloat(el.step);
+      const dec = isFinite(step) && step > 0 ? step : 0.001;
+      const dir = e.deltaY < 0 ? 1 : -1;
+      const raw = parseFloat(String(el.value).trim().replace(",", "."));
+      const base = isFinite(raw) ? raw : DEFAULT_RATE_CENTS;
+      const places = (String(dec).split(".")[1] || "").length;
+      const scale = Math.pow(10, places);
+      let next = Math.round((base + dir * dec) * scale) / scale;
+      if (next < dec) next = dec;
+      el.value = next.toFixed(places);
+      onScenarioEdit();
+    }, { passive: false });
+  }
+
   function wireUi() {
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
@@ -2005,6 +2063,8 @@
       showNotes.checked = prefGet("solar-notes") === "1";
       const applyNotes = function () {
         if (editorNotes) editorNotes.hidden = !showNotes.checked;
+        const battDraft = $("battDraftNote");
+        if (battDraft) battDraft.hidden = !showNotes.checked;
         showNotes.setAttribute("aria-expanded", showNotes.checked ? "true" : "false");
       };
       applyNotes();
@@ -2013,6 +2073,7 @@
         applyNotes();
       });
     }
+    wireRateWheel();
     ["util", "deneige", "priceW", "tilt"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
@@ -2462,13 +2523,22 @@
     li.id = "ville-opt-" + town.id;
     li.setAttribute("data-id", town.id);
     li.setAttribute("aria-selected", town.id === selectedVille ? "true" : "false");
+    const label = document.createElement("span");
+    label.className = "town-label";
     const name = document.createElement("span");
     name.className = "town-name";
     name.textContent = town.name;
+    label.appendChild(name);
+    if (town.region) {
+      const region = document.createElement("span");
+      region.className = "town-region";
+      region.textContent = town.region;
+      label.appendChild(region);
+    }
     const yieldEl = document.createElement("span");
     yieldEl.className = "town-yield";
     yieldEl.textContent = menuYieldText(town) || "—";
-    li.appendChild(name);
+    li.appendChild(label);
     li.appendChild(yieldEl);
     list.appendChild(li);
   }
@@ -2830,6 +2900,7 @@
     sig2Round,
     fmtSig2,
     fmtReserveKwh,
+    fmtFillDuration,
     RESERVE_STOPS,
     fmtMoneySig2,
     fmtShown,

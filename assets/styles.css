@@ -34,6 +34,12 @@
   --input-bg: #ffffff;
   --hover-soft: #c8ebd0;
   --pill-end: #e9f5ee;
+  /* Page green, kept when a blue card wraps a green result. */
+  --result-green: #2d6a4f;
+  --result-green-soft: #d8f3dc;
+  --result-green-dark: #1b4332;
+  --result-border: #cfe3d4;
+  --result-pill-end: #e9f5ee;
   --thumb-ring: #ffffff;
   --modal-bg: #ffffff;
   --backdrop: rgba(27, 67, 50, 0.45);
@@ -61,6 +67,11 @@ html[data-theme="dark"] {
   --input-bg: #121c17;
   --hover-soft: #2a4d3a;
   --pill-end: #1a3026;
+  --result-green: #52b788;
+  --result-green-soft: #1f3a2d;
+  --result-green-dark: #d8f3dc;
+  --result-border: #2f4a3c;
+  --result-pill-end: #1a3026;
   --thumb-ring: #18241e;
   --modal-bg: #1a2820;
   --backdrop: rgba(6, 12, 9, 0.65);
@@ -301,6 +312,14 @@ section.block h2 > span:not(.num) {
   --hover-soft: #c5dff3;
   --shadow: 0 2px 12px rgba(22, 50, 79, 0.08);
 }
+/* Carte 6 : le total reprend le vert de la page, pas le bleu de la carte. */
+.tone-green {
+  --green: var(--result-green);
+  --green-soft: var(--result-green-soft);
+  --green-dark: var(--result-green-dark);
+  --border: var(--result-border);
+  --pill-end: var(--result-pill-end);
+}
 /* Thème jaune des drapeaux. Même douceur que les boîtes verte et bleue. */
 .theme-yellow {
   --flag-bg: #fff4cc;
@@ -331,6 +350,18 @@ html[data-autonomy="off"] .autonomy-rest {
   color: var(--muted);
   margin: 0.2rem 0 0.75rem;
 }
+.editor-inline[hidden] { display: none !important; }
+.price-bubble {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.15rem 0 0.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.price-bubble[hidden] { display: none !important; }
 .field { margin-bottom: 1rem; }
 
 /*
@@ -798,10 +829,31 @@ section.block > h2,
   opacity: 1;
 }
 .town-input:focus { outline: none; }
-.town-name {
+.town-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.town-name {
+  flex: 0 0 auto;
   font-weight: 700;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+.town-region {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 300;
+  font-size: 0.82em;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  opacity: 0.72;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 0.9rem), transparent);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 0.9rem), transparent);
 }
 .town-yield {
   flex-shrink: 0;

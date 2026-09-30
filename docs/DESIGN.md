@@ -10,7 +10,7 @@ Toute réponse principale s’affiche dans la famille verte (fond `--green-soft`
 
 - Une boîte `.result-pill` = une réponse. Le chiffre est grand, l’unité en dessous, le libellé au-dessus. Production, consommation du jour, réserve et temps de remplissage utilisent cette boîte.
 - Le trio de la carte valeur reste des `.card-kpi` : même famille, format plus petit.
-- Le coût total du projet est une boîte `.result-pill` sous le détail. Les lignes `.breakdown` (panneaux, batteries) sont au-dessus. Elles ne remplacent pas ce chiffre. Sur la carte 6, cette boîte suit le thème bleu.
+- Le coût total du projet est une boîte `.result-pill` sous le détail. Les lignes `.breakdown` (panneaux, batteries) sont au-dessus. Elles ne remplacent pas ce chiffre. Sur la carte 6, la carte reste bleue et cette boîte reprend le vert de la page (`.tone-green`).
 - Ne pas inventer une autre couleur de résultat. Le thème vert est celui de la page. Le thème bleu se pose avec `.theme-blue` sur une carte.
 
 ## 2. Hauteur des cartes et flèche
@@ -51,7 +51,7 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 
 - La carte reste blanche, comme à gauche. Seule la teinte change : titre, pastille et curseur en bleu foncé, boîtes de réponse en bleu clair.
 - La réserve est une boîte bleu clair, chiffre bleu foncé, comme les boîtes vertes.
-- Le remplissage et le total sont des boîtes bleu clair, comme les autres réponses de la colonne de droite.
+- Le remplissage est une boîte bleu clair. Le total du projet est une boîte verte, sous le détail des panneaux et des batteries.
 
 ## 1 ter. Thème jaune
 
@@ -90,7 +90,7 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, ligne de coût |
 | Retour **3** | Valeur des panneaux | Trio `.card-kpi`. L’épingle dit « Retour », comme la boîte. Elle se masque tant que la boîte des années est à l’écran, sans perdre l’état épinglé |
-| Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte `.result-pill` en bas. Le retour des panneaux est dans l’autre colonne |
+| Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte verte `.result-pill` en bas. Le retour des panneaux est dans l’autre colonne |
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
 
@@ -98,11 +98,17 @@ La colonne de gauche porte le solaire : toit, production, mesurage et jour de d�
 
 La consommation du jour est le curseur (0 à 40 kWh/j) plus la ligne libre. Les neuf premiers usages restent l’échelle hors réseau et s’arrêtent à 6,3 kWh/j. Le chauffe-eau entre à 18 kWh/j. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux. Le total du jour s’écrit en kWh/j.
 
-Réserve (kWh) = consommation du jour × durée. Tant que cette consommation est nulle, la boîte réserve de 4B dit « Aucune réserve » / « à remplir ». Coût des batteries = réserve × prix $/kWh, sans taxes. LogisVert reste sur les panneaux. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
+Réserve (kWh) = consommation du jour × durée. Tant que cette consommation est nulle, la boîte réserve de 4B dit « Aucune réserve » / « à remplir ». Coût des batteries = nombre de modules × prix du module, sans taxes. Un module Volthium fait 16,1 kWh. Le nombre de modules est l’arrondi de la réserve ÷ 16,1, et au moins 1 dès qu’il y a une réserve. 33 kWh, c’est deux modules. LogisVert reste sur les panneaux. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
 
-Prix batterie : curseur 600–1 800 $/kWh, pas de 50, défaut 1 200. Durée : crans aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours. Défaut : 1 jour. Déneigement : défaut 100 %. Durée à aucune : pas de durée, pas de batterie. La phrase occupe le trou à droite du coût et du retour. Le remplissage, les batteries et le total sont masqués. 4A et le curseur de durée restent. Un cran plus haut, cette suite revient en entier.
+Prix batterie : curseur du prix d’un module, 2 400–7 200 $, pas de 100, défaut 4 800. Durée : crans aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours. Défaut : 1 jour. Déneigement : défaut 100 %. Durée à aucune : pas de durée, pas de batterie. La phrase occupe le trou à droite du coût et du retour. Le remplissage, les batteries et le total sont masqués. 4A et le curseur de durée restent. Un cran plus haut, cette suite revient en entier.
 
-Pastille en bas de 1B : « Efficacité de l’installation », unité kWh/kWc/An.
+Le temps pour remplir s’affiche en jours, au soleil de décembre (surplus du jour de décembre). Un nombre de jours à un seul chiffre garde une décimale. Au-delà, le compte est entier.
+
+Prix au watt : curseur 1,00–4,50 $/W, pas de 0,05, défaut 3,00. Sous 2,50 $/W, une bulle jaune dit que le prix est peut-être surprenant. 2,50 $/W est le bas réaliste.
+
+Pastille en bas de 1B : « Efficacité de l’installation », unité kWh/kWc/An. Le rappel dit « selon l’orientation, l’inclinaison et le déneigement ».
+
+La puissance de 1A s’écrit en watts-crête (6,4 kWc → 6 400 Wc). Le jour de décembre s’écrit « kWh / j en décembre ». Sous l’inclinaison : 45° donne généralement le maximum de production. La molette sur le tarif marginal fait bouger les décimales (pas de 0,001 ¢). La note « brouillon » du prix batterie ne s’affiche que si « Afficher les notes d’édition » est coché. Dans le menu des villes, la région suit le nom en léger et s’efface avant le productible si la ligne déborde. Le texte du chiffre de droite vit dans l’aide ⓘ de la localisation.
 
 L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus la consommation du jour (kWh/j) et la ligne libre. La durée de réserve et le prix des batteries n’y vont pas.
 
