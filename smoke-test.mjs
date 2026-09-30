@@ -614,6 +614,23 @@ const btnManipulation = css.includes("touch-action: manipulation") && /\.btn\s*\
 const pageMargin = css.includes("@page") && /@page\s*\{[^}]*margin\s*:/.test(css);
 const modalDvh = css.includes("88dvh") || css.includes("100dvh");
 const pdfPrintOnly = /function\s+printPdf\s*\([^)]*\)\s*\{\s*window\.print\s*\(\s*\)\s*;\s*\}/.test(app) || (app.includes("window.print()") && app.includes("function printPdf") && !/printPdf[\s\S]{0,80}jspdf|html2canvas|pdf-lib/i.test(app));
+const printReport =
+  html.includes('id="printReport"') &&
+  app.includes("PRINT_CARD_PAGES") &&
+  app.includes('"sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"') &&
+  app.includes('"sec-cost", "sec-batt", "sec-value", "sec-total"') &&
+  app.includes("buildPrintReport") &&
+  app.includes("appendPrintAppendix") &&
+  html.includes("assets/vendor/qrcode-generator.js") &&
+  app.includes('qrcode(0, "M")') &&
+  app.includes("createDataURL(5, 4)") &&
+  !app.includes("quickchart.io/qr") &&
+  app.includes("scenarioPrintUrl") &&
+  css.includes(".print-summary-page") &&
+  css.includes(".print-card-page-production") &&
+  css.includes(".print-card-page-costs") &&
+  css.includes(".print-appendix") &&
+  /@page\s*\{[^}]*size:\s*A4 portrait/.test(css);
 console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
 console.log(`  grid fetch retry once: ${hasGridRetry ? "PASS" : "FAIL"}`);
 console.log(`  unit aria-pressed: ${hasAriaPressed ? "PASS" : "FAIL"}`);
@@ -624,6 +641,7 @@ console.log(`  btn touch-action manipulation: ${btnManipulation ? "PASS" : "FAIL
 console.log(`  @page print margin: ${pageMargin ? "PASS" : "FAIL"}`);
 console.log(`  modal max-height dvh: ${modalDvh ? "PASS" : "FAIL"}`);
 console.log(`  btnPdf window.print only: ${pdfPrintOnly ? "PASS" : "FAIL"}`);
+console.log(`  structured A4 print report (summary, QR, cards, appendix): ${printReport ? "PASS" : "FAIL"}`);
 
 const hasPointerDrag = app.includes("wireRangePointerDrag") && app.includes("setPointerCapture");
 const thumb44 = /::-webkit-slider-thumb[\s\S]{0,220}?width:\s*44px/.test(css);
@@ -1901,6 +1919,12 @@ function scenarioSnapshot(page) {
     subv: page.el("subv").checked,
     conso: page.el("conso").value,
     rate: page.el("rate").value,
+    consoJour: page.el("consoJour").value,
+    consoExtra: page.el("consoExtra").value,
+    autoStop: page.el("autoStop").value,
+    battPrice: page.el("battPrice").value,
+    battTaxes: page.el("battTaxes").checked,
+    fullAuto: page.el("fullAuto").checked,
     m2: calc.m2,
     push: page.history.pushCount
   };
@@ -1933,10 +1957,14 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       conso: 17000,
       rate: "12.811",
       consoJour: "0",
-      consoExtra: "0"
+      consoExtra: "0",
+      autoStop: "11",
+      battPrice: "1200",
+      battTaxes: "1",
+      fullAuto: "0"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -1970,6 +1998,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
+    ["?autoStop=15&battPrice=1750&battTaxes=0", fullSearch({ autoStop: 15, battPrice: 1750, battTaxes: "0" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
     ["?ville=../x", fullSearch()],
@@ -2023,6 +2052,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   live.el("consoJour").value = "63";
   live.el("autoStop").value = "11";
   live.el("battPrice").value = "1200";
+  live.el("battTaxes").checked = false;
   const reserveMath = live.api.calc();
   expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
   expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
@@ -2051,11 +2081,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   live.el("consoJour").value = "0";
   live.el("autoStop").value = "11";
   live.el("battPrice").value = "1200";
+  live.el("battTaxes").checked = true;
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"].forEach((key) => {
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -2104,6 +2135,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
   expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
   expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=1750&battTaxes=0");
+  expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");
+  expect(batteryScenario.el("battPrice").value === "1750", "shared battery price");
+  expect(batteryScenario.el("battTaxes").checked === false, "shared battery taxes");
+  expect(batteryScenario.api.calc().reserveKwh === 20, "shared reserve calculation");
+  expect(batteryScenario.api.calc().battCost === 35000, "shared battery total calculation");
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -2215,6 +2252,7 @@ const pass =
   pageMargin &&
   modalDvh &&
   pdfPrintOnly &&
+  printReport &&
   hasPointerDrag &&
   thumb44 &&
   overscrollRow &&

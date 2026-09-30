@@ -136,6 +136,7 @@ body.is-range-dragging {
 
 /* Screen-only / print-only helpers */
 .print-unit { display: none; }
+.print-report { display: none; }
 .wrap {
   max-width: 640px;
   width: 100%;
@@ -2318,10 +2319,178 @@ section.block h2 .field-info-btn {
 }
 
 @page {
+  size: A4 portrait;
   margin: 12mm;
 }
 
 @media print {
+  body > .wrap,
+  body > .modal-backdrop,
+  body > .flag-dock,
+  body > .years-pin,
+  body > .bug-fab,
+  body > .bug-done { display: none !important; }
+  .print-report {
+    display: block !important;
+    font: 9pt/1.3 Lato, Arial, sans-serif;
+    color: #1a1a1a;
+  }
+  .print-sheet {
+    box-sizing: border-box;
+  }
+  .print-card-page,
+  .print-appendix {
+    break-before: page;
+    page-break-before: always;
+  }
+  .print-report-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #cfe3d4;
+  }
+  .print-report-brand img { width: 36px; height: 36px; object-fit: contain; }
+  .print-report-brand-words { display: grid; gap: 0.08rem; }
+  .print-report-brand-words strong { color: #1b4332; font-size: 10pt; }
+  .print-report-brand-words span { color: #5c6b5c; font-size: 8pt; }
+  .print-report h1 {
+    margin: 0.55rem 0 0.3rem;
+    color: #1b4332;
+    font-size: 18pt;
+    line-height: 1.15;
+  }
+  .print-summary-page { position: relative; }
+  .print-summary-context { margin: 0 0 0.7rem; color: #5c6b5c; }
+  .print-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    min-height: 54mm;
+  }
+  .print-summary-card {
+    display: grid;
+    align-content: center;
+    gap: 0.25rem;
+    padding: 0.65rem;
+    text-align: center;
+    background: #e9f5ee;
+    border: 1px solid #cfe3d4;
+    border-radius: 8px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-summary-card strong { color: #1b4332; font-size: 17pt; line-height: 1; }
+  .print-summary-card span { color: #42584a; font-size: 8pt; }
+  .print-share {
+    display: grid;
+    justify-items: center;
+    margin-top: 1.1rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid #cfe3d4;
+    text-align: center;
+  }
+  .print-share h2 { margin: 0 0 0.35rem; color: #1b4332; font-size: 13pt; }
+  .print-scenario-link {
+    max-width: 170mm;
+    color: #205f88 !important;
+    font-size: 7.5pt;
+    overflow-wrap: anywhere;
+    text-decoration: underline !important;
+  }
+  .print-qr { width: 45mm; height: 45mm; margin-top: 0.55rem; }
+  .print-qr-caption { margin: 0.2rem 0 0; color: #5c6b5c; font-size: 8pt; }
+  .print-page-warning {
+    margin: 0.8rem auto 0;
+    max-width: 150mm;
+    padding: 0.55rem 0.7rem;
+    color: #5f4300;
+    text-align: center;
+    background: #fff4cc;
+    border: 1px solid #ead98a;
+    border-radius: 6px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-card-page { padding-top: 12mm; }
+  .print-card-page-costs { padding-top: 24mm; }
+  .print-card-page h1 { margin-bottom: 0.45rem; font-size: 15pt; }
+  .print-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: 0.45rem;
+    align-items: start;
+  }
+  .print-card-page-production .print-card-grid {
+    margin-left: 9.5%;
+    zoom: 0.84;
+    grid-template-areas:
+      "size production"
+      "need reserve"
+      "need yield"
+      "need fill";
+  }
+  .print-card-page-production .print-card[data-print-source="sec-prod"] { grid-area: size; }
+  .print-card-page-production .print-card[data-print-source="sec-prod-b"] { grid-area: production; }
+  .print-card-page-production .print-card[data-print-source="sec-auto"] { grid-area: need; }
+  .print-card-page-production .print-card[data-print-source="sec-reserve"] { grid-area: reserve; }
+  .print-card-page-production .print-card[data-print-source="sec-yield"] { grid-area: yield; }
+  .print-card-page-production .print-card[data-print-source="sec-fill"] { grid-area: fill; }
+  .print-card {
+    margin: 0 !important;
+    padding: 0.55rem !important;
+    border-radius: 7px !important;
+    font-size: 7pt !important;
+    line-height: 1.2 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-card h2 { margin: 0 0 0.35rem !important; font-size: 9pt !important; line-height: 1.15 !important; }
+  .print-card .field { margin: 0 !important; padding: 0.32rem 0 !important; }
+  .print-card .result-pill { padding: 0.42rem !important; min-height: 0 !important; }
+  .print-card .big { font-size: 13pt !important; }
+  .print-card .label, .print-card label, .print-card .field-label { font-size: 7pt !important; }
+  .print-card .breakdown { margin-top: 0.25rem !important; padding: 0.4rem !important; }
+  .print-card .cards { gap: 0.3rem !important; margin: 0.35rem 0 !important; }
+  .print-card .card-kpi { padding: 0.35rem !important; min-height: 0 !important; }
+  .print-card .kpi { font-size: 11pt !important; }
+  .print-card .load-table { font-size: 6.5pt !important; }
+  .print-card .load-table th, .print-card .load-table td { padding: 0.12rem 0.25rem !important; }
+  .print-card .checks { gap: 0.2rem !important; }
+  .print-card input, .print-card select { min-height: 0 !important; padding: 0.28rem !important; font-size: 7pt !important; }
+  .print-card-page-production .print-card[data-print-source="sec-yield"],
+  .print-card-page-production .print-card[data-print-source="sec-fill"] { align-self: stretch; }
+  .print-card-page-costs .print-card { align-self: start; }
+  .print-card[data-print-source="sec-auto"] { --prod-gutter: 6rem; }
+  .print-card[data-print-source="sec-reserve"] { --prod-gutter: 6rem; }
+  .print-card[data-print-source="sec-total"] .project-cards { margin: 0.3rem 0 0.45rem; }
+  .print-card[data-print-source="sec-batt"] .field + .breakdown { margin-top: 0 !important; }
+  .print-appendix { padding-top: 12mm; }
+  .print-appendix h1 { font-size: 17pt; }
+  .print-appendix-intro { margin: 0 0 0.8rem; color: #5c6b5c; }
+  .print-detail-section {
+    margin: 0 0 0.75rem;
+    break-inside: auto;
+  }
+  .print-detail-section > h2 {
+    margin: 0 0 0.35rem;
+    padding: 0.35rem 0.5rem;
+    color: #1b4332;
+    font-size: 12pt;
+    background: #e9f5ee;
+    border-left: 3px solid #40916c;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-after: avoid;
+  }
+  .print-detail-section .info-block { break-inside: avoid; page-break-inside: avoid; }
+  .print-detail-section h4 { margin: 0.45rem 0 0.2rem; font-size: 9.5pt; }
+  .print-detail-section p { margin: 0.18rem 0; }
+  .print-detail-section ul { margin: 0.25rem 0; padding-left: 1.2rem; }
+  .print-detail-section .disclaimers { padding: 0; border: 0; }
+  .print-detail-section .disc-head { display: none; }
+  .print-detail-section a { color: #205f88; text-decoration: underline; }
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
