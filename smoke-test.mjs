@@ -483,9 +483,12 @@ const batteryColumn =
   /mode-full-only[^>]*id="sec-batt"/.test(html) &&
   /mode-full-only[^>]*id="sec-total"/.test(html) &&
   /mode-full-only[^>]*id="permaFlag"/.test(html) &&
-  /<h2 id="h-reserve">\s*<span class="num">4A<\/span>/.test(html) &&
-  /<h2 id="h-auto">\s*<span class="num">4B<\/span>\s*<label for="consoJour">Combien d'autonomie je veux<\/label>/.test(html) &&
-  html.indexOf('id="sec-reserve"') < html.indexOf('id="sec-auto"') &&
+  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Quels appareils je veux<\/label>/.test(html) &&
+  /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
+  html.includes("Pendant combien de temps je veux cette autonomie") &&
+  !html.includes('id="wantAutonomy"') &&
+  !html.includes("je veux de l’autonomie") &&
+  html.indexOf('id="sec-auto"') < html.indexOf('id="sec-reserve"') &&
   /<h2 id="h-batt"><span class="num">5<\/span> Combien coûtent les batteries/.test(html) &&
   /<h2 id="h-total">\s*<span class="num">6<\/span>/.test(html) &&
   design.includes("4A") &&
@@ -688,21 +691,39 @@ const DAILY_LOAD_LABELS = [
   "Réfrigérateur",
   "Congélateur",
   "Laveuse",
-  "Cuisson"
+  "Cuisson",
+  "Lave-vaisselle",
+  "Sécheuse",
+  "Chauffe-eau",
+  "Thermopompe",
+  "Chauffage"
 ];
 const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
 const hasConsoJourUi =
-  html.includes("Combien d'autonomie je veux") &&
-  html.includes("En autonomie. Chaque cran vers la droite ajoute un usage.") &&
+  html.includes("Quels appareils je veux") &&
+  html.includes("appareils de base") &&
+  html.includes("maison pleinement autonome") &&
+  html.includes("La valeur est la consommation du jour.") &&
+  !html.includes('id="wantAutonomy"') &&
+  !html.includes("data-want-autonomy") &&
   html.includes('id="consoExtra"') &&
   html.includes("Autre consommation") &&
   html.includes('id="consoJourList"') &&
   html.includes('id="consoJourTotal"') &&
   html.includes("tpl-info-conso-jour") &&
+  html.includes(">Usage<") &&
+  html.indexOf('id="consoJourTable"') < html.indexOf('id="consoJour"') &&
+  !html.includes("load-chip") &&
+  !app.includes("load-chip") &&
+  !html.includes("Le plus lourd en haut") &&
+  html.includes("Pas de durée, pas de batterie") &&
+  !html.includes("Le jour de décembre, les appareils et les batteries s’ouvrent") &&
+  html.includes("Le retour à gauche ne compte que les panneaux.") &&
+  html.includes("Le retour des panneaux, plus haut, ne compte que les panneaux.") &&
   /id="consoJour"/.test(consoJourTag) &&
   /type="range"/.test(consoJourTag) &&
   /min="0"/.test(consoJourTag) &&
-  /max="9"/.test(consoJourTag) &&
+  /max="400"/.test(consoJourTag) &&
   /step="1"/.test(consoJourTag) &&
   /value="0"/.test(consoJourTag) &&
   DAILY_LOAD_LABELS.every((label) => app.includes(label) && html.includes(label)) &&
@@ -712,6 +733,19 @@ const hasConsoJourUi =
   app.includes('class=\\"load-name\\"') &&
   app.includes("tenths: 1") &&
   app.includes("tenths: 15");
+const yearsPinOk =
+  html.includes('id="btnPinYears"') &&
+  html.includes("Épingler le retour") &&
+  html.includes('id="btnUnpinYears"') &&
+  html.includes("Désépingler le retour") &&
+  html.includes('id="yearsPinBar"') &&
+  html.includes('id="kpiYearsPin"') &&
+  html.includes(">Retour<") &&
+  app.includes("function setYearsPinned") &&
+  app.includes("kpiYearsPin") &&
+  css.includes(".years-pin") &&
+  css.includes("rgba(216, 243, 220, 0.74)") &&
+  /html\[data-mode="webi"\]\s*\.years-pin/.test(css);
 const GROUP_SEP_RE = /[\s\u00A0\u202F\u2009\u2007]/g;
 function digitsOnly(raw) {
   return String(raw == null ? "" : raw).replace(GROUP_SEP_RE, "").replace(/[^\d]/g, "");
@@ -858,7 +892,8 @@ console.log(`  app.js creditKwh + DEFAULT_CONSO_KWH + clamp flags: ${hasCreditFn
 console.log(`  conso wired to render + surplusAlert: ${hasConsoWired ? "PASS" : "FAIL"}`);
 console.log(`  surplus alert CSS jaune, cartes inchangées: ${hasSurplusAlertCss ? "PASS" : "FAIL"}`);
 console.log(`  surplus kWh × rachat 4,730 ¢ + écart vs évité: ${surplusClampMath ? "PASS" : "FAIL"}`);
-console.log(`  autonomie slider 0→9 + liste + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
+console.log(`  autonomie 4A curseur 0–40 kWh/j + appareils + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
+console.log(`  épingle rentabilité (clone bas d’écran, originale reste): ${yearsPinOk ? "PASS" : "FAIL"}`);
 console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
 console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
@@ -1934,10 +1969,11 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?area=40.6&unit=m2", fullSearch({ area: 41 })],
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
-    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 9, consoExtra: "100" })],
+    ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
-    ["?ville=../x", fullSearch()]
+    ["?ville=../x", fullSearch()],
+    ["?autonomie=1", ""]
   ];
   for (const [input, canonical] of roundTrips) {
     const first = await bootScenario(input, "#main");
@@ -1973,9 +2009,27 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.api.dailyLoadKwh(9, 0) === 6.3, "full ladder 6.3 kWh/j");
   expect(live.api.dailyLoadKwh(9, 1.2) === 7.5, "custom adds on top");
   expect(live.api.dailyLoadKwh(3, "0,5") === 1.6, "comma extra");
+  expect(live.api.sliderDailyKwh(0, 0) === 0, "slider 0 is 0");
+  expect(live.api.sliderDailyKwh(63, 0) === 6.3, "slider at the base ladder");
+  expect(live.api.sliderDailyKwh(400, 1.2) === 41.2, "slider max plus extra");
+  expect(live.api.sliderDailyKwh(999, 0) === 40, "slider caps at 40");
+  expect(live.api.loadsVisibleCount(0) === 0, "no devices at 0");
+  expect(live.api.loadsVisibleCount(1) === 1, "phone appears at 0.1");
+  expect(live.api.loadsVisibleCount(63) === 9, "base ladder is nine devices");
+  expect(live.api.loadsVisibleCount(400) === 14, "full house shows every device");
   expect(live.api.clampExtraKwh("250") === 100, "extra caps at 100");
   expect(live.api.fmtKwhDay(6.3) === "6,3", "fmt kWh/j FR");
   expect(live.el("consoJour").value === "0", "daily slider starts at 0");
+  live.el("consoJour").value = "63";
+  live.el("autoStop").value = "11";
+  live.el("battPrice").value = "1200";
+  const reserveMath = live.api.calc();
+  expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
+  expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
+  expect(Math.abs(reserveMath.battCost - 7560) < 1e-6, "battery cost = reserve × $/kWh");
+  live.el("consoJour").value = "0";
+  live.el("autoStop").value = "11";
+  live.el("battPrice").value = "1200";
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
@@ -2171,6 +2225,7 @@ const pass =
   hasSurplusAlertCss &&
   surplusClampMath &&
   hasConsoJourUi &&
+  yearsPinOk &&
   defaultRateTtc &&
   rateNormPass &&
   rateBug59Pass &&
