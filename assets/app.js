@@ -18,9 +18,12 @@
   const PANEL_W = 400;
   const TAX_MULT = 1.14975; // TPS 5% + TVQ 9.975% (display shows ~15 %)
   const RATE_D_T2_HT = 0.11142; // Tarif D 2e tranche HT, 1 avr 2026 (11,142 ¢/kWh)
-  // 0.11142 × 1.14975 = 0.128105115 → pedagogic default rounded to 5 decimals
-  const DEFAULT_RATE_CENTS = 12.811; // champ tarif: ¢/kWh (2e tranche TTC)
-  const DEFAULT_RATE = 0.12811; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
+  // 0.11142 × 1.14975 = 0.128105115 → 12,81 ¢ : le champ tient au centième de cent (#165)
+  const DEFAULT_RATE_CENTS = 12.81; // champ tarif: ¢/kWh (2e tranche TTC)
+  const DEFAULT_RATE = 0.1281; // DEFAULT_RATE_CENTS / 100 — $/kWh for money math
+  /** Pas du champ tarif et de la molette : 0,01 ¢/kWh. */
+  const RATE_STEP_CENTS = 0.01;
+  const RATE_DECIMALS = 2;
   /** HQ art. 2.51 — coût moyen de fourniture, 1 avr 2026. HT = TTC (pas de TPS/TVQ). */
   const BUYBACK_RATE = 0.04730;
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
@@ -28,10 +31,11 @@
   /**
    * Daily-load ladder, kWh/day in tenths.
    * Slider max is 40 kWh/day (400 tenths): enough for a fully autonomous
-   * Québec house (base loads, hot water, heat pump, backup heat) and still
-   * under a typical grid home (~45 kWh/day). The first nine loads stay the
-   * off-grid ladder (phone through cooking) and still sum to 6.3 kWh/day.
-   * Later loads open the range toward « maison pleinement autonome ».
+   * Québec house and still under a typical grid home (~45 kWh/day). The first
+   * nine loads stay the off-grid ladder (phone through cooking) and still sum
+   * to 6.3 kWh/day. The ladder ends at the heat pump (30 kWh/day, #169: no
+   * separate « Chauffage » row); the last 10 kWh/day are headroom toward
+   * « maison pleinement autonome ».
    * The slider itself is kWh/day (0.1 steps), not a notch index. A device
    * appears once the slider reaches that device’s cumulative total.
    */
@@ -53,10 +57,9 @@
     { label: "Lave-vaisselle", tenths: 12, icon: loadIcon('<rect x="2.2" y="3" width="11.6" height="10" rx="1.2"' + ICO_STROKE + '/><path d="M2.2 6.2h11.6"' + ICO_STROKE + '/><circle cx="6.1" cy="9.5" r="0.7" fill="currentColor" stroke="none"/><circle cx="9.9" cy="9.5" r="0.7" fill="currentColor" stroke="none"/>') },
     { label: "Sécheuse", tenths: 25, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="9" r="2.2"' + ICO_STROKE + '/><path d="M4.3 4.6h1.3M6.5 4.6h1.3M8.7 4.6h1.3"' + ICO_STROKE + '/>') },
     { label: "Chauffe-eau", tenths: 80, icon: loadIcon('<rect x="4.3" y="1.6" width="7.4" height="12.8" rx="2.4"' + ICO_STROKE + '/><path d="M6.3 5.1h3.4M6.3 7.3h3.4M6.3 9.5h3.4"' + ICO_STROKE + '/>') },
-    { label: "Thermopompe", tenths: 120, icon: loadIcon('<rect x="1.8" y="3.1" width="12.4" height="8.2" rx="1.2"' + ICO_STROKE + '/><path d="M1.8 6h12.4M4.2 8.6h2M7 8.6h2M9.8 8.6h2M8 11.3v2.2"' + ICO_STROKE + '/>') },
-    { label: "Chauffage", tenths: 100, icon: loadIcon('<path d="M3.2 13.4V6.4M5.6 13.4V3M8 13.4V3M10.4 13.4V3M12.8 13.4V6.4M3.2 13.4h9.6"' + ICO_STROKE + '/>') }
+    { label: "Thermopompe", tenths: 120, icon: loadIcon('<rect x="1.8" y="3.1" width="12.4" height="8.2" rx="1.2"' + ICO_STROKE + '/><path d="M1.8 6h12.4M4.2 8.6h2M7 8.6h2M9.8 8.6h2M8 11.3v2.2"' + ICO_STROKE + '/>') }
   ];
-  /** Slider ceiling, kWh/day. Must match the ladder sum (400 tenths). */
+  /** Slider ceiling, kWh/day. At or above the ladder sum (300 tenths). */
   const DAILY_KWH_MAX = 40;
   const DAILY_TENTH_MAX = DAILY_KWH_MAX * 10;
   const CONSO_EXTRA_MAX = 100;
@@ -66,14 +69,15 @@
   const PRICE_W_STEP = 0.05;
   const PRICE_W_LOW = 2.5;
   /**
-   * Volthium module: 16.1 kWh at a module price (default 4 800 $).
-   * 33 kWh of reserve is two modules, not reserve × a $/kWh draft.
+   * Volthium module: 16.1 kWh. The slider is the market price in $/kWh of battery
+   * (#168, 100–500 $/kWh, default 300). A module costs 16,1 × ce prix ; 33 kWh of
+   * reserve is still two whole modules.
    */
   const BATT_MODULE_KWH = 16.1;
-  const BATT_PRICE_MIN = 2400;
-  const BATT_PRICE_MAX = 7200;
-  const BATT_PRICE_STEP = 100;
-  const BATT_PRICE_DEFAULT = 4800;
+  const BATT_KWH_PRICE_MIN = 100;
+  const BATT_KWH_PRICE_MAX = 500;
+  const BATT_KWH_PRICE_STEP = 10;
+  const BATT_KWH_PRICE_DEFAULT = 300;
   /**
    * Reserve duration stops. The left label is the stop name.
    * The kWh reserve stays exact (finer than these names).
@@ -129,6 +133,8 @@
     "345": "345°"
   };
   const AZ_STEP = 15;
+  /** Tableau des versants (#164) : le point cardinal tient en une ou deux lettres. */
+  const AZ_SHORT = { "0": "N", "45": "NE", "90": "E", "135": "SE", "180": "S", "225": "SO", "270": "O", "315": "NO" };
 
   /** Snap compass degrees to the 15° grid (0…345). Invalid → 180 (Sud). */
   function snapAzimuth(deg) {
@@ -155,6 +161,12 @@
   function orientLabelFor(az) {
     const key = String(snapAzimuth(az));
     return AZ_LABELS[key] || (key + "°");
+  }
+
+  /** « 180° (S) », « 135° (SE) », « 15° » — menu court du tableau des versants. */
+  function orientShortLabelFor(az) {
+    const key = String(snapAzimuth(az));
+    return AZ_SHORT[key] ? key + "° (" + AZ_SHORT[key] + ")" : key + "°";
   }
 
   /** Runtime grid: cells[tilt][az] = { ac_annual, W_winter, ac_dec } */
@@ -475,7 +487,7 @@
     el.value = v > 0 ? fmtKwhDay(v) : "";
   }
 
-  function renderDailyLoadRows(tenths) {
+  function renderDailyLoadRows(tenths, extra) {
     const body = $("consoJourList");
     const table = $("consoJourTable");
     if (!body) return;
@@ -486,7 +498,13 @@
       html += "<tr><th scope=\"row\"><span class=\"load-name\">" + load.icon + "<span>" + load.label + "</span></span></th><td>" + fmtKwhDay(load.tenths / 10) + "</td></tr>";
     }
     body.innerHTML = html;
-    if (table) table.classList.toggle("is-empty", n === 0);
+    if (!table) return;
+    table.classList.toggle("is-empty", n === 0);
+    // #173 : à zéro, pas de ligne « Autre consommation ». Dès le premier cran, elle apparaît et reste.
+    const extraEl = $("consoExtra");
+    const typing = !!(extraEl && document.activeElement === extraEl);
+    const zero = Math.round(Number(tenths) || 0) === 0 && !(clampExtraKwh(extra) > 0) && !typing;
+    table.classList.toggle("is-zero", zero);
   }
 
   /** Slider kWh; the device table sits above it. Total line adds the free kWh/day. Note vs December. */
@@ -510,7 +528,7 @@
         n === 0 ? spoken : spoken + ", avec " + last
       );
     }
-    renderDailyLoadRows(tenths);
+    renderDailyLoadRows(tenths, extra);
     const totalEl = $("consoJourTotal");
     if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh/j";
     const note = $("consoJourNote");
@@ -590,12 +608,17 @@
   }
 
 
-  /** Price of one 16.1 kWh module. The slider is not a $/kWh rate. */
-  function battModulePrice() {
-    const el = $("battPrice");
+  /** Market price of battery storage, $/kWh (the card-5 slider). */
+  function battKwhPrice() {
+    const el = $("battKwh");
     if (!el) return NaN;
     const v = parseFloat(el.value);
     return isFinite(v) ? v : NaN;
+  }
+
+  /** Price of one 16.1 kWh module = 16,1 × $/kWh. */
+  function battModulePriceFrom(kwhPrice) {
+    return isFinite(kwhPrice) ? BATT_MODULE_KWH * kwhPrice : NaN;
   }
 
   /**
@@ -606,6 +629,9 @@
     if (!isFinite(reserveKwh) || reserveKwh <= 0) return 0;
     return Math.max(1, Math.round(reserveKwh / BATT_MODULE_KWH));
   }
+
+  /** Above this many days, filling the reserve earns a yellow flag (issue #175). */
+  const FILL_LONG_DAYS = 3;
 
   /** Fill duration in days at the December daily rate. One decimal under 10 days. Display only. */
   function fmtFillDuration(days) {
@@ -645,6 +671,33 @@
     const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
     if (!isFinite(v) || v <= 0) return DEFAULT_RATE;
     return v / 100;
+  }
+
+  /** ¢/kWh saisis, virgule décimale, au centième : « 12,81 ». Vide / invalide → NaN. */
+  function parseRateCents(raw) {
+    const s = String(raw == null ? "" : raw).trim().replace(GROUP_SEP_RE, "").replace(",", ".");
+    if (s === "") return NaN;
+    const v = parseFloat(s);
+    if (!isFinite(v) || v <= 0) return NaN;
+    return snapStep(v, RATE_STEP_CENTS, 100000, RATE_STEP_CENTS);
+  }
+
+  /** Norme québécoise (#165) : virgule décimale, deux chiffres après la virgule. */
+  function fmtRateCents(n) {
+    const v = Number(n);
+    if (!isFinite(v)) return "";
+    return v.toFixed(RATE_DECIMALS).replace(".", ",");
+  }
+
+  /** Le champ garde ce qu’on tape ; à la sortie il se remet en « 12,81 ». */
+  function formatRateInput() {
+    const el = $("rate");
+    if (!el) return;
+    if (String(el.value).trim() === "") return;
+    const v = parseRateCents(el.value);
+    if (!isFinite(v)) return;
+    const next = fmtRateCents(v);
+    if (el.value !== next) el.value = next;
   }
 
   /** kWh_credites = min(production, consommation) when conso is provided */
@@ -850,7 +903,7 @@
         '<td class="pans-td-x"><button type="button" class="pans-remove" aria-label="Retirer le versant ' + (i + 1) + '">×</button></td>';
       const area = row.querySelector(".pan-area");
       area.value = shownArea(p.m2);
-      fillSelect(row.querySelector(".pan-az"), Object.keys(AZ_LABELS).map(function (k) { return { value: k, label: AZ_LABELS[k] }; }), snapAzimuth(p.az));
+      fillSelect(row.querySelector(".pan-az"), Object.keys(AZ_LABELS).map(function (k) { return { value: k, label: orientShortLabelFor(k) }; }), snapAzimuth(p.az));
       fillSelect(row.querySelector(".pan-tilt"), [0, 15, 30, 45, 60, 75, 90].map(function (t) { return { value: t, label: t + "°" }; }), snapTilt(p.tilt));
       fillSelect(row.querySelector(".pan-snow"), SNOW_STOPS.map(function (n) { return { value: n, label: n + " %" }; }), snowStop(p.snow));
       const rm = row.querySelector(".pans-remove");
@@ -933,7 +986,9 @@
     const priceW = parseFloat($("priceW").value);
     const taxesOn = $("taxes").checked;
     const subvOn = $("subv").checked;
-    const rateOk = rateDollarsPerKwh($("rate").value);
+    // Le champ tient au centième de cent (#165) : le calcul suit la même précision.
+    const rateCents = parseRateCents($("rate").value);
+    const rateOk = isFinite(rateCents) ? rateDollarsPerKwh(rateCents) : DEFAULT_RATE;
 
     let m2;
     let deneige;
@@ -999,6 +1054,9 @@
       cellSource = cell.source;
       acDec = isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec;
     }
+    const fullAuto = fullAutoOn();
+    // #162 : la note de neige ne s’affiche qu’à celui qui veut être 100 % autonome.
+    const snowFlag = showVerticalRec && fullAuto;
 
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
@@ -1007,13 +1065,14 @@
     const base = taxesOn ? TTC : HT;
     const reel = Math.max(0, base - subv);
     const consoJour = consoJourKwh();
-    const fullAuto = fullAutoOn();
     const consoFromAuto = consoJour * DAYS_IN_YEAR;
     const conso = fullAuto ? (consoFromAuto > 0 ? consoFromAuto : null) : consoAnnuelleKwh();
     const consoShort = !fullAuto && conso != null && consoFromAuto > conso;
     const consoMin = Math.ceil(consoFromAuto);
     const kWhCredites = creditKwh(kWh, conso);
     const ecoClamped = conso != null && kWh > conso;
+    // #159 : en pleine autonomie, produire plus que la maison consomme n’est pas un défaut.
+    const surplusFlag = ecoClamped && !fullAuto;
     const surplusKwh = ecoClamped ? kWh - conso : 0;
     const surplusBuyback = surplusKwh * BUYBACK_RATE;
     const surplusIfAvoided = surplusKwh * rateOk;
@@ -1037,7 +1096,8 @@
       }
     }
     const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
-    const battPrice = battModulePrice();
+    const battKwh = battKwhPrice();
+    const battPrice = battModulePriceFrom(battKwh);
     const battModules = battModuleCount(reserveKwh);
     const battTaxOn = battTaxesOn();
     const battHT = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
@@ -1047,13 +1107,13 @@
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
       usedM2, acDec, panRows,
-      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec,
+      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec, snowFlag,
       conso, fullAuto, consoFromAuto, consoShort, consoMin,
-      kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
+      kWhCredites, ecoClamped, surplusFlag, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
-      battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
+      battKwh, battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
       gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cellSource
     };
   }
@@ -1330,8 +1390,8 @@
     }
     const snowBox = $("autonomySnow");
     if (snowBox) {
-      snowBox.hidden = !r.showVerticalRec;
-      snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
+      snowBox.hidden = !r.snowFlag;
+      snowBox.classList.toggle("is-zero", r.snowFlag && r.kWhDec <= 0);
     }
     if (r.panRows) paintPanStats(r.panRows);
     updateConsoJourUi(r.kWhDay);
@@ -1354,8 +1414,8 @@
     $("kpiEco").textContent = fmtShownMoney(r.eco);
     const alert = $("surplusAlert");
     if (alert) {
-      alert.hidden = !r.ecoClamped;
-      if (r.ecoClamped) {
+      alert.hidden = !r.surplusFlag;
+      if (r.surplusFlag) {
         if ($("surplusKwh")) $("surplusKwh").textContent = fmtShown(r.surplusKwh, 0) + " kWh / an";
         if ($("surplusBuyback")) $("surplusBuyback").textContent = fmtShownMoney(r.surplusBuyback);
         if ($("surplusAvoidedRate")) $("surplusAvoidedRate").textContent = fmtNum(r.rateOk * 100, 2) + " ¢/kWh";
@@ -1402,8 +1462,8 @@
     }
     syncNeedColumn(r.consoJour);
     syncAutonomyColumn(autonomyHours());
-    if ($("battPriceVal") && isFinite(r.battPrice)) {
-      $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
+    if ($("battKwhVal") && isFinite(r.battKwh)) {
+      $("battKwhVal").textContent = fmtNum(r.battKwh, 0) + " $/kWh";
     }
     if ($("outBatt")) {
       if (!(r.battModules > 0) || !isFinite(r.battHT)) {
@@ -1411,7 +1471,7 @@
       } else {
         const word = r.battModules > 1 ? "modules" : "module";
         $("outBatt").textContent =
-          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(r.battPrice, 0) + " $ = " + fmtShownMoney(r.battHT);
+          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(BATT_MODULE_KWH, 1) + " kWh × " + fmtNum(r.battKwh, 0) + " $/kWh = " + fmtShownMoney(r.battHT);
       }
     }
     if ($("lineBattHT")) $("lineBattHT").textContent = fmtShownMoney(r.battHT);
@@ -1440,8 +1500,17 @@
         ? "Décembre : " + fmtShown(r.sunHoursDec, 2) + " h de plein soleil / j"
         : "—";
     }
+    // #175 : plus de 3 jours → triangle jaune. Ça ne se remplit pas → la notice,
+    // rouge seulement si « Je suis 100 % autonome » est coché.
+    const longFlag = $("fillLongFlag");
+    if (longFlag) longFlag.hidden = !(r.fillState === "ok" && r.fillDays > FILL_LONG_DAYS);
     const flag = $("permaFlag");
-    if (flag) flag.hidden = !r.shortfall;
+    if (flag) {
+      const critical = r.shortfall && r.fullAuto;
+      flag.hidden = !r.shortfall;
+      flag.classList.toggle("theme-red", critical);
+      flag.classList.toggle("theme-yellow", !critical);
+    }
     syncFlagDock();
     syncScenarioUrl();
   }
@@ -1513,15 +1582,25 @@
     if (!flags.length) {
       flagDockKey = "";
       setFlagMenu(false);
+      const idle = $("flagDockBtn");
+      if (idle) {
+        idle.classList.remove("theme-red");
+        idle.classList.add("theme-yellow");
+      }
       return;
     }
     const names = flags.map(function (el) { return el.getAttribute("data-flag"); });
-    const key = names.join("|");
+    const critical = flags.some(function (el) { return el.classList.contains("theme-red"); });
+    const key = names.join("|") + (critical ? "#red" : "");
+    const btn = $("flagDockBtn");
+    if (btn) {
+      btn.classList.toggle("theme-red", critical);
+      btn.classList.toggle("theme-yellow", !critical);
+    }
     if (key === flagDockKey) return;
     flagDockKey = key;
     const label = $("flagDockLabel");
     if (label) label.textContent = flags.length === 1 ? names[0] : String(flags.length);
-    const btn = $("flagDockBtn");
     if (btn) {
       btn.setAttribute("aria-label", flags.length === 1
         ? "Point à vérifier : " + names[0]
@@ -1632,7 +1711,7 @@
     consoJour: 0,
     consoExtra: 0,
     autoStop: RESERVE_DEFAULT_INDEX,
-    battPrice: BATT_PRICE_DEFAULT,
+    battKwh: BATT_KWH_PRICE_DEFAULT,
     battTaxes: true,
     fullAuto: false,
     multi: false
@@ -1714,14 +1793,8 @@
     }
     let rate = d.rate;
     if (q.has("rate")) {
-      const s = String(q.get("rate")).trim();
-      if (s !== "") {
-        const v = parseFloat(s.replace(",", "."));
-        if (isFinite(v) && v > 0) {
-          const snapped = snapStep(v, 0.001, 100000, 0.001);
-          if (isFinite(snapped)) rate = snapped;
-        }
-      }
+      const v = parseRateCents(q.get("rate"));
+      if (isFinite(v)) rate = v;
     }
     let consoJour = d.consoJour;
     if (q.has("consoJour")) {
@@ -1736,10 +1809,15 @@
       const v = snapStep(q.get("autoStop"), 0, RESERVE_STOPS.length - 1, 1);
       if (isFinite(v)) autoStop = v;
     }
-    let battPrice = d.battPrice;
-    if (q.has("battPrice")) {
-      const v = snapStep(q.get("battPrice"), BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP);
-      if (isFinite(v)) battPrice = v;
+    let battKwh = d.battKwh;
+    if (q.has("battKwh")) {
+      const v = snapStep(q.get("battKwh"), BATT_KWH_PRICE_MIN, BATT_KWH_PRICE_MAX, BATT_KWH_PRICE_STEP);
+      if (isFinite(v)) battKwh = v;
+    } else if (q.has("battPrice")) {
+      // Anciens liens : prix d’un module 16,1 kWh → $/kWh.
+      const perModule = parseFloat(q.get("battPrice"));
+      const v = snapStep(perModule / BATT_MODULE_KWH, BATT_KWH_PRICE_MIN, BATT_KWH_PRICE_MAX, BATT_KWH_PRICE_STEP);
+      if (isFinite(v)) battKwh = v;
     }
     const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
     const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
@@ -1750,10 +1828,10 @@
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battPrice, battTaxes, fullAuto, multi, pans: pansParsed };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battKwh, battTaxes, fullAuto, multi, pans: pansParsed };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto", "multi", "pans"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battPrice", "battTaxes", "fullAuto", "multi", "pans"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1784,11 +1862,11 @@
       p.set("taxes", s.taxes ? "1" : "0");
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
-      p.set("rate", trimNum(s.rate, 3));
+      p.set("rate", trimNum(s.rate, RATE_DECIMALS));
       p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
       p.set("autoStop", String(s.autoStop));
-      p.set("battPrice", String(s.battPrice));
+      p.set("battKwh", String(s.battKwh));
       p.set("battTaxes", s.battTaxes ? "1" : "0");
       p.set("fullAuto", s.fullAuto ? "1" : "0");
       if (s.multi) {
@@ -1809,11 +1887,11 @@
     if (!s.taxes) p.set("taxes", "0");
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
-    if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
+    if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, RATE_DECIMALS));
     if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
     if (s.autoStop !== d.autoStop) p.set("autoStop", String(s.autoStop));
-    if (s.battPrice !== d.battPrice) p.set("battPrice", String(s.battPrice));
+    if (s.battKwh !== d.battKwh) p.set("battKwh", String(s.battKwh));
     if (!s.battTaxes) p.set("battTaxes", "0");
     if (s.fullAuto) p.set("fullAuto", "1");
     if (s.multi) {
@@ -1835,11 +1913,11 @@
     $("taxes").checked = !!s.taxes;
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
-    $("rate").value = trimNum(s.rate, 3);
+    $("rate").value = fmtRateCents(s.rate);
     if ($("consoJour")) $("consoJour").value = String(Math.round(s.consoJour * 10));
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
     if ($("autoStop")) $("autoStop").value = String(s.autoStop);
-    if ($("battPrice")) $("battPrice").value = String(s.battPrice);
+    if ($("battKwh")) $("battKwh").value = String(s.battKwh);
     if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
     if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
     if (s.pans && s.pans.length) {
@@ -1871,8 +1949,7 @@
     const consoDigits = consoEl ? digitsOnly(consoEl.value) : "";
     const conso = consoDigits === "" ? 0 : parseInt(consoDigits, 10);
     const rateEl = $("rate");
-    const rateRaw = rateEl ? parseFloat(String(rateEl.value).trim().replace(",", ".")) : NaN;
-    const rateSnapped = isFinite(rateRaw) && rateRaw > 0 ? snapStep(rateRaw, 0.001, 100000, 0.001) : d.rate;
+    const rateSnapped = rateEl ? parseRateCents(rateEl.value) : NaN;
     return {
       area,
       unit: areaUnit === "sqft" ? "sqft" : "m2",
@@ -1888,7 +1965,7 @@
       consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
       autoStop: reserveStopIndex(),
-      battPrice: readRange("battPrice", BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP, d.battPrice),
+      battKwh: readRange("battKwh", BATT_KWH_PRICE_MIN, BATT_KWH_PRICE_MAX, BATT_KWH_PRICE_STEP, d.battKwh),
       battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
       fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
       multi: multiOn(),
@@ -2135,7 +2212,7 @@
   }
 
   async function printPdf() {
-    closeInfo();
+    closeAllModals();
     const report = buildPrintReport();
     await waitForPrintImages(report);
     window.print();
@@ -2152,6 +2229,185 @@
     }
     const meta = document.querySelector('meta[name="bug-report-endpoint"]');
     return meta ? String(meta.getAttribute("content") || "").trim() : "";
+  }
+
+  /* Optional GitHub identity: linked once via popup, then remembered in this browser.
+     Without it a report still goes out instantly through the site's bot account. */
+  const BUG_GH_STORAGE = "bugReportGithub";
+  const BUG_GH_DRAFT = "bugReportDraft";
+  const BUG_GH_MESSAGE = "bug-report-github-session";
+  const BUG_GH_HASH = "bug-report-session";
+  const BUG_GH_HEADER = "X-Bug-Report-Session";
+  let bugGithubOffered = null;
+  let bugGithubPopup = null;
+
+  function bugEndpointOrigin() {
+    try {
+      return new URL(bugReportEndpoint()).origin;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function bugGithubSession() {
+    try {
+      const raw = localStorage.getItem(BUG_GH_STORAGE);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || typeof data.session !== "string" || !data.session) return null;
+      if (typeof data.exp === "number" && data.exp <= Date.now()) {
+        localStorage.removeItem(BUG_GH_STORAGE);
+        return null;
+      }
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function storeBugGithubSession(data) {
+    try {
+      if (!data) localStorage.removeItem(BUG_GH_STORAGE);
+      else {
+        localStorage.setItem(BUG_GH_STORAGE, JSON.stringify({
+          session: String(data.session || ""),
+          login: String(data.login || ""),
+          avatar: String(data.avatar || ""),
+          exp: typeof data.exp === "number" ? data.exp : null
+        }));
+      }
+    } catch (_) {}
+    renderBugIdentity();
+  }
+
+  function renderBugIdentity() {
+    const row = $("bugIdentity");
+    if (!row) return;
+    const session = bugGithubSession();
+    const text = $("bugIdentityText");
+    const btn = $("btnBugGithub");
+    const avatar = $("bugIdentityAvatar");
+    if (session) {
+      row.hidden = false;
+      row.classList.add("is-linked");
+      if (avatar) {
+        avatar.hidden = !session.avatar;
+        if (session.avatar) avatar.src = session.avatar;
+      }
+      if (text) text.textContent = "Envoyé comme @" + session.login;
+      if (btn) btn.textContent = "Détacher";
+      return;
+    }
+    row.classList.remove("is-linked");
+    if (avatar) {
+      avatar.hidden = true;
+      avatar.removeAttribute("src");
+    }
+    if (!bugGithubOffered) {
+      row.hidden = true;
+      return;
+    }
+    row.hidden = false;
+    if (text) text.textContent = "";
+    if (btn) btn.textContent = "Signer avec mon compte GitHub";
+  }
+
+  function probeBugGithubOffer() {
+    if (bugGithubOffered !== null) return;
+    const endpoint = bugReportEndpoint();
+    if (!endpoint) {
+      bugGithubOffered = false;
+      return;
+    }
+    bugGithubOffered = false;
+    fetch(endpoint.replace(/\/+$/, "") + "/auth/config", { cache: "no-store" })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        bugGithubOffered = !!(data && data.github);
+        renderBugIdentity();
+      })
+      .catch(function () {});
+  }
+
+  function bugGithubStartUrl(mode) {
+    const endpoint = bugReportEndpoint().replace(/\/+$/, "");
+    const back = location.origin + location.pathname + location.search;
+    return endpoint + "/auth/github/start?mode=" + mode + "&return_to=" + encodeURIComponent(back);
+  }
+
+  function toggleBugGithub() {
+    if (bugGithubSession()) {
+      storeBugGithubSession(null);
+      return;
+    }
+    if (!bugReportEndpoint()) return;
+    let popup = null;
+    try {
+      popup = window.open(bugGithubStartUrl("popup"), "bugReportGithub", "popup=yes,width=620,height=760");
+    } catch (_) {
+      popup = null;
+    }
+    if (popup) {
+      bugGithubPopup = popup;
+      try { popup.focus(); } catch (_) {}
+      return;
+    }
+    // Popup blocked: keep the draft, round-trip the whole page instead.
+    try {
+      sessionStorage.setItem(BUG_GH_DRAFT, JSON.stringify({
+        bug: $("bugText") ? $("bugText").value : "",
+        name: $("bugName") ? $("bugName").value : ""
+      }));
+    } catch (_) {}
+    location.assign(bugGithubStartUrl("redirect"));
+  }
+
+  function acceptBugGithubMessage(data) {
+    if (!data || data.type !== BUG_GH_MESSAGE || typeof data.session !== "string") return false;
+    bugGithubOffered = true;
+    storeBugGithubSession(data);
+    setBugStatus("");
+    return true;
+  }
+
+  function onBugGithubMessage(e) {
+    const expected = bugEndpointOrigin();
+    if (!expected || e.origin !== expected) return;
+    if (acceptBugGithubMessage(e.data) && bugGithubPopup) {
+      try { bugGithubPopup.close(); } catch (_) {}
+      bugGithubPopup = null;
+    }
+  }
+
+  /* Full-page fallback lands on `#bug-report-session=…`; swallow it and reopen the sheet. */
+  function consumeBugGithubHash() {
+    const hash = String(location.hash || "");
+    const prefix = "#" + BUG_GH_HASH + "=";
+    if (hash.indexOf(prefix) !== 0) return false;
+    let data = null;
+    try {
+      const raw = decodeURIComponent(hash.slice(prefix.length));
+      data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    } catch (_) {
+      data = null;
+    }
+    try {
+      history.replaceState(null, "", location.pathname + location.search + "#bugModal");
+    } catch (_) {}
+    if (!acceptBugGithubMessage(data)) return false;
+    let draft = null;
+    try {
+      draft = JSON.parse(sessionStorage.getItem(BUG_GH_DRAFT) || "null");
+      sessionStorage.removeItem(BUG_GH_DRAFT);
+    } catch (_) {
+      draft = null;
+    }
+    openBugReport();
+    if (draft) {
+      if ($("bugText") && draft.bug) $("bugText").value = String(draft.bug);
+      if ($("bugName") && draft.name) $("bugName").value = String(draft.name);
+    }
+    return true;
   }
 
   function formatBuildId(version, sha) {
@@ -2243,7 +2499,7 @@
   }
 
   function showBugDone() {
-    closeInfo();
+    closeModal("bugModal");
     const el = $("bugDone");
     if (!el) return;
     el.hidden = false;
@@ -2253,7 +2509,7 @@
 
   function bugShortcutTarget(e) {
     const m = $("bugModal");
-    if (!m || m.hidden || activeModalId !== "bugModal") return false;
+    if (!m || m.hidden) return false;
     if ($("bugForm") && $("bugForm").hidden) return false;
     const target = e && e.target;
     return !!(target && m.contains(target));
@@ -2267,16 +2523,7 @@
     }
   }
 
-  function setBugFabBlocked(blocked) {
-    const fab = $("bugFab");
-    if (!fab) return;
-    if (blocked) {
-      try { fab.inert = true; } catch (_) { fab.setAttribute("inert", ""); }
-    } else {
-      try { fab.inert = false; } catch (_) { fab.removeAttribute("inert"); }
-    }
-  }
-
+  /* #166 : la bulle bug vit hors de .wrap et reste cliquable sous toute feuille ⓘ. */
   function holdPageForModal() {
     document.body.classList.add("modal-open");
     const wrap = document.querySelector(".wrap");
@@ -2284,7 +2531,6 @@
       wrap.setAttribute("aria-hidden", "true");
       try { wrap.inert = true; } catch (_) { wrap.setAttribute("inert", ""); }
     }
-    setBugFabBlocked(true);
   }
 
   function releasePageForModal() {
@@ -2294,7 +2540,6 @@
       wrap.removeAttribute("aria-hidden");
       try { wrap.inert = false; } catch (_) { wrap.removeAttribute("inert"); }
     }
-    setBugFabBlocked(false);
   }
 
   function syncBugChrome(open) {
@@ -2329,9 +2574,10 @@
   function openBugReport(e) {
     if (e) e.preventDefault();
     hideBugDone();
-    const m = $("bugModal");
-    const already = !!(m && !m.hidden && activeModalId === "bugModal");
+    const already = bugModalOpen();
     if (!already) resetBugForm();
+    probeBugGithubOffer();
+    renderBugIdentity();
     openModal("bugModal");
     focusBugField();
   }
@@ -2386,13 +2632,17 @@
     if ($("btnBugSubmit")) $("btnBugSubmit").disabled = true;
     setBugStatus("");
     try {
+      const headers = { "Content-Type": "application/json" };
+      const session = bugGithubSession();
+      if (session) headers[BUG_GH_HEADER] = session.session;
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify(payload)
       });
       const data = await res.json().catch(function () { return {}; });
       if (data && data.ok) {
+        if (data.session === "expired") storeBugGithubSession(null);
         showBugDone();
         return;
       }
@@ -2407,12 +2657,30 @@
     }
   }
 
-  let infoOpener = null;
+  /*
+   * Deux couches de feuilles (#166). Les feuilles ⓘ (infoModal, rateModal, fieldInfoModal)
+   * s’excluent entre elles. La feuille bug est une couche à part, toujours au-dessus :
+   * elle s’ouvre par-dessus une feuille ⓘ sans la fermer, et une feuille ⓘ peut s’ouvrir
+   * sous la feuille bug ancrée (ordinateur). `activeModalId` est la feuille du dessus ;
+   * `infoModalId` est la feuille ⓘ ouverte, dessus ou dessous.
+   */
+  const INFO_MODAL_IDS = ["infoModal", "rateModal", "fieldInfoModal"];
+  const modalOpeners = {};
   let activeModalId = null;
+  let infoModalId = null;
+
+  function bugModalOpen() {
+    const m = $("bugModal");
+    return !!(m && !m.hidden);
+  }
+
+  function anyInfoModalOpen() {
+    return !!(infoModalId && $(infoModalId) && !$(infoModalId).hidden);
+  }
 
   function currentModal() {
     if (activeModalId && $(activeModalId)) return $(activeModalId);
-    const ids = ["bugModal", "infoModal", "rateModal", "fieldInfoModal"];
+    const ids = ["bugModal"].concat(INFO_MODAL_IDS);
     for (let i = 0; i < ids.length; i++) {
       const el = $(ids[i]);
       if (el && !el.hidden) return el;
@@ -2420,29 +2688,55 @@
     return $("infoModal");
   }
 
-  function modalFocusables() {
-    const m = currentModal();
-    if (!m || m.hidden) return [];
-    const sel = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-    return Array.prototype.slice.call(m.querySelectorAll(sel)).filter(function (el) {
+  /** La page est tenue (inerte) dès qu’une feuille ⓘ est ouverte, ou que la feuille bug couvre l’écran. */
+  function syncPageHold() {
+    const bugCovers = bugModalOpen() && !bugDockViewport();
+    if (anyInfoModalOpen() || bugCovers) holdPageForModal();
+    else releasePageForModal();
+  }
+
+  const FOCUSABLE_SEL = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  /**
+   * Où la tabulation peut aller quand la page est tenue : la feuille bug seule si elle couvre
+   * l’écran ; sinon la feuille ⓘ ouverte, plus la feuille bug ancrée et sa bulle (#166).
+   */
+  function modalTrapRoots() {
+    if (bugModalOpen() && !bugDockViewport()) return [$("bugModal")];
+    if (!anyInfoModalOpen()) return [];
+    // Ordre du DOM : feuille ⓘ, bulle, feuille bug.
+    const roots = [$(infoModalId)];
+    if ($("bugFab")) roots.push($("bugFab"));
+    if (bugModalOpen()) roots.push($("bugModal"));
+    return roots.filter(Boolean);
+  }
+
+  function modalFocusables(roots) {
+    const list = [];
+    roots.forEach(function (root) {
+      if (root.matches && root.matches(FOCUSABLE_SEL)) list.push(root);
+      Array.prototype.push.apply(list, Array.prototype.slice.call(root.querySelectorAll(FOCUSABLE_SEL)));
+    });
+    return list.filter(function (el) {
       return el.offsetParent !== null || el === document.activeElement;
     });
   }
 
   function trapModalTab(e) {
-    if (activeModalId === "bugModal" && bugDockViewport()) return;
-    const m = currentModal();
-    if (!m || m.hidden || e.key !== "Tab") return;
-    const list = modalFocusables();
+    if (e.key !== "Tab") return;
+    const roots = modalTrapRoots();
+    if (!roots.length) return;
+    const list = modalFocusables(roots);
     if (list.length === 0) return;
+    const inside = roots.some(function (root) { return root.contains(document.activeElement); });
     const first = list[0];
     const last = list[list.length - 1];
     if (e.shiftKey) {
-      if (document.activeElement === first || !m.contains(document.activeElement)) {
+      if (document.activeElement === first || !inside) {
         e.preventDefault();
         last.focus();
       }
-    } else if (document.activeElement === last || !m.contains(document.activeElement)) {
+    } else if (document.activeElement === last || !inside) {
       e.preventDefault();
       first.focus();
     }
@@ -2457,23 +2751,23 @@
   function openModal(id) {
     const m = $(id);
     if (!m) return;
-    if (activeModalId && activeModalId !== id) hideModalEl($(activeModalId));
-    infoOpener = document.activeElement;
-    activeModalId = id;
+    const bugOpen = id === "bugModal";
+    if (!bugOpen && infoModalId && infoModalId !== id) hideModalEl($(infoModalId));
+    const opener = document.activeElement;
+    if (opener && !m.contains(opener)) modalOpeners[id] = opener;
     m.hidden = false;
     m.removeAttribute("aria-hidden");
-    const bugOpen = id === "bugModal";
-    const dock = bugOpen && syncBugChrome(true);
-    if (!bugOpen) {
-      const bug = $("bugModal");
-      if (bug) bug.classList.remove("bug-dock");
-      const fab = $("bugFab");
-      if (fab) fab.setAttribute("aria-expanded", "false");
+    if (bugOpen) {
+      syncBugChrome(true);
+      activeModalId = "bugModal";
+    } else {
+      infoModalId = id;
+      // La feuille bug reste au-dessus : la feuille ⓘ s’ouvre dessous.
+      activeModalId = bugModalOpen() ? "bugModal" : id;
     }
-    if (dock) releasePageForModal();
-    else holdPageForModal();
+    syncPageHold();
     const closer = m.querySelector(".modal-close");
-    if (id === "bugModal" && $("bugText")) {
+    if (bugOpen && $("bugText")) {
       focusBugField();
     } else if (closer) {
       closer.focus();
@@ -2580,8 +2874,9 @@
       row("Réserve", kwhVal(r.reserveKwh, 3), "calc", "boîte Réserve de 4B"),
       row("Module", "16,1\u00A0kWh", "std", "module Volthium"),
       row("Nombre de modules", fmtNum(r.battModules, 0), "calc", "arrondi de la réserve ÷ 16,1, au moins 1"),
-      row("Prix d’un module", fmtMoney(r.battPrice), "input"),
-      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "modules × prix"),
+      row("Prix des batteries", fmtNum(r.battKwh, 0) + "\u00A0$/kWh", "input", "curseur de la carte 5"),
+      row("Prix d’un module", fmtMoney(r.battPrice), "calc", "16,1\u00A0kWh × $/kWh"),
+      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "modules × prix d’un module"),
       row("Taxes TPS + TVQ", r.battTaxOn ? fmtMoney(r.battTaxes) : "non comprises", r.battTaxOn ? "std" : "input", r.battTaxOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
       row("Subvention", "0\u00A0$", "std", "LogisVert ne couvre pas les batteries")
     ];
@@ -2593,7 +2888,7 @@
   }
   function rateRow(r) {
     const isDefault = Math.abs(r.rateOk - DEFAULT_RATE) < 1e-9;
-    return row("Tarif marginal HQ (TTC)", fmtNum(r.rateOk * 100, 3) + "\u00A0¢/kWh", "input", isDefault ? "défaut\u00A0: 2e tranche Tarif D, taxes comprises" : "");
+    return row("Tarif marginal HQ (TTC)", fmtRateCents(r.rateOk * 100) + "\u00A0¢/kWh", "input", isDefault ? "défaut\u00A0: 2e tranche Tarif D, taxes comprises, au centième de cent" : "");
   }
 
   const RESULT_INFO = {
@@ -2722,7 +3017,12 @@
         formula: "économies = kWh crédités × tarif",
         exact: fmtMoney(r.eco) + " / an",
         shown: fmtShownMoney(r.eco) + " / an",
-        notes: ["Le surplus au-delà de la consommation n’est pas compté ici\u00A0: HQ le rachète à 4,730\u00A0¢/kWh (drapeau jaune).", NOTE_ROUNDING]
+        notes: [
+          r.fullAuto
+            ? "Le surplus au-delà de la consommation n’est pas compté ici\u00A0: HQ le rachète à 4,730\u00A0¢/kWh. En pleine autonomie, produire plus n’est pas un défaut\u00A0: pas de drapeau."
+            : "Le surplus au-delà de la consommation n’est pas compté ici\u00A0: HQ le rachète à 4,730\u00A0¢/kWh (drapeau jaune).",
+          NOTE_ROUNDING
+        ]
       };
     },
     years: function (r) {
@@ -2783,10 +3083,10 @@
       return {
         title: "Coût des batteries",
         rows: battRows(r),
-        formula: r.battTaxOn ? "batteries = modules × prix + taxes" : "batteries = modules × prix",
+        formula: r.battTaxOn ? "batteries = modules × 16,1\u00A0kWh × $/kWh + taxes" : "batteries = modules × 16,1\u00A0kWh × $/kWh",
         exact: fmtMoney(r.battCost),
         shown: fmtShownMoney(r.battCost),
-        notes: ["Le prix d’un module est une fourchette pédagogique (2\u00A0400 à 7\u00A0200\u00A0$). Estimation, pas une soumission.", NOTE_ROUNDING]
+        notes: ["Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING]
       };
     },
     project: function (r) {
@@ -2794,7 +3094,7 @@
         title: "Coût total du projet",
         rows: [
           row("Panneaux solaires (coût réel)", fmtMoney(r.reel), "calc", "carte 2\u00A0: HT + taxes − subvention"),
-          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: modules × prix + taxes")
+          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: modules × 16,1\u00A0kWh × $/kWh + taxes")
         ],
         formula: "total = panneaux + batteries",
         exact: fmtMoney(r.projectTotal),
@@ -2907,20 +3207,48 @@
     openModal("fieldInfoModal");
   }
 
+  function modalFallbackOpener(id) {
+    if (id === "rateModal") return $("btnRateInfo");
+    if (id === "bugModal") return $("bugFab") || $("bugLink");
+    if (id === "fieldInfoModal") return document.querySelector(".field-info-btn");
+    return $("btnInfo");
+  }
+
+  /** Ferme une feuille précise. Ce qui reste ouvert dessous ou dessus garde sa place. */
+  function closeModal(id) {
+    const m = id ? $(id) : null;
+    if (!m || m.hidden) return;
+    hideModalEl(m);
+    if (id === "bugModal") {
+      syncBugChrome(false);
+      activeModalId = anyInfoModalOpen() ? infoModalId : null;
+    } else {
+      if (infoModalId === id) infoModalId = null;
+      activeModalId = bugModalOpen() ? "bugModal" : null;
+    }
+    syncPageHold();
+    const remembered = modalOpeners[id];
+    delete modalOpeners[id];
+    let back = remembered && document.contains(remembered) ? remembered : modalFallbackOpener(id);
+    // La page est tenue par une autre feuille : le focus revient à cette feuille, pas dans la page.
+    const top = activeModalId ? $(activeModalId) : null;
+    if (top && back && !top.contains(back) && document.body.classList.contains("modal-open")) {
+      const wrap = document.querySelector(".wrap");
+      if (wrap && wrap.contains(back)) back = top.querySelector(".modal-close") || back;
+    }
+    if (back && typeof back.focus === "function") back.focus();
+  }
+
+  /** Ferme la feuille du dessus (Échap). */
   function closeInfo() {
     const m = currentModal();
     if (!m || m.hidden) return;
-    let fallback = $("btnInfo");
-    if (activeModalId === "rateModal") fallback = $("btnRateInfo");
-    else if (activeModalId === "bugModal") fallback = $("bugLink");
-    else if (activeModalId === "fieldInfoModal") fallback = document.querySelector(".field-info-btn");
-    hideModalEl(m);
-    if (m.id === "bugModal") syncBugChrome(false);
-    releasePageForModal();
-    const back = infoOpener && document.contains(infoOpener) ? infoOpener : fallback;
-    if (back && typeof back.focus === "function") back.focus();
-    infoOpener = null;
-    activeModalId = null;
+    closeModal(m.id);
+  }
+
+  function closeAllModals() {
+    closeModal("bugModal");
+    INFO_MODAL_IDS.forEach(closeModal);
   }
 
   /**
@@ -3357,7 +3685,7 @@
   })();
 
   /**
-   * Wheel over the marginal rate steps the decimals (the field step, 0,001 ¢)
+   * Wheel over the marginal rate steps the decimals (0,01 ¢, #165)
    * instead of scrolling the page. Hover is enough; the field need not be focused.
    */
   function wireRateWheel() {
@@ -3367,16 +3695,14 @@
     el.addEventListener("wheel", function (e) {
       if (!e || !e.deltaY) return;
       if (typeof e.preventDefault === "function") e.preventDefault();
-      const step = parseFloat(el.step);
-      const dec = isFinite(step) && step > 0 ? step : 0.001;
+      const dec = RATE_STEP_CENTS;
       const dir = e.deltaY < 0 ? 1 : -1;
-      const raw = parseFloat(String(el.value).trim().replace(",", "."));
+      const raw = parseRateCents(el.value);
       const base = isFinite(raw) ? raw : DEFAULT_RATE_CENTS;
-      const places = (String(dec).split(".")[1] || "").length;
-      const scale = Math.pow(10, places);
+      const scale = Math.pow(10, RATE_DECIMALS);
       let next = Math.round((base + dir * dec) * scale) / scale;
       if (next < dec) next = dec;
-      el.value = next.toFixed(places);
+      el.value = fmtRateCents(next);
       onScenarioEdit();
     }, { passive: false });
   }
@@ -3394,12 +3720,17 @@
         render();
       });
     }
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battKwh", "battTaxes", "fullAuto"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
       el.addEventListener("change", onScenarioEdit);
     });
+    const rate = $("rate");
+    if (rate) {
+      rate.addEventListener("change", formatRateInput);
+      rate.addEventListener("blur", function () { formatRateInput(); render(); });
+    }
     const pinYears = $("btnPinYears");
     const unpinYears = $("btnUnpinYears");
     function onYearsPinClick() {
@@ -3450,7 +3781,7 @@
       if (el) wireRangePointerDrag(el);
     });
     if ($("consoJour")) wireRangePointerDrag($("consoJour"));
-    ["autoStop", "battPrice"].forEach((id) => {
+    ["autoStop", "battKwh"].forEach((id) => {
       const el = $(id);
       if (el) wireRangePointerDrag(el);
     });
@@ -3493,9 +3824,8 @@
     if (bugFab) {
       bugFab.addEventListener("click", function (e) {
         if (e) e.preventDefault();
-        const m = $("bugModal");
-        if (m && !m.hidden && activeModalId === "bugModal") {
-          closeInfo();
+        if (bugModalOpen()) {
+          closeModal("bugModal");
           return;
         }
         openBugReport(e);
@@ -3505,18 +3835,17 @@
       try {
         const bugDockMq = window.matchMedia(BUG_DOCK_QUERY);
         const onBugDockChange = function () {
-          if (activeModalId !== "bugModal") return;
-          const m = $("bugModal");
-          if (!m || m.hidden) return;
-          const dock = syncBugChrome(true);
-          if (dock) releasePageForModal();
-          else holdPageForModal();
+          if (!bugModalOpen()) return;
+          syncBugChrome(true);
+          syncPageHold();
         };
         if (bugDockMq.addEventListener) bugDockMq.addEventListener("change", onBugDockChange);
         else if (bugDockMq.addListener) bugDockMq.addListener(onBugDockChange);
       } catch (_) {}
     }
     if ($("bugForm")) $("bugForm").addEventListener("submit", submitBugReport);
+    if ($("btnBugGithub")) $("btnBugGithub").addEventListener("click", toggleBugGithub);
+    window.addEventListener("message", onBugGithubMessage);
     if ($("btnInfo")) $("btnInfo").addEventListener("click", openInfo);
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
     document.querySelectorAll(".field-info-btn").forEach(function (btn) {
@@ -3526,8 +3855,15 @@
         else openFieldInfo(btn.getAttribute("data-info"));
       });
     });
-    ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose"].forEach(function (id) {
-      if ($(id)) $(id).addEventListener("click", closeInfo);
+    // Chaque bouton ferme sa propre feuille : la feuille bug peut rester ouverte au-dessus (#166).
+    const MODAL_CLOSERS = {
+      btnInfoClose: "infoModal", btnInfoOk: "infoModal",
+      btnRateClose: "rateModal", btnRateOk: "rateModal",
+      btnFieldInfoClose: "fieldInfoModal", btnFieldInfoOk: "fieldInfoModal",
+      btnBugClose: "bugModal"
+    };
+    Object.keys(MODAL_CLOSERS).forEach(function (id) {
+      if ($(id)) $(id).addEventListener("click", function () { closeModal(MODAL_CLOSERS[id]); });
     });
     ["infoModal", "rateModal", "fieldInfoModal", "bugModal"].forEach(function (id) {
       const el = $(id);
@@ -3535,7 +3871,7 @@
       el.addEventListener("click", function (e) {
         if (e.target !== el) return;
         if (id === "bugModal" && el.classList.contains("bug-dock")) return;
-        closeInfo();
+        closeModal(id);
       });
     });
     document.addEventListener("keydown", (e) => {
@@ -3588,11 +3924,11 @@
       $("autoStop").step = "1";
       $("autoStop").value = String(RESERVE_DEFAULT_INDEX);
     }
-    if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+    if ($("battKwh")) $("battKwh").value = String(BATT_KWH_PRICE_DEFAULT);
     scenarioSnapshot = searchHasScenario(initialSearch);
     applyScenario(parseScenarioSearch(initialSearch));
     try {
-      if (location.hash === "#bugModal") openBugReport();
+      if (!consumeBugGithubHash() && location.hash === "#bugModal") openBugReport();
     } catch (_) {}
   }
 
@@ -4316,6 +4652,7 @@
     SCENARIO_DEFAULTS,
     azimuthFromOffsets,
     orientLabelFor,
+    orientShortLabelFor,
     roundAreaInput,
     constants: {
       PANEL_KW_PER_M2,
@@ -4365,7 +4702,7 @@
   });
 
   window.addEventListener("beforeprint", () => {
-    closeInfo();
+    closeAllModals();
     const report = $("printReport");
     if (report && !report.hasChildNodes()) buildPrintReport();
   });
