@@ -2160,6 +2160,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   const singleStill = await bootScenario("");
   expect(singleStill.el("multi").checked === false, "multi off by default");
   expect(singleStill.api.calc().panRows == null, "single slope has no pan rows");
+  expect(/id="gridStatus"[\s\S]*id="multiCheck"[\s\S]*<\/section>\s*<div class="result-pair slot-yield"/.test(html), "multi checkbox sits at the bottom of 1B");
+  expect(/<label class="check check-multi single-only" id="multiCheck"/.test(html), "multi checkbox hides once the table is open");
+  const onePan = await bootScenario("?multi=1&pans=25:90:30:50");
+  expect(onePan.el("multi").checked === false, "one slope in the link flips back to single");
+  expect(onePan.el("area").value === "25" && onePan.el("orient").value === "90" && onePan.el("tilt").value === "30" && onePan.el("deneige").value === "50", `single fields take the slope ${onePan.el("area").value}/${onePan.el("orient").value}/${onePan.el("tilt").value}/${onePan.el("deneige").value}`);
+  expect(!onePan.location.search.includes("multi=1"), `URL drops multi for one slope ${onePan.location.search}`);
 
   const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=5600&battTaxes=0");
   expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");

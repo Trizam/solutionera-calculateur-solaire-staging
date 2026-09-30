@@ -2792,7 +2792,18 @@ section.block h2 .field-info-btn {
 }
 
 /* Plusieurs versants. Décoché : .multi-only masqué. Coché : .single-only masqué. */
-.check-multi { margin: 0 0 1rem; background: var(--card); box-shadow: var(--shadow); }
+/* Crochet en bas à droite de 1B. Il n’a pas de boîte : une ligne, alignée à droite. */
+.check-multi {
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.check-multi input { margin: 0; }
+.check-multi:hover { color: var(--green-dark); }
 html:not([data-multi="on"]) .multi-only { display: none !important; }
 html[data-multi="on"] .single-only { display: none !important; }
 .multi-slot:empty { display: none; }
