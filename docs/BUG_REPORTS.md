@@ -88,13 +88,20 @@ Le token du visiteur ne vit **que** dans la session chiffrée ; la page ne stock
 1. GitHub → Settings → Developer settings → **OAuth Apps** → New OAuth App
    - Homepage URL : `https://trizam.github.io/solutionera-calculateur-solaire-staging/`
    - Authorization callback URL : `https://solutionera-bug-report.fred-435.workers.dev/auth/github/callback`
-2. Secrets du Worker :
+2. Secrets du Worker + déploiement + vérification, en une commande (demande le Client ID et le Client Secret, génère le secret de session) :
+
+```bash
+./scripts/setup-github-oauth.sh
+```
+
+Équivalent à la main :
 
 ```bash
 npx wrangler secret put GITHUB_OAUTH_CLIENT_ID
 npx wrangler secret put GITHUB_OAUTH_CLIENT_SECRET
 npx wrangler secret put BUG_REPORT_SESSION_SECRET   # chaîne aléatoire longue (ex. openssl rand -hex 32)
 npx wrangler deploy
+curl https://solutionera-bug-report.fred-435.workers.dev/auth/config   # → {"ok":true,"github":true}
 ```
 
 Optionnel : `GITHUB_OAUTH_SCOPE` (défaut `public_repo`). Avec une **GitHub App** (Issues: write sur ce repo seulement, « Request user authorization (OAuth) during installation », expiration des tokens désactivée) mettre `GITHUB_OAUTH_SCOPE=""`.
