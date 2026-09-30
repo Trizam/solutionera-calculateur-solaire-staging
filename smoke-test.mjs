@@ -629,6 +629,9 @@ const printReport =
   app.includes("createDataURL(5, 4)") &&
   !app.includes("quickchart.io/qr") &&
   app.includes("scenarioPrintUrl") &&
+  html.includes('<link rel="canonical" href="https://trizam.github.io/solutionera-calculateur-solaire-staging/"') &&
+  app.includes('document.querySelector(\'link[rel="canonical"]\')') &&
+  app.includes("url.search = window.location.search") &&
   css.includes(".print-card-page-web") &&
   css.includes(".print-card-page-finance") &&
   css.includes(".print-share-page") &&
