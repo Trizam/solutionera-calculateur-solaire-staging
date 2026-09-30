@@ -1965,7 +1965,10 @@
 
   function scenarioPrintUrl() {
     syncScenarioUrl();
-    const url = new URL(window.location.href);
+    const canonical = document.querySelector('link[rel="canonical"]');
+    const publicBase = canonical && canonical.href ? canonical.href : window.location.href;
+    const url = new URL(publicBase, window.location.href);
+    url.search = window.location.search;
     url.hash = "";
     return url.href;
   }
