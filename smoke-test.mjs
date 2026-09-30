@@ -2384,7 +2384,7 @@ const goodFirstUi =
   // #167 : la boîte du total va du vert au bleu.
   /class="result-pill tone-blend has-info" id="projectOut"/.test(html) &&
   !html.includes("tone-green has-info") &&
-  /\.tone-blend \{[^}]*linear-gradient\(90deg, var\(--blend-green\) 0%, var\(--blend-blue\) 100%\)/.test(css) &&
+  /\.result-pill\.tone-blend \{[^}]*linear-gradient\(90deg, var\(--blend-green\) 0%, var\(--blend-blue\) 100%\)/.test(css) &&
   css.includes(".tone-blend .prod-num") &&
   css.includes("html[data-theme=\"dark\"] .tone-blend") &&
   // #170 : 1A + 1B forment une case posée sur la rangée Mesurage net / Autonomie.

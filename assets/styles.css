@@ -322,7 +322,7 @@ section.block h2 > span:not(.num) {
   --pill-end: var(--result-pill-end);
 }
 /* Carte 6 (#167) : le total va du vert des panneaux au bleu des batteries. On voit qu’il tient les deux. */
-.tone-blend {
+.result-pill.tone-blend {
   --blend-green: var(--result-green-soft);
   --blend-blue: #d6e8f8;
   --blend-border: #c9dfdf;
