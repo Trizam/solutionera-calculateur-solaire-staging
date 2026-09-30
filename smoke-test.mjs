@@ -616,19 +616,23 @@ const modalDvh = css.includes("88dvh") || css.includes("100dvh");
 const pdfPrintOnly = /function\s+printPdf\s*\([^)]*\)\s*\{\s*window\.print\s*\(\s*\)\s*;\s*\}/.test(app) || (app.includes("window.print()") && app.includes("function printPdf") && !/printPdf[\s\S]{0,80}jspdf|html2canvas|pdf-lib/i.test(app));
 const printReport =
   html.includes('id="printReport"') &&
-  app.includes("PRINT_CARD_PAGES") &&
-  app.includes('"sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"') &&
-  app.includes('"sec-cost", "sec-batt", "sec-value", "sec-total"') &&
+  app.includes("PRINT_WEB_COLUMNS") &&
+  app.includes('["sec-prod", "sec-prod-b", "sec-yield"]') &&
+  app.includes('["sec-auto", "sec-reserve", "sec-fill"]') &&
+  app.includes('PRINT_FINANCE_CARDS = ["sec-cost", "sec-batt", "sec-value", "sec-total"]') &&
   app.includes("buildPrintReport") &&
+  app.includes("appendPrintWebPage(report)") &&
+  app.includes("appendPrintSharePage(report, url)") &&
   app.includes("appendPrintAppendix") &&
   html.includes("assets/vendor/qrcode-generator.js") &&
   app.includes('qrcode(0, "M")') &&
   app.includes("createDataURL(5, 4)") &&
   !app.includes("quickchart.io/qr") &&
   app.includes("scenarioPrintUrl") &&
-  css.includes(".print-summary-page") &&
-  css.includes(".print-card-page-production") &&
-  css.includes(".print-card-page-costs") &&
+  css.includes(".print-card-page-web") &&
+  css.includes(".print-card-page-finance") &&
+  css.includes(".print-share-page") &&
+  css.includes("linear-gradient(135deg, var(--green-soft), var(--pill-end))") &&
   css.includes(".print-appendix") &&
   /@page\s*\{[^}]*size:\s*A4 portrait/.test(css);
 console.log(`  skip-link JS focus main: ${hasSkipFocus ? "PASS" : "FAIL"}`);
@@ -641,7 +645,7 @@ console.log(`  btn touch-action manipulation: ${btnManipulation ? "PASS" : "FAIL
 console.log(`  @page print margin: ${pageMargin ? "PASS" : "FAIL"}`);
 console.log(`  modal max-height dvh: ${modalDvh ? "PASS" : "FAIL"}`);
 console.log(`  btnPdf window.print only: ${pdfPrintOnly ? "PASS" : "FAIL"}`);
-console.log(`  structured A4 print report (summary, QR, cards, appendix): ${printReport ? "PASS" : "FAIL"}`);
+console.log(`  structured A4 print report (web-order pages, QR page, appendix): ${printReport ? "PASS" : "FAIL"}`);
 
 const hasPointerDrag = app.includes("wireRangePointerDrag") && app.includes("setPointerCapture");
 const thumb44 = /::-webkit-slider-thumb[\s\S]{0,220}?width:\s*44px/.test(css);
