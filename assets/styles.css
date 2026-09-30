@@ -2790,3 +2790,202 @@ section.block h2 .field-info-btn {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Plusieurs versants. Décoché : .multi-only masqué. Coché : .single-only masqué. */
+.check-multi { margin: 0 0 1rem; background: var(--card); box-shadow: var(--shadow); }
+html:not([data-multi="on"]) .multi-only { display: none !important; }
+html[data-multi="on"] .single-only { display: none !important; }
+.multi-slot:empty { display: none; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.field-pans {
+  margin-top: var(--section-hairline-pad);
+  padding-top: var(--section-hairline-pad);
+  border-top: 1px solid var(--section-hairline);
+}
+.pans-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9rem;
+}
+.pans-table thead th {
+  text-align: left;
+  vertical-align: bottom;
+  padding: 0 0.3rem 0.4rem 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.pans-th-label { display: block; line-height: 1.2; }
+.pans-th-area { width: 30%; }
+.pans-th-az { width: 26%; }
+.pans-th-tilt { width: 19%; }
+.pans-th-snow { width: 19%; }
+.pans-th-x { width: 6%; }
+.pans-th-head { display: flex; align-items: center; gap: 0.5rem; }
+.unit-toggle-mini { display: inline-flex; border-radius: 8px; }
+.unit-toggle-mini button {
+  padding: 0.28rem 0.5rem;
+  font-size: 0.74rem;
+  line-height: 1;
+}
+.pans-table td { padding: 0.55rem 0.3rem 0 0; vertical-align: middle; }
+.pans-row td { padding-top: 0.7rem; }
+.pans-sub td { padding-top: 0.3rem; padding-bottom: 0.6rem; border-bottom: 1px dashed var(--border); }
+.pans-table select,
+.pans-table input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.pans-table select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 1.35rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 0.85rem) 55%, calc(100% - 0.55rem) 55%;
+  background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+}
+.pans-area { position: relative; display: flex; align-items: center; }
+.pans-table .pans-area input { padding-right: 2.3rem; text-align: right; }
+.pans-area input::-webkit-outer-spin-button,
+.pans-area input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pans-area input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.pans-area-unit {
+  position: absolute;
+  right: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  pointer-events: none;
+}
+.pans-remove {
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.pans-remove:hover { background: var(--hover-soft); color: var(--green-dark); }
+.pans-remove[disabled] { opacity: 0.35; cursor: not-allowed; }
+.pans-sub-line,
+.pans-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.pans-sub-name {
+  flex: 0 0 auto;
+  min-width: 5.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.pans-out strong {
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+}
+.pans-sub-line .pans-out:last-child,
+.pans-total .pans-out:last-child { margin-left: auto; }
+.pans-add-row td { padding: 0.55rem 0 0.2rem; }
+.pans-add {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--green-mid);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--green);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.pans-add:hover { background: var(--green-soft); }
+.pans-add[disabled] { opacity: 0.45; cursor: not-allowed; }
+.pans-total-row th {
+  padding: 0.6rem 0 0.15rem;
+  border-top: 2px solid var(--green-mid);
+  text-align: left;
+  font-weight: 400;
+}
+.pans-total-word {
+  flex: 0 0 auto;
+  min-width: 5.2rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.74rem;
+}
+.pans-total .pans-out strong { font-size: 1.05rem; }
+@media (max-width: 1099px) {
+  .pans-table, .pans-table thead, .pans-table tbody, .pans-table tfoot, .pans-table tr, .pans-table th, .pans-table td { display: block; }
+  .pans-table thead tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+  }
+  .pans-table thead th { border: 0; padding: 0; width: auto; }
+  .pans-table thead th:not(.pans-th-area) .pans-th-label { display: none; }
+  .pans-th-area .pans-th-label::after { content: " des versants"; }
+  .pans-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas: "area az x" "tilt snow x";
+    gap: 0.45rem 0.5rem;
+    padding-top: 0.75rem;
+  }
+  .pans-row td { padding: 0; }
+  .pans-td-area { grid-area: area; }
+  .pans-td-az { grid-area: az; }
+  .pans-td-tilt { grid-area: tilt; }
+  .pans-td-snow { grid-area: snow; }
+  .pans-td-x { grid-area: x; align-self: center; }
+  .pans-table td[class^="pans-td-"]::before {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .pans-td-area::before { content: "Superficie"; }
+  .pans-td-az::before { content: "Orientation"; }
+  .pans-td-tilt::before { content: "Inclinaison"; }
+  .pans-td-snow::before { content: "Déneigement"; }
+  .pans-sub td { padding: 0.45rem 0 0.7rem; }
+  .pans-sub-line .pans-out:last-child,
+  .pans-total .pans-out:last-child { margin-left: 0; }
+  .pans-sub-name, .pans-total-word { flex-basis: 100%; min-width: 0; }
+}

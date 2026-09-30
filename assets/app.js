@@ -642,33 +642,333 @@
     return Math.min(kWhProd, kWhConso);
   }
 
+  const MAX_PANS = 4;
+  const SNOW_STOPS = [0, 25, 50, 75, 100];
+  const SNOW_REC_SINGLE = "Vous ne déneigez pas à 100\u00a0%. En pleine autonomie, mettez les panneaux à la verticale\u00a0: la neige n’accumule pas, et décembre ne tombe pas à zéro.";
+  const SNOW_REC_MULTI = "Un versant n’est pas déneigé à 100\u00a0%. En pleine autonomie, mettez ses panneaux à la verticale\u00a0: la neige n’accumule pas, et décembre ne tombe pas à zéro.";
+  /** m² par versant. null tant que le mode n’est pas ouvert. */
+  let pans = null;
+  let pansFromUrl = false;
+  let multiWasOn = false;
+  const multiHomes = {};
+
+  function multiOn() {
+    const el = $("multi");
+    return !!(el && el.checked);
+  }
+
+  function snowStop(n) {
+    const x = Number(n);
+    if (!isFinite(x)) return 100;
+    return Math.min(100, Math.max(0, Math.round(x / 25) * 25));
+  }
+
+  function snapTilt(n) {
+    const v = snapStep(n, 0, 90, 15);
+    return isFinite(v) ? v : 45;
+  }
+
+  /** Un versant, mêmes formules que le versant unique. */
+  function calcOnePan(p, util) {
+    const m2 = Math.max(0, Number(p.m2) || 0);
+    const usedM2 = m2 * util;
+    const kW = usedM2 * PANEL_KW_PER_M2;
+    const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : 0;
+    const tilt = snapTilt(p.tilt);
+    const az = snapAzimuth(p.az);
+    const deneige = snowStop(p.snow) / 100;
+    const cell = lookupCell(String(tilt), String(az));
+    const table = cell.ac_annual;
+    const W = winterWFromTilt(tilt);
+    const snowCover = snowCoverFromTilt(tilt);
+    const kWhPerKwc = applyDeneigement(table, deneige, W);
+    const kWhAnnuel = table * kW;
+    const kWh = applyDeneigement(kWhAnnuel, deneige, W);
+    const decCell = isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec;
+    const kWhDecMonth = decCell * kW;
+    const kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
+    return {
+      m2, kW, nPv, table, kWhAnnuel, kWh, kWhPerKwc, kWhDecMonth, kWhDec, W, snowCover,
+      source: cell.source,
+      showVerticalRec: recommendVerticalPanels(deneige, tilt)
+    };
+  }
+
+  function panFromSingle() {
+    return {
+      m2: areaM2(),
+      az: snapAzimuth($("orient") ? $("orient").value : 180),
+      tilt: snapTilt($("tilt") ? $("tilt").value : 45),
+      snow: snowStop(deneigeFrac() * 100)
+    };
+  }
+
+  function secondPan(first) {
+    return { m2: 20, az: first.az === 90 ? 270 : 90, tilt: first.tilt, snow: first.snow };
+  }
+
+  function ensurePans() {
+    if (pans && pans.length) return;
+    const first = panFromSingle();
+    pans = [first, secondPan(first)];
+  }
+
+  function shownArea(m2) {
+    const v = areaUnit === "sqft" ? m2 * SQFT_PER_M2 : m2;
+    return String(Math.max(0, Math.round(v)));
+  }
+
+  function m2FromShown(raw) {
+    const n = parseFloat(String(raw == null ? "" : raw).trim().replace(",", "."));
+    const shown = isFinite(n) && n > 0 ? n : 0;
+    return areaUnit === "sqft" ? shown / SQFT_PER_M2 : shown;
+  }
+
+  function writePanToSingle(p) {
+    if ($("area")) $("area").value = shownArea(p.m2);
+    if ($("orient")) $("orient").value = String(snapAzimuth(p.az));
+    if ($("tilt")) $("tilt").value = String(snapTilt(p.tilt));
+    if ($("deneige")) $("deneige").value = String(snowStop(p.snow));
+  }
+
+  function parsePansParam(raw) {
+    if (raw == null || String(raw).trim() === "") return [];
+    return String(raw).split(";").map(function (chunk) {
+      const parts = chunk.split(":").map(Number);
+      if (parts.length < 4 || !parts.every(isFinite)) return null;
+      return {
+        m2: Math.max(0, parts[0]),
+        az: snapAzimuth(parts[1]),
+        tilt: snapTilt(parts[2]),
+        snow: snowStop(parts[3])
+      };
+    }).filter(Boolean).slice(0, MAX_PANS);
+  }
+
+  function formatPansParam(list) {
+    return (list || []).map(function (p) {
+      return [Math.round(p.m2), snapAzimuth(p.az), snapTilt(p.tilt), snowStop(p.snow)].join(":");
+    }).join(";");
+  }
+
+  function rememberHome(key, node) {
+    if (!node || multiHomes[key] || !node.parentNode) return;
+    multiHomes[key] = { parent: node.parentNode, next: node.nextSibling };
+  }
+
+  function parkNode(node, slot) {
+    if (!node || !slot || typeof slot.appendChild !== "function") return;
+    if (node.parentNode === slot) return;
+    slot.appendChild(node);
+  }
+
+  function restoreHome(key, node) {
+    const home = multiHomes[key];
+    if (!node || !home || typeof home.parent.insertBefore !== "function") return;
+    if (node.parentNode === home.parent && node.nextSibling === home.next) return;
+    home.parent.insertBefore(node, home.next);
+  }
+
+  function setHeading(id, text) {
+    const el = $(id);
+    if (el) el.textContent = text;
+  }
+
+  function syncMultiLayout() {
+    const on = multiOn();
+    if (document.documentElement) document.documentElement.setAttribute("data-multi", on ? "on" : "off");
+    const loc = $("field-loc");
+    const util = $("field-util");
+    const results = $("sizeResults");
+    rememberHome("loc", loc);
+    rememberHome("util", util);
+    rememberHome("results", results);
+    if (on && !multiWasOn) {
+      if (!pans || !pans.length) {
+        const first = panFromSingle();
+        pans = [first, secondPan(first)];
+      } else if (!pansFromUrl) {
+        pans[0] = panFromSingle();
+      }
+      pansFromUrl = false;
+    }
+    if (!on && multiWasOn && pans && pans[0]) writePanToSingle(pans[0]);
+    if (on) {
+      parkNode(loc, $("slotLoc"));
+      parkNode(util, $("slotUtil"));
+      parkNode(results, $("slotResults"));
+      setHeading("h-prod-title", "Où est ma toiture ?");
+      setHeading("h-prod-b-title", "Mes versants : combien de panneaux, combien d’énergie ?");
+    } else {
+      restoreHome("results", results);
+      restoreHome("util", util);
+      restoreHome("loc", loc);
+      setHeading("h-prod-title", "Combien de panneaux puis-je installer sur ma toiture\u00a0?");
+      setHeading("h-prod-b-title", "Combien d'énergie électrique vais-je produire\u00a0?");
+    }
+    const snowRec = $("autonomySnowRec");
+    if (snowRec) snowRec.textContent = on ? SNOW_REC_MULTI : SNOW_REC_SINGLE;
+    multiWasOn = on;
+  }
+
+  function fillSelect(sel, options, value) {
+    sel.innerHTML = options.map(function (o) {
+      return '<option value="' + o.value + '"' + (String(o.value) === String(value) ? " selected" : "") + ">" + o.label + "</option>";
+    }).join("");
+  }
+
+  function buildPanRows() {
+    const body = $("pansBody");
+    if (!body || typeof document.createElement !== "function" || !pans) return;
+    body.innerHTML = "";
+    pans.forEach(function (p, i) {
+      const row = document.createElement("tr");
+      row.className = "pans-row";
+      row.innerHTML =
+        '<td class="pans-td-area"><div class="pans-area"><input type="number" class="pan-area" min="0" step="1" inputmode="numeric" autocomplete="off" aria-label="Superficie du versant ' + (i + 1) + '" /><span class="pans-area-unit" data-unit>' + (areaUnit === "sqft" ? "pi²" : "m²") + "</span></div></td>" +
+        '<td class="pans-td-az"><select class="pan-az" aria-label="Orientation du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-tilt"><select class="pan-tilt" aria-label="Inclinaison du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-snow"><select class="pan-snow" aria-label="Déneigement du versant ' + (i + 1) + '"></select></td>' +
+        '<td class="pans-td-x"><button type="button" class="pans-remove" aria-label="Retirer le versant ' + (i + 1) + '">×</button></td>';
+      const area = row.querySelector(".pan-area");
+      area.value = shownArea(p.m2);
+      fillSelect(row.querySelector(".pan-az"), Object.keys(AZ_LABELS).map(function (k) { return { value: k, label: AZ_LABELS[k] }; }), snapAzimuth(p.az));
+      fillSelect(row.querySelector(".pan-tilt"), [0, 15, 30, 45, 60, 75, 90].map(function (t) { return { value: t, label: t + "°" }; }), snapTilt(p.tilt));
+      fillSelect(row.querySelector(".pan-snow"), SNOW_STOPS.map(function (n) { return { value: n, label: n + " %" }; }), snowStop(p.snow));
+      const rm = row.querySelector(".pans-remove");
+      rm.disabled = pans.length <= 1;
+      area.addEventListener("input", function () {
+        p.m2 = m2FromShown(area.value);
+        onScenarioEdit();
+      });
+      row.querySelector(".pan-az").addEventListener("change", function (e) { p.az = snapAzimuth(e.target.value); onScenarioEdit(); });
+      row.querySelector(".pan-tilt").addEventListener("change", function (e) { p.tilt = snapTilt(e.target.value); onScenarioEdit(); });
+      row.querySelector(".pan-snow").addEventListener("change", function (e) { p.snow = snowStop(e.target.value); onScenarioEdit(); });
+      rm.addEventListener("click", function () {
+        if (pans.length <= 1) return;
+        pans.splice(i, 1);
+        buildPanRows();
+        onScenarioEdit();
+      });
+      const sub = document.createElement("tr");
+      sub.className = "pans-sub";
+      sub.innerHTML = '<td colspan="5"><div class="pans-sub-line"><span class="pans-sub-name">Versant ' + (i + 1) + '</span><span class="pans-out"><strong data-pv>—</strong> panneaux</span><span class="pans-out"><strong data-kw>—</strong> kWc</span><span class="pans-out"><strong data-eff>—</strong> efficacité</span></div></td>';
+      body.appendChild(row);
+      body.appendChild(sub);
+    });
+    const add = $("pansAdd");
+    if (add) {
+      add.disabled = pans.length >= MAX_PANS;
+      add.textContent = pans.length >= MAX_PANS ? "Maximum " + MAX_PANS + " versants" : "+ Ajouter un versant";
+    }
+  }
+
+  function paintPanStats(rows) {
+    if (!rows || typeof document.querySelectorAll !== "function") return;
+    const subs = document.querySelectorAll("#pansBody .pans-sub");
+    if (subs.length !== rows.length) {
+      buildPanRows();
+    }
+    const fresh = document.querySelectorAll("#pansBody .pans-sub");
+    rows.forEach(function (row, i) {
+      const sub = fresh[i];
+      if (!sub || typeof sub.querySelector !== "function") return;
+      const pv = sub.querySelector("[data-pv]");
+      const kw = sub.querySelector("[data-kw]");
+      const eff = sub.querySelector("[data-eff]");
+      if (pv) pv.textContent = row.nPv > 0 ? String(row.nPv) : "—";
+      if (kw) kw.textContent = row.kW > 0 ? fmtShown(row.kW, 1) : "—";
+      if (eff) eff.textContent = isFinite(row.kWhPerKwc) ? fmtGroupedInt(Math.round(row.kWhPerKwc)).replace(/ /g, "\u00A0") : "—";
+    });
+    const totPv = $("totPv");
+    const totKw = $("totKw");
+    const totEff = $("totEff");
+    const kW = rows.reduce(function (s, r) { return s + r.kW; }, 0);
+    const nPv = rows.reduce(function (s, r) { return s + r.nPv; }, 0);
+    const kWh = rows.reduce(function (s, r) { return s + r.kWh; }, 0);
+    if (totPv) totPv.textContent = nPv > 0 ? String(nPv) : "—";
+    if (totKw) totKw.textContent = kW > 0 ? fmtShown(kW, 1) : "—";
+    if (totEff) totEff.textContent = kW > 0 ? fmtGroupedInt(Math.round(kWh / kW)).replace(/ /g, "\u00A0") : "—";
+  }
+
+  function paintPanAreas() {
+    if (!pans || typeof document.querySelectorAll !== "function") return;
+    const inputs = document.querySelectorAll(".pan-area");
+    inputs.forEach(function (input, i) {
+      if (!pans[i] || document.activeElement === input) return;
+      input.value = shownArea(pans[i].m2);
+      const unit = input.parentNode && input.parentNode.querySelector ? input.parentNode.querySelector("[data-unit]") : null;
+      if (unit) unit.textContent = areaUnit === "sqft" ? "pi²" : "m²";
+    });
+  }
+
   function calc() {
-    const m2 = areaM2();
     const util = utilFrac();
-    const deneige = deneigeFrac();
-    const tilt = String($("tilt").value);
-    const az = String($("orient").value);
     const priceW = parseFloat($("priceW").value);
     const taxesOn = $("taxes").checked;
     const subvOn = $("subv").checked;
     const rateOk = rateDollarsPerKwh($("rate").value);
 
-    const cell = lookupCell(tilt, az);
-    const table = cell.ac_annual;
-    // v0.2: W from tilt model (not per-cell orientation W)
-    const W = winterWFromTilt(tilt);
+    let m2;
+    let deneige;
+    let tilt;
+    let az;
+    let table;
+    let W;
+    let kW;
+    let nPv;
+    let kWhAnnuel;
+    let kWh;
+    let kWhPerKwc;
+    let kWhDecMonth;
+    let kWhDec;
+    let snowCover;
+    let showVerticalRec;
+    let panRows = null;
+    let cellSource = "fallback";
 
-    const usedM2 = m2 * util;
-    const kW = usedM2 * PANEL_KW_PER_M2;
-    const nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
-    const kWhAnnuel = table * kW;
-    const kWh = applyDeneigement(kWhAnnuel, deneige, W);
-    const kWhPerKwc = applyDeneigement(table, deneige, W);
-    const kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
-    // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
-    const snowCover = snowCoverFromTilt(tilt);
-    const kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
-    const showVerticalRec = recommendVerticalPanels(deneige, tilt);
+    if (multiOn()) {
+      ensurePans();
+      panRows = pans.map(function (p) { return calcOnePan(p, util); });
+      m2 = panRows.reduce(function (s, r) { return s + r.m2; }, 0);
+      kW = panRows.reduce(function (s, r) { return s + r.kW; }, 0);
+      nPv = panRows.reduce(function (s, r) { return s + r.nPv; }, 0);
+      if (!(kW > 0)) nPv = NaN;
+      kWhAnnuel = panRows.reduce(function (s, r) { return s + r.kWhAnnuel; }, 0);
+      kWh = panRows.reduce(function (s, r) { return s + r.kWh; }, 0);
+      kWhDecMonth = panRows.reduce(function (s, r) { return s + r.kWhDecMonth; }, 0);
+      kWhDec = panRows.reduce(function (s, r) { return s + r.kWhDec; }, 0);
+      kWhPerKwc = kW > 0 ? kWh / kW : NaN;
+      table = kW > 0 ? kWhAnnuel / kW : panRows[0].table;
+      showVerticalRec = panRows.some(function (r) { return r.showVerticalRec; });
+      tilt = String(snapTilt(pans[0].tilt));
+      az = String(snapAzimuth(pans[0].az));
+      deneige = snowStop(pans[0].snow) / 100;
+      W = winterWFromTilt(tilt);
+      snowCover = snowCoverFromTilt(tilt);
+      cellSource = panRows[0].source;
+    } else {
+      m2 = areaM2();
+      deneige = deneigeFrac();
+      tilt = String($("tilt").value);
+      az = String($("orient").value);
+      const cell = lookupCell(tilt, az);
+      table = cell.ac_annual;
+      // v0.2: W from tilt model (not per-cell orientation W)
+      W = winterWFromTilt(tilt);
+      const usedM2 = m2 * util;
+      kW = usedM2 * PANEL_KW_PER_M2;
+      nPv = usedM2 > 0 ? Math.round(usedM2 / PANEL_M2) : NaN;
+      kWhAnnuel = table * kW;
+      kWh = applyDeneigement(kWhAnnuel, deneige, W);
+      kWhPerKwc = applyDeneigement(table, deneige, W);
+      kWhDecMonth = (isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec) * kW;
+      // Autonomie (décembre) : 100 % du mois est à risque neige, pas le W annuel 18 %.
+      snowCover = snowCoverFromTilt(tilt);
+      kWhDec = applyDeneigement(kWhDecMonth, deneige, snowCover);
+      showVerticalRec = recommendVerticalPanels(deneige, tilt);
+      cellSource = cell.source;
+    }
 
     const HT = kW * 1000 * priceW;
     const TTC = HT * TAX_MULT;
@@ -716,14 +1016,14 @@
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec,
+      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec, panRows,
       conso, fullAuto, consoFromAuto, consoShort, consoMin,
       kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
       battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
-      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
+      gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cellSource
     };
   }
 
@@ -1002,6 +1302,7 @@
       snowBox.hidden = !r.showVerticalRec;
       snowBox.classList.toggle("is-zero", r.showVerticalRec && r.kWhDec <= 0);
     }
+    if (r.panRows) paintPanStats(r.panRows);
     updateConsoJourUi(r.kWhDay);
     $("outLight").textContent =
       fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
@@ -1255,6 +1556,14 @@
     $("unitSqft").setAttribute("aria-pressed", !m2 ? "true" : "false");
     const pu = $("printUnit");
     if (pu) pu.textContent = m2 ? "m²" : "pi²";
+    if (typeof document.querySelectorAll === "function") {
+      document.querySelectorAll("[data-unit-btn]").forEach(function (btn) {
+        const on = btn.getAttribute("data-unit-btn") === areaUnit;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    paintPanAreas();
   }
 
   function setUnit(u) {
@@ -1290,7 +1599,8 @@
     autoStop: RESERVE_DEFAULT_INDEX,
     battPrice: BATT_PRICE_DEFAULT,
     battTaxes: true,
-    fullAuto: false
+    fullAuto: false,
+    multi: false
   };
 
   function snapStep(n, min, max, step) {
@@ -1398,15 +1708,17 @@
     }
     const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
     const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
+    const multi = parseFlagParam(q.has("multi") ? q.get("multi") : null, d.multi);
+    const pansParsed = q.has("pans") ? parsePansParam(q.get("pans")) : [];
     let ville = d.ville;
     if (q.has("ville")) {
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battPrice, battTaxes, fullAuto };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battPrice, battTaxes, fullAuto, multi, pans: pansParsed };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto", "multi", "pans"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1444,6 +1756,10 @@
       p.set("battPrice", String(s.battPrice));
       p.set("battTaxes", s.battTaxes ? "1" : "0");
       p.set("fullAuto", s.fullAuto ? "1" : "0");
+      if (s.multi) {
+        p.set("multi", "1");
+        if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
+      }
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1465,6 +1781,10 @@
     if (s.battPrice !== d.battPrice) p.set("battPrice", String(s.battPrice));
     if (!s.battTaxes) p.set("battTaxes", "0");
     if (s.fullAuto) p.set("fullAuto", "1");
+    if (s.multi) {
+      p.set("multi", "1");
+      if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
+    }
     return p.toString();
   }
 
@@ -1487,6 +1807,14 @@
     if ($("battPrice")) $("battPrice").value = String(s.battPrice);
     if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
     if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
+    if (s.pans && s.pans.length) {
+      pans = s.pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; });
+      pansFromUrl = true;
+    } else if (s.multi) {
+      pans = null;
+    }
+    if ($("multi")) $("multi").checked = !!s.multi;
+    syncMultiLayout();
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
@@ -1528,6 +1856,8 @@
       battPrice: readRange("battPrice", BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP, d.battPrice),
       battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
       fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
+      multi: multiOn(),
+      pans: multiOn() && pans ? pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; }) : [],
       ville: canonicalVille(selectedVille)
     };
   }
@@ -2593,6 +2923,30 @@
       trapModalTab(e);
     });
 
+    const multiBox = $("multi");
+    if (multiBox) {
+      multiBox.addEventListener("change", function () {
+        syncMultiLayout();
+        onScenarioEdit();
+      });
+    }
+    const pansAdd = $("pansAdd");
+    if (pansAdd) {
+      pansAdd.addEventListener("click", function () {
+        if (!multiOn()) return;
+        ensurePans();
+        if (pans.length >= MAX_PANS) return;
+        const last = pans[pans.length - 1];
+        pans.push({ m2: 20, az: last.az === 270 ? 180 : 270, tilt: last.tilt, snow: 100 });
+        buildPanRows();
+        onScenarioEdit();
+      });
+    }
+    if (typeof document.querySelectorAll === "function") {
+      document.querySelectorAll("[data-unit-btn]").forEach(function (btn) {
+        btn.addEventListener("click", function () { setUnit(btn.getAttribute("data-unit-btn")); });
+      });
+    }
     wireTownPicker();
 
     let initialSearch = "";

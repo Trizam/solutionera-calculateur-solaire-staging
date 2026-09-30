@@ -86,14 +86,19 @@
       Narrow full mode keeps both columns side by side: swipe, with a peek.
       Rules: docs/DESIGN.md
     -->
+    <label class="check check-multi" id="multiCheck">
+      <input type="checkbox" id="multi" />
+      <span>Ma toiture a plusieurs versants<span class="sub">→ 1A garde la localisation. 1B devient un tableau : une rangée par versant (superficie, orientation, inclinaison, déneigement 0–25–50–75–100&nbsp;%). Quatre versants au maximum. Même tableau en mode webi.</span></span>
+    </label>
     <div class="board-viewport" id="boardViewport">
     <div class="board" id="board">
     <div class="col col-solar">
 
     <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
-      <h2 id="h-prod"><span class="num">1A</span> Combien de panneaux puis-je installer sur ma toiture&nbsp;?</h2>
-      <div class="field">
+      <h2 id="h-prod"><span class="num">1A</span> <span id="h-prod-title">Combien de panneaux puis-je installer sur ma toiture&nbsp;?</span></h2>
+      <div id="slotLoc" class="multi-slot"></div>
+      <div class="field single-only" id="field-area">
         <!-- field-info pattern : .label-row > label + .field-info-btn → full-page sheet -->
         <div class="label-row field-info-wrap">
           <label for="area">Superficie de l’installation</label>
@@ -121,7 +126,7 @@
         </div>
         <p class="hint">→ Dans la majorité des cas, c’est la superficie du versant de toit le mieux orienté.</p>
       </div>
-      <div class="field">
+      <div class="field" id="field-util">
         <div class="label-row field-info-wrap">
           <label for="util">Densité d’installation (utilisation du toit)</label>
           <button
@@ -144,7 +149,7 @@
         </div>
         <p class="hint">→ Nous suggérons de ne pas dépasser 80 % de la surface de toiture en panneau solaire.</p>
       </div>
-      <div class="result-pair">
+      <div class="result-pair" id="sizeResults">
         <div class="result-pill">
           <div class="label">Panneaux solaires installés</div>
           <div class="big prod-line" id="outPv">
@@ -163,7 +168,8 @@
 
     <!-- 1B · Production — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-prod" id="sec-prod-b" data-slot="prod" aria-labelledby="h-prod-b">
-      <h2 id="h-prod-b"><span class="num">1B</span> Combien d'énergie électrique vais-je produire&nbsp;?</h2>
+      <h2 id="h-prod-b"><span class="num">1B</span> <span id="h-prod-b-title">Combien d'énergie électrique vais-je produire&nbsp;?</span></h2>
+      <div id="slotUtil" class="multi-slot"></div>
       <div class="field" id="field-loc">
         <div class="label-row field-info-wrap">
           <label class="field-label" id="locLabel" for="villeBtn">Localisation</label>
@@ -209,7 +215,7 @@
           </select>
         </div>
       </div>
-      <div class="field">
+      <div class="field single-only" id="field-orient">
         <div class="label-row field-info-wrap">
           <label for="orient">Orientation des panneaux solaires</label>
           <button
@@ -272,7 +278,7 @@
         </div>
         <p class="hint">→ Le franc sud donne en général le maximum de production d’énergie.</p>
       </div>
-      <div class="field">
+      <div class="field single-only" id="field-tilt">
         <div class="label-row field-info-wrap">
           <label for="tilt">Inclinaison de la toiture</label>
           <button
@@ -308,7 +314,7 @@
         </div>
         <p class="hint">→ 45° d’inclinaison donne généralement le maximum de production.</p>
       </div>
-      <div class="field" id="field-deneige">
+      <div class="field single-only" id="field-deneige">
         <div class="label-row field-info-wrap">
           <label for="deneige">Fréquence de déneigement</label>
           <button
@@ -330,14 +336,55 @@
           </div>
         </div>
       </div>
-      <div class="result-pill">
+      <div class="result-pill single-only" id="effPill">
         <div class="label">Efficacité de l’installation</div>
         <div class="big prod-line" id="outKwhKwc">
           <span class="prod-num">—</span>
           <span class="prod-unit">kWh/kWc/An</span>
         </div>
       </div>
-      <p class="hint">→ Kilowattheures par kilowatt-crête installé par an, selon l’orientation, l’inclinaison et le déneigement.</p>
+      <p class="hint single-only">→ Kilowattheures par kilowatt-crête installé par an, selon l’orientation, l’inclinaison et le déneigement.</p>
+      <div class="field field-pans multi-only" id="field-pans">
+        <table class="pans-table" id="pansTable" aria-label="Versants de la toiture">
+          <thead>
+            <tr>
+              <th scope="col" class="pans-th-area">
+                <div class="pans-th-head">
+                  <span class="pans-th-label">Superficie</span>
+                  <div class="unit-toggle unit-toggle-mini" role="group" aria-label="Unité de surface">
+                    <button type="button" data-unit-btn="m2" class="active" aria-pressed="true">m²</button>
+                    <button type="button" data-unit-btn="sqft" aria-pressed="false">pi²</button>
+                  </div>
+                </div>
+              </th>
+              <th scope="col" class="pans-th-az"><span class="pans-th-label">Orientation</span></th>
+              <th scope="col" class="pans-th-tilt"><span class="pans-th-label">Inclinaison</span></th>
+              <th scope="col" class="pans-th-snow"><span class="pans-th-label">Déneigement</span></th>
+              <th scope="col" class="pans-th-x"><span class="sr-only">Retirer</span></th>
+            </tr>
+          </thead>
+          <tbody id="pansBody"></tbody>
+          <tfoot>
+            <tr class="pans-add-row">
+              <td colspan="5">
+                <button type="button" class="pans-add" id="pansAdd">+ Ajouter un versant</button>
+              </td>
+            </tr>
+            <tr class="pans-total-row">
+              <th scope="row" colspan="5">
+                <div class="pans-total">
+                  <span class="pans-total-word">Total</span>
+                  <span class="pans-out"><strong id="totPv">—</strong> panneaux</span>
+                  <span class="pans-out"><strong id="totKw">—</strong> kWc</span>
+                  <span class="pans-out"><strong id="totEff">—</strong> efficacité</span>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+        <p class="hint">→ Efficacité en kWh/kWc/an, selon l’orientation, l’inclinaison et le déneigement de chaque versant. Le total est la moyenne pondérée par la puissance.</p>
+      </div>
+      <div id="slotResults" class="multi-slot"></div>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
     </section>
 
@@ -706,6 +753,7 @@
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
         <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, selon l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
+        <li>Plusieurs versants&nbsp;: la case en haut du calculateur. Une densité pour toute la toiture. Jusqu’à quatre rangées. Chaque versant a sa superficie, son orientation, son inclinaison et son déneigement (0, 25, 50, 75 ou 100&nbsp;%). Les kWh/an et le jour de décembre sont la somme. L’efficacité du total est pondérée par les kWc.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -735,6 +783,7 @@
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
           <li>Le lien du scénario conserve aussi la durée de réserve, le prix et les taxes des batteries, la consommation du jour et la ligne libre.</li>
+          <li>Plusieurs versants : case en haut. Une densité. Quatre rangées maximum. Déneigement par crans de 25 %. L’URL ajoute <code>multi=1</code> et <code>pans=m²:azimut:inclinaison:neige</code>.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
       </aside>
@@ -895,9 +944,9 @@
       <p>Plus vous êtes proche du plein sud (180°), plus la production d’énergie est élevée.</p>
     </div>
     <div class="info-block">
-      <h4>Un seul versant</h4>
-      <p>Indiquez un seul versant à la fois.</p>
-      <p>Pour plusieurs versants, refaites le calcul une fois par orientation et superficie, notez chaque production, puis additionnez les résultats.</p>
+      <h4>Plusieurs versants</h4>
+      <p>Un seul versant&nbsp;: laissez la case décochée et indiquez-le ici.</p>
+      <p>Plusieurs versants&nbsp;: cochez «&nbsp;Ma toiture a plusieurs versants&nbsp;». Chaque rangée a sa superficie, son orientation, son inclinaison et son déneigement. Le total additionne les productions.</p>
     </div>
   </template>
   <template id="tpl-info-area">
