@@ -938,7 +938,7 @@ const infoSheetUi =
   html.includes('data-info="tilt"') &&
   html.includes("tpl-info-tilt") &&
   html.includes("Maximum de production") &&
-  html.includes("entre 35° et 40°") &&
+  html.includes("45° d’inclinaison donne généralement le maximum de production") &&
   html.includes("maximum de production") &&
   html.includes("plein sud") &&
   html.includes("vivent en autonomie") &&
@@ -1118,7 +1118,7 @@ const htmlSplit1A =
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
   /id="outKw"/.test(html) &&
-  html.includes(">kWc<") &&
+  html.includes(">Wc<") &&
   html.indexOf('id="area"') < html.indexOf('id="util"') &&
   html.indexOf('id="util"') < html.indexOf('id="outPv"');
 const htmlSplit1B =
@@ -1134,7 +1134,7 @@ const htmlSplit1B =
   html.includes("Mesurage Net") &&
   html.includes("Autonomie") &&
   html.includes("kWh / an") &&
-  html.includes("kWh / j déc") &&
+  html.includes("kWh / j en décembre") &&
   !html.includes("±&nbsp;4") &&
   !html.includes("+/- 4") &&
   html.indexOf("field-loc") < html.indexOf('id="orient"') &&
@@ -1211,7 +1211,7 @@ const htmlAllowlist =
   html.includes('id="sec-prod-b"') &&
   html.includes('id="sec-cost"') &&
   html.includes('id="sec-value"');
-const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j déc");
+const prodPillDay = html.includes('id="outKwhDay"') && html.includes("kWh / j en décembre");
 const prodPillAnnual = html.includes('id="outKwh"') && html.includes("kWh / an") && html.includes("Mesurage Net");
 const prodPillEqualType =
   html.includes('class="big prod-line" id="outKwhDay"') &&
@@ -1223,8 +1223,8 @@ const prodPillEqualType =
   !css.includes(".big-annual");
 const prodKwC =
   html.includes('id="outKw"') &&
-  /kwNum\.textContent = fmtShown\(r\.kW, 2\)/.test(app) &&
-  html.includes(">kWc<") &&
+  /kwNum\.textContent = fmtShown\(r\.kW \* 1000, 0\)/.test(app) &&
+  html.includes(">Wc<") &&
   html.includes('id="outPv"') &&
   html.includes("Panneaux solaires installés") &&
   app.includes("PANEL_M2") &&
@@ -1494,7 +1494,7 @@ const prodUsesSig2 =
   /function fmtShown\(n, digits\)[\s\S]{0,260}return fmtSig2\(n\)/.test(app) &&
   app.includes("fmtShown(r.kWhDay, 2)") &&
   app.includes("fmtShown(r.kWh, 0)") &&
-  app.includes("fmtShown(r.kW, 2)") &&
+  app.includes("fmtShown(r.kW * 1000, 0)") &&
   app.includes("fmtSig2(lossPct)") &&
   app.includes("fmtSig2(r.W * 100)") &&
   !/\$\("outKwh"\)\.textContent = fmtNum/.test(app);
@@ -1959,7 +1959,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       consoJour: "0",
       consoExtra: "0",
       autoStop: "11",
-      battPrice: "1200",
+      battPrice: "4800",
       battTaxes: "1",
       fullAuto: "0"
     }, over || {});
@@ -1998,7 +1998,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
-    ["?autoStop=15&battPrice=1750&battTaxes=0", fullSearch({ autoStop: 15, battPrice: 1750, battTaxes: "0" })],
+    ["?autoStop=15&battPrice=5600&battTaxes=0", fullSearch({ autoStop: 15, battPrice: 5600, battTaxes: "0" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
     ["?ville=../x", fullSearch()],
@@ -2051,19 +2051,27 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.el("consoJour").value === "0", "daily slider starts at 0");
   live.el("consoJour").value = "63";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "1200";
+  live.el("battPrice").value = "4800";
   live.el("battTaxes").checked = false;
   const reserveMath = live.api.calc();
   expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
   expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
-  expect(Math.abs(reserveMath.battCost - 7560) < 1e-6, "battery cost = reserve × $/kWh");
-  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 7560) < 1e-6, "battery taxes off → HT only");
+  expect(reserveMath.battModules === 1, "6.3 kWh is one 16.1 kWh module");
+  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 4800) < 1e-6, "battery taxes off → one module × price");
+  expect(Math.abs(reserveMath.battCost - 4800) < 1e-6, "battery cost = modules × module price");
   live.el("battTaxes").checked = true;
   const battTaxed = live.api.calc();
-  expect(Math.abs(battTaxed.battCost - 7560 * 1.14975) < 1e-6, "battery taxes on → HT × 1,14975");
+  expect(Math.abs(battTaxed.battCost - 4800 * 1.14975) < 1e-6, "battery taxes on → module HT × 1,14975");
   expect(Math.abs(battTaxed.projectTotal - (battTaxed.reel + battTaxed.battCost)) < 1e-6, "project = panels + taxed batteries");
   live.el("battTaxes").checked = false;
+  live.el("consoJour").value = "333";
+  live.el("battPrice").value = "4800";
+  const volthium = live.api.calc();
+  expect(Math.abs(volthium.reserveKwh - 33.3) < 1e-9, "33.3 kWh reserve");
+  expect(volthium.battModules === 2, "33.3 kWh is two 16.1 kWh modules");
+  expect(Math.abs(volthium.battHT - 9600) < 1e-6, "two Volthium modules × 4 800 $");
   live.el("consoJour").value = "400";
+  live.el("battPrice").value = "4800";
   live.el("conso").value = "12 000";
   const shortConso = live.api.calc();
   expect(shortConso.consoShort === true && shortConso.consoMin === 14600, `conso flag min 365×40 = ${shortConso.consoMin}`);
@@ -2080,7 +2088,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(sunCalc.sunHoursDec - sunCalc.kWhDay / sunCalc.kW) < 1e-9, "December sun hours = kWh/j ÷ kWc");
   live.el("consoJour").value = "0";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "1200";
+  live.el("battPrice").value = "4800";
   live.el("battTaxes").checked = true;
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
@@ -2135,12 +2143,12 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
   expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
   expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
-  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=1750&battTaxes=0");
+  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=5600&battTaxes=0");
   expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");
-  expect(batteryScenario.el("battPrice").value === "1750", "shared battery price");
+  expect(batteryScenario.el("battPrice").value === "5600", "shared battery price");
   expect(batteryScenario.el("battTaxes").checked === false, "shared battery taxes");
   expect(batteryScenario.api.calc().reserveKwh === 20, "shared reserve calculation");
-  expect(batteryScenario.api.calc().battCost === 35000, "shared battery total calculation");
+  expect(batteryScenario.api.calc().battCost === 5600, "shared battery total calculation");
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -2183,6 +2191,29 @@ const paneOrderOk =
 const paneOk = paneMathOk && paneOrderOk;
 console.log(`  mobile column peek + swipe: ${paneOk ? "PASS" : "FAIL"}`);
 
+const goodFirstUi =
+  html.includes('id="priceSurprise"') &&
+  html.includes("peut-être surprenant") &&
+  html.includes('id="priceW" type="range" min="1"') &&
+  app.includes("PRICE_W_LOW") &&
+  app.includes("function wireRateWheel") &&
+  app.includes("passive: false") &&
+  html.includes('id="battDraftNote" hidden') &&
+  html.includes("Brouillon — le prix du module Volthium reste à confirmer.") &&
+  app.includes("battDraft.hidden") &&
+  html.includes("16,1") &&
+  html.includes('min="2400"') &&
+  app.includes("BATT_MODULE_KWH = 16.1") &&
+  html.includes("tone-green") &&
+  css.includes(".tone-green") &&
+  css.includes(".town-region") &&
+  app.includes('region.className = "town-region"') &&
+  html.includes("selon l’orientation, l’inclinaison et le déneigement") &&
+  html.includes("Le chiffre à droite est le productible pour 1") &&
+  !html.includes('id="locHint"') &&
+  html.includes('id="outFillSun"') &&
+  html.includes("jours · décembre");
+console.log(`  good first issues (rate wheel, $/W, batteries, copy): ${goodFirstUi ? "PASS" : "FAIL"}`);
 const pass =
   ok &&
   !bad &&
@@ -2228,6 +2259,7 @@ const pass =
   logisCopy &&
   subvDefaultJs &&
   batteryColumn &&
+  goodFirstUi &&
   designRules &&
   infoBtn &&
   tiltViz &&
