@@ -1008,7 +1008,10 @@
     }
     const yearsLabel = fmtYears(r.years);
     $("kpiYears").textContent = yearsLabel;
-    if ($("kpiYearsPin")) $("kpiYearsPin").textContent = yearsLabel;
+    if ($("kpiYearsPin") && $("kpiYearsPin").textContent !== yearsLabel) {
+      $("kpiYearsPin").textContent = yearsLabel;
+      yearsFloat.reset();
+    }
     const yearText = !isFinite(r.years) || r.years <= 0
       ? "—"
       : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
@@ -2440,8 +2443,7 @@
     }
   }
 
-  /** Payback years stay on screen. The bar says Retour, like the box.
-   * It steps aside while that box is already visible. */
+  /** Payback years stay on screen. The bar says Retour, like the box. */
   function setYearsPinned(on) {
     const bar = $("yearsPinBar");
     const pinned = !!on;
@@ -2453,7 +2455,163 @@
       btn.setAttribute("aria-pressed", pinned ? "true" : "false");
       btn.setAttribute("aria-label", label);
     });
+    yearsFloat.reset();
   }
+
+  /*
+   * Floating « Retour » (issue #147). One small pill, fixed on screen, its right edge
+   * on the right edge of the green column (a few px inside), on phone and desktop.
+   * When the Retour box of card 3 scrolls up to the pill, the pill slides onto it,
+   * takes its size and fades into it (docked). When that box leaves, the pill comes
+   * back out of it and floats again. Geometry is written as transform/width/height so
+   * the CSS transition draws the move.
+   */
+  const YEARS_FOLLOW_MS = 460;
+  const yearsFloat = (function () {
+    let natural = null;
+    let docked = null;
+    let queued = false;
+    let followUntil = 0;
+    let following = false;
+
+    function raf(fn) {
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(fn);
+      else setTimeout(fn, 16);
+    }
+    function now() {
+      return typeof performance !== "undefined" && performance && typeof performance.now === "function" ? performance.now() : Date.now();
+    }
+    function styleOf(node) {
+      return typeof getComputedStyle === "function" ? getComputedStyle(node) : null;
+    }
+    function els() {
+      const bar = $("yearsPinBar");
+      const card = bar ? bar.querySelector(".years-pin-card") : null;
+      return { bar: bar, card: card, slot: $("yearsCard"), solar: document.querySelector(".col-solar"), fab: $("bugFab") };
+    }
+    function rem() {
+      const cs = styleOf(document.documentElement);
+      return (cs && parseFloat(cs.fontSize)) || 16;
+    }
+    function measure(card) {
+      card.style.transition = "none";
+      card.style.width = "";
+      card.style.height = "";
+      natural = { w: card.offsetWidth, h: card.offsetHeight };
+    }
+    /** Right edge of the green cards. On the wide grid `.col` is display: contents, so read its cards. */
+    function solarRight(solar) {
+      if (!solar) return NaN;
+      const sr = solar.getBoundingClientRect();
+      if (sr.width > 0) return sr.right;
+      let right = NaN;
+      Array.prototype.forEach.call(solar.children, function (child) {
+        const cr = child.getBoundingClientRect();
+        if (cr.width > 0 && (!isFinite(right) || cr.right > right)) right = cr.right;
+      });
+      return right;
+    }
+    function floatRect(e) {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const r = rem();
+      const barStyle = styleOf(e.bar);
+      const edge = (barStyle && parseFloat(barStyle.paddingBottom)) || 0.4 * r;
+      const inset = 0.4 * r;
+      const colRight = solarRight(e.solar);
+      let right = isFinite(colRight) ? colRight - inset : vw - edge;
+      let left = right - natural.w;
+      const minLeft = (e.fab && e.fab.getClientRects().length ? e.fab.getBoundingClientRect().right : 0) + 0.45 * r;
+      if (left < minLeft) left = minLeft;
+      const maxLeft = vw - 0.5 * r - natural.w;
+      if (left > maxLeft) left = maxLeft;
+      return { x: left, y: vh - edge - natural.h, w: natural.w, h: natural.h };
+    }
+    function slotRect(e) {
+      const s = e.slot.getBoundingClientRect();
+      return { x: s.left, y: s.top, w: s.width, h: s.height };
+    }
+    function apply(card, rect, animate) {
+      card.style.transition = animate ? "" : "none";
+      card.style.transform = "translate3d(" + rect.x.toFixed(1) + "px, " + rect.y.toFixed(1) + "px, 0)";
+      card.style.width = rect.w.toFixed(1) + "px";
+      card.style.height = rect.h.toFixed(1) + "px";
+      if (!animate) {
+        void card.offsetWidth;
+        card.style.transition = "";
+      }
+    }
+    function update() {
+      queued = false;
+      const e = els();
+      if (!e.bar || !e.card || !e.slot || e.bar.hidden) return;
+      if (!natural) measure(e.card);
+      if (!(natural.w > 0) || !(natural.h > 0)) { natural = null; return; }
+      const f = floatRect(e);
+      const s = slotRect(e);
+      const slotShown = s.w > 0 && s.h > 0;
+      const shouldDock = slotShown && s.y < f.y + f.h && s.y + s.h > 0;
+      if (docked === null) {
+        docked = shouldDock;
+        e.bar.classList.toggle("is-docked", docked);
+        apply(e.card, docked ? s : f, false);
+        return;
+      }
+      if (shouldDock && !docked) {
+        docked = true;
+        apply(e.card, s, true);
+        e.bar.classList.add("is-docked");
+        e.slot.classList.remove("is-years-landed");
+        void e.slot.offsetWidth;
+        e.slot.classList.add("is-years-landed");
+        return;
+      }
+      if (!shouldDock && docked) {
+        docked = false;
+        e.bar.classList.remove("is-docked");
+        apply(e.card, s, false);
+        apply(e.card, f, true);
+        return;
+      }
+      if (!docked) apply(e.card, f, !following);
+    }
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      raf(update);
+    }
+    function follow(ms) {
+      followUntil = Math.max(followUntil, now() + (ms || YEARS_FOLLOW_MS));
+      if (following) return;
+      following = true;
+      (function tick() {
+        update();
+        if (now() < followUntil) raf(tick);
+        else following = false;
+      })();
+    }
+    function reset() {
+      natural = null;
+      docked = null;
+      schedule();
+    }
+    function wire() {
+      window.addEventListener("scroll", schedule, { passive: true });
+      window.addEventListener("resize", reset);
+      const viewport = $("boardViewport");
+      if (viewport) {
+        viewport.addEventListener("board-pane-move", function (ev) {
+          if (ev.detail && ev.detail.animate) follow(YEARS_FOLLOW_MS);
+          else follow(40);
+        });
+      }
+      if (typeof ResizeObserver === "function" && document.body) {
+        new ResizeObserver(schedule).observe(document.body);
+      }
+      schedule();
+    }
+    return { wire: wire, schedule: schedule, reset: reset, follow: follow };
+  })();
 
   function wireUi() {
     wireFlagDock();
@@ -2471,24 +2629,8 @@
     }
     if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
     if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
+    yearsFloat.wire();
     if (currentDisplayMode() !== "webi") setYearsPinned(true);
-    const yearsTargets = [];
-    const yearsCard = document.querySelector(".card-kpi-years");
-    const paybackLine = $("outPayback");
-    if (yearsCard) yearsTargets.push(yearsCard);
-    if (paybackLine) yearsTargets.push(paybackLine);
-    if (yearsTargets.length && typeof IntersectionObserver === "function" && document.body) {
-      const seen = new Map();
-      const yearsWatch = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          seen.set(entry.target, !!(entry.isIntersecting && entry.intersectionRatio > 0));
-        });
-        let visible = false;
-        seen.forEach(function (on) { if (on) visible = true; });
-        document.body.classList.toggle("is-years-source-visible", visible);
-      }, { threshold: [0, 0.15] });
-      yearsTargets.forEach(function (el) { yearsWatch.observe(el); });
-    }
     const conso = $("conso");
     if (conso) {
       conso.addEventListener("input", function () { scenarioSnapshot = true; formatConsoInput(true); render(); });

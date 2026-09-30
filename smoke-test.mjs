@@ -2146,6 +2146,49 @@ const paneOrderOk =
 const paneOk = paneMathOk && paneOrderOk;
 console.log(`  mobile column peek + swipe: ${paneOk ? "PASS" : "FAIL"}`);
 
+// #140 — ⓘ « Comment c’est calculé » on every result box: one key per box, one shared sheet.
+const resultInfoKeys = ["pv", "kw", "kwhkwc", "kwh", "kwhday", "reel", "eco", "years", "reserve", "fill", "battcost", "project"];
+const resultInfoHtml = resultInfoKeys.every((k) => html.includes(`data-result-info="${k}"`));
+const resultInfoJs = resultInfoKeys.every((k) => new RegExp(`\\n\\s+${k}: function \\(r\\)`).test(app));
+const resultBoxesTagged =
+  (html.match(/class="result-pill[^"]*has-info/g) || []).length >= 7 &&
+  (html.match(/class="card-kpi[^"]*has-info/g) || []).length >= 5 &&
+  !html.includes('data-info="remplissage"') &&
+  html.includes('id="tpl-info-remplissage"');
+const resultInfoOk =
+  resultInfoHtml &&
+  resultInfoJs &&
+  resultBoxesTagged &&
+  app.includes("function openResultInfo") &&
+  app.includes("function buildResultInfo") &&
+  app.includes('RESULT_KIND_LABEL = { input: "Ta donnée", std: "Hypothèse standard", calc: "Calculé" }') &&
+  app.includes('"Affiché dans la boîte"') &&
+  app.includes("précision complète") &&
+  css.includes(".has-info > .result-info-btn") &&
+  css.includes(".calc-table") &&
+  css.includes(".calc-kind-std") &&
+  /Comment c’est calculé/.test(html);
+console.log(`  ⓘ « Comment c’est calculé » sur chaque boîte (${resultInfoKeys.length} clés): ${resultInfoOk ? "PASS" : "FAIL"}`);
+
+// #147 — floating « Retour »: right edge on the green column, docks into the card-3 box with motion.
+const yearsFloatOk =
+  html.includes('id="yearsCard"') &&
+  app.includes("const yearsFloat = (function () {") &&
+  app.includes("function solarRight(solar)") &&
+  app.includes('classList.add("is-docked")') &&
+  app.includes('classList.remove("is-docked")') &&
+  app.includes('"is-years-landed"') &&
+  app.includes('addEventListener("board-pane-move"') &&
+  readFileSync(join(__dirname, "assets/board-panes.js"), "utf8").includes('"board-pane-move"') &&
+  !app.includes("is-years-source-visible") &&
+  !css.includes("is-years-source-visible") &&
+  css.includes(".years-pin.is-docked .years-pin-card") &&
+  /\.years-pin-card \{[^}]*position: absolute/.test(css) &&
+  /\.years-pin-card \{[^}]*transition:/.test(css) &&
+  /\.card-kpi-years > \.years-pin-btn \{[^}]*left: 0\.35rem/.test(css) &&
+  /prefers-reduced-motion: reduce\) \{\s*\.years-pin-card \{ transition: none !important; \}/.test(css);
+console.log(`  « Retour » flottant calé sur la colonne verte + se pose dans la carte 3: ${yearsFloatOk ? "PASS" : "FAIL"}`);
+
 const pass =
   ok &&
   !bad &&
@@ -2315,7 +2358,9 @@ const pass =
   bugDocs &&
   bugWorkflow &&
   scenarioOk &&
-  paneOk;
+  paneOk &&
+  resultInfoOk &&
+  yearsFloatOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
