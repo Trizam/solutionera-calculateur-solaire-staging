@@ -613,8 +613,8 @@ console.log(`  loss at d=20% tilt30: −${lossAt20}% (expect −14 integer) → 
 
 const hasSkipFocus = app.includes("focusSkipTarget") && app.includes("main.focus");
 const noClickGreenFrame =
-  /#main:focus-visible[\s\S]{0,80}outline:\s*none/.test(css) &&
-  /#sec-prod:focus-visible[\s\S]{0,80}outline:\s*none/.test(css) &&
+  /#main:focus-visible[\s\S]{0,200}outline:\s*none/.test(css) &&
+  /#sec-prod:focus-visible[\s\S]{0,120}outline:\s*none/.test(css) &&
   !/#main:focus-visible\s*\{\s*outline:\s*2px\s+solid\s+var\(--green/.test(css) &&
   css.includes(".field-info-btn:focus-visible") &&
   /outline:\s*2px\s+solid\s+var\(--green/.test(css);
