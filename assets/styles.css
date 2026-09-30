@@ -443,6 +443,8 @@ html[data-theme="dark"] .theme-green {
   .theme-yellow.is-flag-focus { animation: none; outline: 3px solid #d4a300; }
   .theme-red.is-flag-focus { animation: none; outline: 3px solid #c0392b; }
 }
+/* #181 : le bord droit et le bas sont réécrits par le script (yearsFloat) pour caler
+   la bulle jaune sur la boîte « Retour » qui flotte. Les valeurs ici sont le repli. */
 .flag-dock {
   position: fixed;
   z-index: 36;
@@ -507,6 +509,10 @@ body.has-flags footer.bug {
   padding-bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 9rem);
 }
 html[data-autonomy="off"] .autonomy-rest {
+  display: none !important;
+}
+/* 4A à zéro (#179, #180) : seule 4A reste. Le script bascule data-need à la fin du glissement. */
+html[data-need="off"] .need-only {
   display: none !important;
 }
 .hint {
@@ -2570,6 +2576,8 @@ section.block h2 .field-info-btn {
      courte descend s’appuyer sur la rangée centrale ; le vide reste au-dessus. */
   html:not([data-mode="webi"]) .slot-roof,
   html:not([data-mode="webi"]) .slot-need { align-self: end; }
+  /* #180 : 4A à zéro prend la place de « Temps pour remplir », posée sur la rangée Mesurage net. */
+  html:not([data-mode="webi"])[data-need="off"] .slot-need { grid-row: need-start / fill-end; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
   html:not([data-mode="webi"]) .flow-arrow {
