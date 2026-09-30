@@ -74,7 +74,11 @@ Les règles durables sont seulement dans ce fichier.
 
 ## 6. Plateau
 
-Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), deux colonnes : toit | 4A–4B, production | 4A–4B, mesurage et jour de décembre | remplissage, coût | batterie, retour | total. La colonne de droite est bleue.
+Deux colonnes. Colonne solaire : taille, production, rendement, coût, retour. Colonne autonomie : 4A, 4B, remplissage, batteries, total.
+
+Au grand écran (≥ 1100px, hors mode webi), la grille est : taille | 4A–4B, production | 4A–4B, rendement | remplissage, coût | batterie, retour | total. Les enveloppes `.col` ne font pas de boîte (`display: contents`), pour que chaque case garde sa place.
+
+Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On commence sur la colonne solaire, avec un recoin de la colonne bleue visible à droite. Un coup rapide vers la gauche amène la colonne bleue et laisse voir un recoin de la colonne verte à gauche. Le doigt qui reste posé et glisse lentement s’arrête là où il se lève, y compris entre les deux. Le mode webi ne montre pas ce couloir : 1A, 1B et le rendement restent en pile.
 
 | Emplacement | Question | Réponse |
 | --- | --- | --- |
@@ -86,7 +90,7 @@ Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), deu
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, ligne de coût |
 | Retour **3** | Valeur des panneaux | Trio `.card-kpi`. L’épingle dit « Retour », comme la boîte. Elle se masque tant que la boîte des années est à l’écran, sans perdre l’état épinglé |
-| Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte `.result-pill` en bas. Au grand écran, le retour à gauche. En pile, le retour des panneaux, plus haut |
+| Total **6** | Coût total du projet | Carte bleue. Détail en haut, boîte `.result-pill` en bas. Le retour des panneaux est dans l’autre colonne |
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
 

@@ -1255,9 +1255,9 @@ const dayOk =
   kWhDecDay > 2 && kWhDecDay < 2.5 &&
   Math.abs(kWhDecNever) < 1e-9 &&
   kWhDecVertical > 10;
-const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-auto"'));
+const yieldHtml = html.slice(html.indexOf('id="sec-yield"'), html.indexOf('id="sec-cost"'));
 const prodBHtml = html.slice(html.indexOf('id="sec-prod-b"'), html.indexOf('id="sec-yield"'));
-const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-cost"'));
+const fillHtml = html.slice(html.indexOf('id="sec-fill"'), html.indexOf('id="sec-batt"'));
 const recFn =
   app.includes("function recommendVerticalPanels") &&
   app.includes("showVerticalRec") &&
@@ -2091,6 +2091,40 @@ const scenarioOk = await (async function runScenarioUrlTests() {
 })();
 console.log(`  scenario URL live round-trip: ${scenarioOk ? "PASS" : "FAIL"}`);
 
+const paneMod = { exports: {} };
+runInNewContext(readFileSync(join(__dirname, "assets/board-panes.js"), "utf8"), {
+  module: paneMod,
+  console
+});
+const panes = paneMod.exports;
+const geo = panes.paneGeometry(360, 314, 10);
+const geoOk = geo.green === 0 && geo.sliver === 36 && geo.blue === -278;
+const flickLeft = panes.releaseTarget(-40, -0.8, -80, -278, 0);
+const flickRight = panes.releaseTarget(-200, 0.9, 70, -278, 0);
+const slowStop = panes.releaseTarget(-120, 0.05, -120, -278, 0);
+const slowBack = panes.releaseTarget(-290, -0.1, -20, -278, 0);
+const resistPast = panes.resistX(30, -278, 0, 0.35);
+const paneMathOk =
+  geoOk &&
+  flickLeft === -278 &&
+  flickRight === 0 &&
+  slowStop === -120 &&
+  slowBack === -278 &&
+  Math.abs(resistPast - 10.5) < 1e-9;
+const solarAt = html.indexOf('class="col col-solar"');
+const autoAt = html.indexOf('class="col col-auto"');
+const paneOrderOk =
+  solarAt > 0 &&
+  solarAt < html.indexOf('data-slot="cost"') &&
+  html.indexOf('data-slot="cost"') < html.indexOf('data-slot="roi"') &&
+  html.indexOf('data-slot="roi"') < autoAt &&
+  autoAt < html.indexOf('data-slot="need"') &&
+  html.includes('src="assets/board-panes.js"') &&
+  css.includes("--pane-sliver") &&
+  css.includes("overflow-x: clip");
+const paneOk = paneMathOk && paneOrderOk;
+console.log(`  mobile column peek + swipe: ${paneOk ? "PASS" : "FAIL"}`);
+
 const pass =
   ok &&
   !bad &&
@@ -2259,7 +2293,8 @@ const pass =
   noTokenInFrontend &&
   bugDocs &&
   bugWorkflow &&
-  scenarioOk;
+  scenarioOk &&
+  paneOk;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);

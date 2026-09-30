@@ -1934,7 +1934,8 @@ html[data-theme="dark"] .bug-done {
 .bug-form-status[hidden] { display: none; }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 
-/* Desktop board — slots stay independent so a later mobile layout can reorder them. */
+/* Two columns. Narrow full mode: docs/DESIGN.md (peek + swipe). */
+.board-viewport { min-width: 0; }
 .board {
   display: flex;
   flex-direction: column;
@@ -1942,12 +1943,23 @@ html[data-theme="dark"] .bug-done {
   /* Result updates must not yank the viewport while the map pan runs. */
   overflow-anchor: none;
 }
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
 .board > .block,
 .board > .result-pair,
-.board > .result-pill {
+.board > .result-pill,
+.col > .block,
+.col > .result-pair,
+.col > .result-pill {
   margin-top: 0;
   margin-bottom: 0;
 }
+html[data-mode="webi"] .col-solar { display: contents; }
+html[data-mode="webi"] .col-auto { display: none; }
 .slot-fill {
   position: relative;
   display: flex;
@@ -2071,8 +2083,41 @@ section.block h2 .field-info-btn {
 #sec-total .breakdown { margin-bottom: 0.85rem; }
 #sec-total .result-pill { margin-top: 0; }
 
+/* Phone / narrow full mode: both columns side by side, other column peeks. */
+@media (max-width: 1099px) {
+  html:not([data-mode="webi"]) .board-viewport {
+    overflow-x: clip;
+    overflow-y: visible;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+  }
+  html:not([data-mode="webi"]) .board-viewport.is-dragging {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  html:not([data-mode="webi"]) .board {
+    --pane-sliver: 2.25rem;
+    --pane-gap: 0.65rem;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--pane-gap);
+    width: calc(200% - (2 * var(--pane-sliver)) - var(--pane-gap));
+  }
+  html:not([data-mode="webi"]) .col {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+  }
+  html:not([data-mode="webi"]) .project-note-side { display: block; }
+  html:not([data-mode="webi"]) .project-note-stack { display: none; }
+}
+
 @media (min-width: 1100px) {
   html:not([data-mode="webi"]) .wrap { max-width: 1180px; }
+  html:not([data-mode="webi"]) .board-viewport,
+  html:not([data-mode="webi"]) .col {
+    display: contents;
+  }
   html:not([data-mode="webi"]) .board {
     --board-gap: 3.25rem;
     display: grid;
@@ -2144,13 +2189,28 @@ section.block h2 .field-info-btn {
   .skip-link,
   .btn, .bug-fab, .years-pin, .years-pin-btn, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
+  .board-viewport {
+    display: block !important;
+    overflow: visible !important;
+    touch-action: auto !important;
+  }
   .board {
     display: block !important;
+    width: auto !important;
     max-width: 100%;
+    transform: none !important;
+  }
+  .col {
+    display: block !important;
+    width: auto !important;
+    flex: none !important;
   }
   .board > .block,
   .board > .result-pair,
-  .board > .result-pill { margin-bottom: 0.75rem; }
+  .board > .result-pill,
+  .col > .block,
+  .col > .result-pair,
+  .col > .result-pill { margin-bottom: 0.75rem; }
   html[data-theme="dark"] {
     color-scheme: light;
     --bg: #f7faf7;
