@@ -321,12 +321,46 @@ section.block h2 > span:not(.num) {
   --border: var(--result-border);
   --pill-end: var(--result-pill-end);
 }
+/* Carte 6 (#167) : le total va du vert des panneaux au bleu des batteries. On voit qu’il tient les deux. */
+.result-pill.tone-blend {
+  --blend-green: var(--result-green-soft);
+  --blend-blue: #d6e8f8;
+  --blend-border: #c9dfdf;
+  border-color: var(--blend-border);
+  background: linear-gradient(90deg, var(--blend-green) 0%, var(--blend-blue) 100%);
+}
+.tone-blend .prod-num {
+  background: linear-gradient(90deg, var(--result-green-dark) 0%, #16324f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: var(--green-dark);
+  -webkit-text-fill-color: transparent;
+}
+html[data-theme="dark"] .tone-blend {
+  --blend-blue: #1a3348;
+  --blend-border: #2c4a4a;
+}
+html[data-theme="dark"] .tone-blend .prod-num {
+  background-image: linear-gradient(90deg, var(--result-green-dark) 0%, #d6e8f8 100%);
+}
 /* Thème jaune des drapeaux. Même douceur que les boîtes verte et bleue. */
 .theme-yellow {
   --flag-bg: #fff4cc;
   --flag-bg-end: #fffbeb;
   --flag-border: #ead98a;
   --flag-text: #1a1a1a;
+  --flag-mark: #e0a800;
+  border: 1px solid var(--flag-border);
+  background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
+  color: var(--flag-text);
+}
+/* #175 : la notice « ça ne se remplit pas » passe au rouge en pleine autonomie. */
+.theme-red {
+  --flag-bg: #fde2e1;
+  --flag-bg-end: #fff5f4;
+  --flag-border: #e7b2ae;
+  --flag-text: #1a1a1a;
+  --flag-mark: #c0392b;
   border: 1px solid var(--flag-border);
   background: linear-gradient(135deg, var(--flag-bg), var(--flag-bg-end));
   color: var(--flag-text);
@@ -370,7 +404,7 @@ html[data-theme="dark"] .theme-green {
   width: 1.2rem;
   height: 1.05rem;
   padding-bottom: 0.08rem;
-  background: #e0a800;
+  background: var(--flag-mark, #e0a800);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   color: #1a1a1a;
   font: 700 0.64rem/1 var(--font);
@@ -394,8 +428,20 @@ html[data-theme="dark"] .theme-green {
   }
   100% { box-shadow: 0 0 0 0 rgba(224, 168, 0, 0); }
 }
+.theme-red.is-flag-focus {
+  animation: flag-focus-red 1.6s ease-out;
+}
+@keyframes flag-focus-red {
+  0%, 45% {
+    background: #f6b2ad;
+    border-color: #c0392b;
+    box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.4);
+  }
+  100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+}
 @media (prefers-reduced-motion: reduce) {
   .theme-yellow.is-flag-focus { animation: none; outline: 3px solid #d4a300; }
+  .theme-red.is-flag-focus { animation: none; outline: 3px solid #c0392b; }
 }
 .flag-dock {
   position: fixed;
@@ -1215,6 +1261,9 @@ html[data-theme="dark"] .result-info-btn:focus-visible { background: rgba(255, 2
 .load-table.is-empty thead {
   display: none;
 }
+/* #173 : curseur à zéro et ligne libre vide → pas de tableau, donc pas de ligne « Autre consommation ». */
+.load-table.is-zero { display: none; }
+.load-table.is-zero + .slider-ends { margin-top: 0.15rem; }
 .load-table th,
 .load-table td {
   text-align: left;
@@ -1305,34 +1354,6 @@ html[data-theme="dark"] .result-info-btn:focus-visible { background: rgba(255, 2
   margin-top: 0.55rem;
 }
 .load-table + .slider-ends { margin-top: 0.85rem; }
-.load-marks {
-  position: relative;
-  height: 1.65rem;
-  margin: 0.05rem 0 0;
-  pointer-events: none;
-}
-.load-mark {
-  position: absolute;
-  top: 0;
-  left: calc(22px + var(--mark) * (100% - 44px));
-  transform: translateX(-50%);
-  max-width: 6.5rem;
-  font-size: 0.64rem;
-  font-weight: 700;
-  line-height: 1.15;
-  color: var(--muted);
-  text-align: center;
-  white-space: normal;
-}
-.load-mark::before {
-  content: "";
-  display: block;
-  width: 2px;
-  height: 7px;
-  margin: -0.55rem auto 0.12rem;
-  border-radius: 999px;
-  background: var(--border);
-}
 .slider-ends {
   display: flex;
   justify-content: space-between;
@@ -1679,10 +1700,11 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   line-height: 1.4;
 }
 
-/* Always-on feedback bubble. The sheet itself stays a normal modal on small screens. */
+/* Always-on feedback bubble. The sheet itself stays a normal modal on small screens.
+   #166 : la bulle et la feuille bug passent au-dessus des feuilles ⓘ (z-index 1000). */
 .bug-fab {
   position: fixed;
-  z-index: 40;
+  z-index: 1100;
   left: max(1rem, env(safe-area-inset-left, 0px));
   bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   width: 3.25rem;
@@ -1821,7 +1843,7 @@ html[data-theme="dark"] .bug-fab[aria-expanded="true"] {
 }
 .bug-done {
   position: fixed;
-  z-index: 45;
+  z-index: 1250;
   left: max(1rem, env(safe-area-inset-left, 0px));
   bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 3.25rem + 0.55rem);
   display: inline-flex;
@@ -1855,6 +1877,8 @@ html[data-theme="dark"] .bug-done {
   padding: 1rem;
   z-index: 1000;
 }
+/* La feuille bug est une couche à part, au-dessus des feuilles ⓘ et de la bulle (#166). */
+#bugModal.modal-backdrop { z-index: 1200; }
 .modal-backdrop[hidden] { display: none !important; }
 @media (min-width: 520px) {
   .modal-backdrop { align-items: center; }
@@ -2339,13 +2363,17 @@ html[data-mode="webi"] .col-auto { display: none; }
   border-radius: 999px;
   background: var(--border);
 }
-.slot-need {
+.slot-need,
+.slot-roof {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   min-width: 0;
 }
-.slot-need > .block { margin: 0; }
+.slot-need > .block,
+.slot-roof > .block { margin: 0; }
+/* Mode webi : 1A et 1B restent des cases de la pile, sans enveloppe. */
+html[data-mode="webi"] .slot-roof { display: contents; }
 .load-val {
   font-size: 0.84rem;
   white-space: normal;
@@ -2470,8 +2498,7 @@ section.block h2 .field-info-btn {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "size need"
-      "prod need"
+      "roof need"
       "yield fill"
       "cost batt"
       "roi total";
@@ -2479,8 +2506,7 @@ section.block h2 .field-info-btn {
     row-gap: 1rem;
     align-items: stretch;
   }
-  html:not([data-mode="webi"]) .slot-size { grid-area: size; align-self: start; }
-  html:not([data-mode="webi"]) .slot-prod { grid-area: prod; align-self: start; }
+  html:not([data-mode="webi"]) .slot-roof { grid-area: roof; }
   html:not([data-mode="webi"]) .slot-need { grid-area: need; }
   html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
   html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
@@ -2493,13 +2519,17 @@ section.block h2 .field-info-btn {
     grid-row: fill-start / total-end;
     align-self: stretch;
   }
+  html:not([data-mode="webi"]) .slot-roof,
   html:not([data-mode="webi"]) .slot-need,
   html:not([data-mode="webi"]) .slot-batt,
   html:not([data-mode="webi"]) .slot-total {
     display: flex;
     flex-direction: column;
   }
-  /* Verrou #151 (docs/DESIGN.md §2 bis) : 4A–4B posées sur « Temps pour remplir ». */
+  /* Verrou #151 (docs/DESIGN.md §2 bis) : 4A–4B posées sur « Temps pour remplir ».
+     #170 : 1A–1B posées de même sur Mesurage net / Autonomie. La colonne la plus
+     courte descend s’appuyer sur la rangée centrale ; le vide reste au-dessus. */
+  html:not([data-mode="webi"]) .slot-roof,
   html:not([data-mode="webi"]) .slot-need { align-self: end; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
@@ -2776,7 +2806,6 @@ section.block h2 .field-info-btn {
   .slider-track,
   .slider-meta,
   .slider-ends,
-  .load-marks,
   .slider-track input[type="range"] { display: none !important; }
   .orient-dial,
   .orient-val { display: none !important; }
@@ -2843,6 +2872,11 @@ section.block h2 .field-info-btn {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+  .result-pill.tone-blend {
+    background: linear-gradient(90deg, var(--blend-green), var(--blend-blue)) !important;
+    border-color: var(--blend-border) !important;
+  }
+  .tone-blend .prod-num { background: none !important; color: #1a1a1a !important; -webkit-text-fill-color: #1a1a1a !important; }
   .card-kpi {
     background: var(--green-soft) !important;
     border-color: var(--border) !important;
@@ -2864,6 +2898,10 @@ section.block h2 .field-info-btn {
     color: #1a1a1a !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+  .fill-shortfall.theme-red {
+    background: linear-gradient(135deg, #fde2e1, #fff5f4) !important;
+    border-color: #e7b2ae !important;
   }
   .result-pair { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: repeat(3, 1fr); }
@@ -3051,10 +3089,15 @@ html[data-multi="on"] .single-only { display: none !important; }
   font-weight: 700;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
+  /* #164 : le chiffre est centré dans sa boîte. */
+  text-align: center;
+  text-align-last: center;
 }
 .pans-table select {
   -webkit-appearance: none;
   appearance: none;
+  /* Même retrait des deux côtés : la flèche à droite, le texte reste au centre. */
+  padding-left: 1.35rem;
   padding-right: 1.35rem;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 0.85rem) 55%, calc(100% - 0.55rem) 55%;
@@ -3063,7 +3106,7 @@ html[data-multi="on"] .single-only { display: none !important; }
   text-overflow: ellipsis;
 }
 .pans-area { position: relative; display: flex; align-items: center; }
-.pans-table .pans-area input { padding-right: 2.3rem; text-align: right; }
+.pans-table .pans-area input { padding-left: 2.3rem; padding-right: 2.3rem; text-align: center; }
 .pans-area input::-webkit-outer-spin-button,
 .pans-area input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pans-area input[type="number"] { -moz-appearance: textfield; appearance: textfield; }

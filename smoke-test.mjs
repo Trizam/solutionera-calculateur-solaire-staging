@@ -474,7 +474,8 @@ const batteryColumn =
   html.includes('data-slot="total"') &&
   html.includes('id="consoJour"') &&
   html.includes('id="autoStop"') &&
-  html.includes('id="battPrice"') &&
+  html.includes('id="battKwh"') &&
+  !html.includes('id="battPrice"') &&
   html.includes('id="permaFlag"') &&
   html.includes('id="sec-yield"') &&
   !/id="sec-yield"[^>]*mode-full-only/.test(html) &&
@@ -483,7 +484,7 @@ const batteryColumn =
   /mode-full-only[^>]*id="sec-batt"/.test(html) &&
   /mode-full-only[^>]*id="sec-total"/.test(html) &&
   /mode-full-only[^>]*id="permaFlag"/.test(html) &&
-  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Quels appareils je veux<\/label>/.test(html) &&
+  /<h2 id="h-auto">\s*<span class="num">4A<\/span>\s*<label for="consoJour">Quels appareils je veux en autonomie&nbsp;\?<\/label>/.test(html) &&
   /<h2 id="h-reserve">\s*<span class="num">4B<\/span>/.test(html) &&
   html.includes("Pendant combien de temps je veux cette autonomie") &&
   !html.includes('id="wantAutonomy"') &&
@@ -720,13 +721,25 @@ const DAILY_LOAD_LABELS = [
   "Lave-vaisselle",
   "Sécheuse",
   "Chauffe-eau",
-  "Thermopompe",
-  "Chauffage"
+  "Thermopompe"
 ];
 const consoJourTag = (html.match(/<input[^>]*id="consoJour"[^>]*>/) || [""])[0];
+const autoSectionHtml = html.slice(html.indexOf('id="sec-auto"'), html.indexOf('id="sec-reserve"'));
+const reserveSectionHtml = html.slice(html.indexOf('id="sec-reserve"'), html.indexOf('id="sec-fill"'));
 const hasConsoJourUi =
-  html.includes("Quels appareils je veux") &&
-  html.includes("appareils de base") &&
+  html.includes("Quels appareils je veux en autonomie") &&
+  // #169 : plus de repères « appareils de base » / « chauffage » sur la piste, plus de ligne Chauffage.
+  !autoSectionHtml.includes("load-mark") &&
+  !autoSectionHtml.includes("appareils de base") &&
+  !/"Chauffage"/.test(app) &&
+  !html.includes("Chauffage —") &&
+  !css.includes(".load-mark") &&
+  // #171 / #172 : 4B sans repère « maison », phrase avec la flèche.
+  !reserveSectionHtml.includes("load-mark") &&
+  reserveSectionHtml.includes('id="autoStopHint">→ Secours jusqu’à 12 h. Autonomie de maison dès 1 jour.') &&
+  // #173 : à zéro, le tableau (et la ligne libre) disparaît ; dès le premier cran il revient.
+  css.includes(".load-table.is-zero { display: none; }") &&
+  app.includes('table.classList.toggle("is-zero", zero)') &&
   html.includes("maison pleinement autonome") &&
   html.includes("La valeur est la consommation du jour.") &&
   !html.includes('id="wantAutonomy"') &&
@@ -809,30 +822,42 @@ const hasSurplusAlertCss =
   !css.includes(".card-kpi.is-clamped") &&
   !css.includes("--danger");
 const ttcExact = 0.11142 * TAX_MULT;
-const ttcRounded = Math.round(ttcExact * 1e5) / 1e5;
+// #165 : le champ tient au centième de cent → 12,81 (virgule, deux décimales).
+const ttcRounded = Math.round(ttcExact * 1e4) / 1e4;
 const defaultRateTtc =
-  /DEFAULT_RATE_CENTS\s*=\s*12\.811/.test(app) &&
-  /DEFAULT_RATE\s*=\s*0\.12811/.test(app) &&
-  /id="rate"[^>]*value="12\.811"/.test(html) &&
-  /id="rate"[\s\S]{0,180}¢\/kWh/.test(html) &&
+  /DEFAULT_RATE_CENTS\s*=\s*12\.81\b/.test(app) &&
+  /DEFAULT_RATE\s*=\s*0\.1281\b/.test(app) &&
+  /RATE_STEP_CENTS\s*=\s*0\.01\b/.test(app) &&
+  /id="rate"[^>]*type="text"/.test(html) &&
+  /id="rate"[^>]*value="12,81"/.test(html) &&
+  /id="rate"[^>]*inputmode="decimal"/.test(html) &&
+  /id="rate"[\s\S]{0,220}¢\/kWh/.test(html) &&
+  !/id="rate"[^>]*type="number"/.test(html) &&
+  !/id="rate"[^>]*value="12\.811"/.test(html) &&
   !/id="rate"[^>]*value="0\.12811"/.test(html) &&
-  !/id="rate"[^>]*value="0\.11142"/.test(html) &&
-  Math.abs(ttcRounded - 0.12811) < 1e-12 &&
+  html.includes("Défaut 12,81&nbsp;¢/kWh") &&
+  !html.includes("Défaut 12,811") &&
+  Math.abs(ttcRounded - 0.1281) < 1e-12 &&
+  app.includes("function parseRateCents") &&
+  app.includes("function fmtRateCents") &&
+  app.includes("function formatRateInput") &&
+  app.includes('.replace(".", ",")') &&
   app.includes("RATE_D_T2_HT") &&
   /RATE_D_T2_HT\s*=\s*0\.11142/.test(app);
 /** Field is ¢/kWh. Always convert to $/kWh (issue #59: 9,53 stays 9,53 ¢). */
-function rateDollarsPerKwh(raw, defaultRate = 0.12811) {
+function rateDollarsPerKwh(raw, defaultRate = 0.1281) {
   const v = typeof raw === "number" ? raw : parseFloat(String(raw).trim().replace(",", "."));
   if (!isFinite(v) || v <= 0) return defaultRate;
   return v / 100;
 }
 const rateNormPass =
-  Math.abs(rateDollarsPerKwh(12.811) - 0.12811) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh(12.81) - 0.1281) < 1e-12 &&
+  Math.abs(rateDollarsPerKwh("12,81") - 0.1281) < 1e-12 &&
   Math.abs(rateDollarsPerKwh(9.53) - 0.0953) < 1e-12 &&
   Math.abs(rateDollarsPerKwh("9,53") - 0.0953) < 1e-12 &&
   Math.abs(rateDollarsPerKwh(11.142) - 0.11142) < 1e-12 &&
-  rateDollarsPerKwh(0) === 0.12811 &&
-  rateDollarsPerKwh(-1) === 0.12811;
+  rateDollarsPerKwh(0) === 0.1281 &&
+  rateDollarsPerKwh(-1) === 0.1281;
 const rateBug59Eco = rateDollarsPerKwh(9.53001) * 8130.843520000001;
 const rateBug59Years = 18396 / rateBug59Eco;
 const rateBug59Pass = rateBug59Eco < 1000 && rateBug59Years > 10 && rateBug59Years < 40;
@@ -919,8 +944,8 @@ console.log(`  surplus alert CSS jaune, cartes inchangées: ${hasSurplusAlertCss
 console.log(`  surplus kWh × rachat 4,730 ¢ + écart vs évité: ${surplusClampMath ? "PASS" : "FAIL"}`);
 console.log(`  autonomie 4A curseur 0–40 kWh/j + appareils + autre conso: ${hasConsoJourUi ? "PASS" : "FAIL"}`);
 console.log(`  épingle rentabilité (clone bas d’écran, originale reste): ${yearsPinOk ? "PASS" : "FAIL"}`);
-console.log(`  default rate TTC 12.811 ¢ (0.11142 × 1.14975): ${defaultRateTtc ? "PASS" : "FAIL"}`);
-console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,811): ${rateNormPass ? "PASS" : "FAIL"}`);
+console.log(`  default rate TTC 12,81 ¢ (0.11142 × 1.14975, au centième, #165): ${defaultRateTtc ? "PASS" : "FAIL"}`);
+console.log(`  rateDollarsPerKwh ¢→$ (9,53 / 12,81): ${rateNormPass ? "PASS" : "FAIL"}`);
 console.log(`  issue #59 payback sane with 9.53 ¢: ${rateBug59Pass ? "PASS" : "FAIL"}`);
 console.log(`  rate field native ¢/kWh (no dual-unit coerce): ${hasRateCentsNative ? "PASS" : "FAIL"}`);
 const infoSheetUi =
@@ -1297,11 +1322,18 @@ const recFn =
   !prodBHtml.includes("autonomySnow");
 const shortfallInFill =
   fillHtml.includes('id="permaFlag"') &&
-  fillHtml.includes("La réserve ne peut pas se remplir") &&
-  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="permaFlag"') &&
+  fillHtml.includes('id="fillLongFlag"') &&
+  fillHtml.includes("Ça commence à être long pour remplir.") &&
+  fillHtml.includes("Vous produisez moins d’énergie que vous en consommez en autonomie.") &&
+  !fillHtml.includes("La réserve ne peut pas se remplir") &&
+  fillHtml.indexOf("Temps pour remplir") < fillHtml.indexOf('id="fillLongFlag"') &&
+  fillHtml.indexOf('id="fillLongFlag"') < fillHtml.indexOf('id="permaFlag"') &&
   fillHtml.indexOf('id="outFill"') < fillHtml.indexOf('id="permaFlag"') &&
   !html.includes("perma-flag") &&
-  css.includes(".fill-shortfall");
+  css.includes(".fill-shortfall") &&
+  css.includes(".theme-red") &&
+  app.includes("FILL_LONG_DAYS = 3") &&
+  app.includes('flag.classList.toggle("theme-red", critical)');
 const kWhPerKwcDefault = sAnnual * (1 - (1 - 0.20) * winterWFromTilt(30));
 const productiblePill =
   prodBHtml.includes('id="outKwhKwc"') &&
@@ -1732,10 +1764,27 @@ const bugDockUi =
   app.includes("function bugDockViewport") &&
   app.includes("bug-dock") &&
   app.includes('m.setAttribute("aria-modal", dock ? "false" : "true")') &&
-  app.includes("activeModalId === \"bugModal\" && bugDockViewport()") &&
+  app.includes("bugModalOpen() && !bugDockViewport()") &&
   !css.includes(".bug-modal");
+// #166 — la bulle et la feuille bug passent au-dessus des feuilles ⓘ, sans les fermer.
+const bugAboveInfo =
+  /\.bug-fab \{[^}]*z-index:\s*1100/.test(css) &&
+  /#bugModal\.modal-backdrop \{ z-index: 1200; \}/.test(css) &&
+  /\.bug-done \{[^}]*z-index:\s*1250/.test(css) &&
+  /\.modal-backdrop \{[^}]*z-index:\s*1000/.test(css) &&
+  app.includes("function closeModal(id)") &&
+  app.includes("function closeAllModals") &&
+  app.includes("function syncPageHold") &&
+  app.includes("function modalTrapRoots") &&
+  app.includes('activeModalId = bugModalOpen() ? "bugModal" : id;') &&
+  app.includes("if (!bugOpen && infoModalId && infoModalId !== id) hideModalEl($(infoModalId));") &&
+  !app.includes("setBugFabBlocked") &&
+  !app.includes("fab.inert") &&
+  app.includes("btnBugClose: \"bugModal\"") &&
+  design.includes("Bulle bug au-dessus de tout (issue #166)");
 console.log(`  bug modal same info-sheet floating card: ${bugMobileCss ? "PASS" : "FAIL"}`);
 console.log(`  bug dock desktop + bubble, other sheets unchanged: ${bugDockUi ? "PASS" : "FAIL"}`);
+console.log(`  #166 bulle + feuille bug au-dessus des feuilles ⓘ (pile): ${bugAboveInfo ? "PASS" : "FAIL"}`);
 const bugWindowPolish =
   html.includes('class="bug-fab-icon"') &&
   html.includes("M8.8 6.1 6.6 3.2") &&
@@ -1929,7 +1978,7 @@ function scenarioSnapshot(page) {
     consoJour: page.el("consoJour").value,
     consoExtra: page.el("consoExtra").value,
     autoStop: page.el("autoStop").value,
-    battPrice: page.el("battPrice").value,
+    battKwh: page.el("battKwh").value,
     battTaxes: page.el("battTaxes").checked,
     fullAuto: page.el("fullAuto").checked,
     m2: calc.m2,
@@ -1962,16 +2011,16 @@ const scenarioOk = await (async function runScenarioUrlTests() {
       taxes: "1",
       subv: "1",
       conso: 17000,
-      rate: "12.811",
+      rate: "12.81",
       consoJour: "0",
       consoExtra: "0",
       autoStop: "11",
-      battPrice: "4800",
+      battKwh: "300",
       battTaxes: "1",
       fullAuto: "0"
     }, over || {});
     const p = new URLSearchParams();
-    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
+    ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battTaxes", "fullAuto"].forEach((key) => {
       p.set(key, String(s[key]));
     });
     return "?" + p.toString();
@@ -2005,7 +2054,11 @@ const scenarioOk = await (async function runScenarioUrlTests() {
     ["?mode=webi&tilt=31", fullSearch({ mode: "webi", tilt: 30 })],
     ["?consoJour=6&consoExtra=1.5", fullSearch({ consoJour: 6, consoExtra: "1.5" })],
     ["?consoJour=99&consoExtra=250", fullSearch({ consoJour: 40, consoExtra: "100" })],
-    ["?autoStop=15&battPrice=5600&battTaxes=0", fullSearch({ autoStop: 15, battPrice: 5600, battTaxes: "0" })],
+    ["?autoStop=15&battKwh=350&battTaxes=0", fullSearch({ autoStop: 15, battKwh: 350, battTaxes: "0" })],
+    // Ancien lien : prix d’un module 16,1 kWh → $/kWh arrondi au 10.
+    ["?battPrice=5600", fullSearch({ battKwh: 350 })],
+    ["?battKwh=999&rate=12.811", fullSearch({ battKwh: 500 })],
+    ["?rate=9,536", fullSearch({ rate: "9.54" })],
     ["?ville=alma", fullSearch({ ville: "alma" })],
     ["?ville=quebec", fullSearch()],
     ["?ville=../x", fullSearch()],
@@ -2052,41 +2105,86 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(live.api.loadsVisibleCount(0) === 0, "no devices at 0");
   expect(live.api.loadsVisibleCount(1) === 1, "phone appears at 0.1");
   expect(live.api.loadsVisibleCount(63) === 9, "base ladder is nine devices");
-  expect(live.api.loadsVisibleCount(400) === 14, "full house shows every device");
+  expect(live.api.loadsVisibleCount(300) === 13, "ladder ends at the heat pump (#169, no Chauffage row)");
+  expect(live.api.loadsVisibleCount(400) === 13, "full house shows every device");
   expect(live.api.clampExtraKwh("250") === 100, "extra caps at 100");
   expect(live.api.fmtKwhDay(6.3) === "6,3", "fmt kWh/j FR");
   expect(live.el("consoJour").value === "0", "daily slider starts at 0");
+  // #173 : à zéro le tableau est masqué ; au premier cran il revient.
+  const zeroPage = await bootScenario("");
+  expect(zeroPage.el("consoJourTable").classList.contains("is-zero") === true, "table hidden at zero");
+  fireInput(zeroPage, "consoJour", "1");
+  expect(zeroPage.el("consoJourTable").classList.contains("is-zero") === false, "table shown from the first notch");
+  expect(zeroPage.el("consoJourTable").classList.contains("is-empty") === false, "phone row shown at 0.1 kWh/j");
+  fireInput(zeroPage, "consoJour", "0");
+  expect(zeroPage.el("consoJourTable").classList.contains("is-zero") === true, "table hidden again at zero");
+  zeroPage.el("consoExtra").value = "1,5";
+  fireInput(zeroPage, "consoJour", "0");
+  expect(zeroPage.el("consoJourTable").classList.contains("is-zero") === false, "free line typed keeps the table");
   live.el("consoJour").value = "63";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "4800";
+  live.el("battKwh").value = "300";
   live.el("battTaxes").checked = false;
   const reserveMath = live.api.calc();
   expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
   expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
   expect(reserveMath.battModules === 1, "6.3 kWh is one 16.1 kWh module");
-  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 4800) < 1e-6, "battery taxes off → one module × price");
-  expect(Math.abs(reserveMath.battCost - 4800) < 1e-6, "battery cost = modules × module price");
+  expect(reserveMath.battKwh === 300 && Math.abs(reserveMath.battPrice - 16.1 * 300) < 1e-6, "module price = 16,1 kWh × $/kWh (#168)");
+  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 4830) < 1e-6, "battery taxes off → one module × price");
+  expect(Math.abs(reserveMath.battCost - 4830) < 1e-6, "battery cost = modules × module price");
   live.el("battTaxes").checked = true;
   const battTaxed = live.api.calc();
-  expect(Math.abs(battTaxed.battCost - 4800 * 1.14975) < 1e-6, "battery taxes on → module HT × 1,14975");
+  expect(Math.abs(battTaxed.battCost - 4830 * 1.14975) < 1e-6, "battery taxes on → module HT × 1,14975");
   expect(Math.abs(battTaxed.projectTotal - (battTaxed.reel + battTaxed.battCost)) < 1e-6, "project = panels + taxed batteries");
   live.el("battTaxes").checked = false;
   live.el("consoJour").value = "333";
-  live.el("battPrice").value = "4800";
+  live.el("battKwh").value = "300";
   const volthium = live.api.calc();
   expect(Math.abs(volthium.reserveKwh - 33.3) < 1e-9, "33.3 kWh reserve");
   expect(volthium.battModules === 2, "33.3 kWh is two 16.1 kWh modules");
-  expect(Math.abs(volthium.battHT - 9600) < 1e-6, "two Volthium modules × 4 800 $");
+  expect(Math.abs(volthium.battHT - 9660) < 1e-6, "two Volthium modules × 16,1 × 300 $/kWh");
+  live.el("battKwh").value = "100";
+  expect(Math.abs(live.api.calc().battHT - 3220) < 1e-6, "100 $/kWh → 2 × 1 610 $");
   live.el("consoJour").value = "400";
-  live.el("battPrice").value = "4800";
+  live.el("battKwh").value = "300";
   live.el("conso").value = "12 000";
   const shortConso = live.api.calc();
   expect(shortConso.consoShort === true && shortConso.consoMin === 14600, `conso flag min 365×40 = ${shortConso.consoMin}`);
   live.el("fullAuto").checked = true;
   const fullAutoCalc = live.api.calc();
   expect(fullAutoCalc.conso === 14600 && fullAutoCalc.consoShort === false, "100 % autonome → conso = 365 × kWh/j, no flag");
+  // #159 : en pleine autonomie, le surplus n’est plus un drapeau (mais le crédit reste plafonné).
+  live.el("area").value = "400";
+  const surplusAuto = live.api.calc();
+  expect(surplusAuto.ecoClamped === true && surplusAuto.surplusFlag === false, "fullAuto + surplus → no yellow flag");
   live.el("fullAuto").checked = false;
+  const surplusGrid = live.api.calc();
+  expect(surplusGrid.ecoClamped === true && surplusGrid.surplusFlag === true, "surplus flag back without fullAuto");
+  live.el("area").value = "40";
   live.el("conso").value = "17 000";
+  // #162 : la note de neige ne vaut que pour « 100 % autonome ».
+  live.el("deneige").value = "50";
+  live.el("tilt").value = "45";
+  const snowGrid = live.api.calc();
+  expect(snowGrid.showVerticalRec === true && snowGrid.snowFlag === false, "snow note hidden without fullAuto");
+  live.el("fullAuto").checked = true;
+  const snowAuto = live.api.calc();
+  expect(snowAuto.showVerticalRec === true && snowAuto.snowFlag === true, "snow note shown with fullAuto");
+  live.el("fullAuto").checked = false;
+  live.el("deneige").value = "100";
+  // #175 : plus de 3 jours → drapeau jaune ; ça ne se remplit pas → rouge seulement en pleine autonomie.
+  const fillLong = await bootScenario("?consoJour=10&autoStop=11");
+  const fillLongCalc = fillLong.api.calc();
+  expect(fillLongCalc.fillState === "ok" && fillLongCalc.fillDays > 3, `10 kWh/j fills in ${fillLongCalc.fillDays} days`);
+  expect(fillLong.el("fillLongFlag").hidden === false, "long fill shows the yellow note");
+  expect(fillLong.el("permaFlag").hidden === true, "long fill is not the shortfall note");
+  const fillShort = await bootScenario("?consoJour=30&autoStop=11");
+  expect(fillShort.api.calc().shortfall === true, "30 kWh/j never fills in December");
+  expect(fillShort.el("fillLongFlag").hidden === true, "no long note when it never fills");
+  expect(fillShort.el("permaFlag").hidden === false && fillShort.el("permaFlag").classList.contains("theme-yellow") && !fillShort.el("permaFlag").classList.contains("theme-red"), "shortfall stays yellow without fullAuto");
+  fillShort.el("fullAuto").checked = true;
+  fillShort.el("fullAuto").dispatchEvent({ type: "change", target: fillShort.el("fullAuto") });
+  expect(fillShort.el("permaFlag").classList.contains("theme-red") && !fillShort.el("permaFlag").classList.contains("theme-yellow"), "fullAuto turns the shortfall note red");
   expect(live.api.fmtFillDuration(0.371).num === "0,4" && live.api.fmtFillDuration(0.371).unit === "jour · décembre", "fill 0,4 jour");
   expect(live.api.fmtFillDuration(3.25).num === "3,3" && live.api.fmtFillDuration(3.25).unit === "jours · décembre", "fill 3,3 jours");
   expect(live.api.fmtFillDuration(14.6).num === "15", "fill ≥ 10 days → 2 sig figs");
@@ -2095,13 +2193,13 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(sunCalc.sunHoursDec - sunCalc.kWhDay / sunCalc.kW) < 1e-9, "December sun hours = kWh/j ÷ kWc");
   live.el("consoJour").value = "0";
   live.el("autoStop").value = "11";
-  live.el("battPrice").value = "4800";
+  live.el("battKwh").value = "300";
   live.el("battTaxes").checked = true;
   expect(live.history.replaceCount === 0, "defaults do not rewrite the URL");
   fireInput(live, "util", "80");
   const fullDefault = fullSearch();
   expect(live.location.search === fullDefault, `first touch writes every parameter → ${live.location.search}`);
-  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((key) => {
+  ["mode", "ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battTaxes", "fullAuto"].forEach((key) => {
     expect(live.location.search.includes(key + "="), `snapshot includes ${key}`);
   });
   fireInput(live, "util", "81");
@@ -2148,7 +2246,7 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   const prefs = await bootScenario("");
   expect(prefs.el("showDetails").checked === false, "details off by default");
   expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
-  expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
+  expect(!prefs.location.search.includes("battKwh"), "battery price stays out of the URL");
   expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
   const multiPage = await bootScenario("?multi=1&pans=40:180:45:100;20:90:45:0");
   const multiCalc = multiPage.api.calc();
@@ -2167,19 +2265,44 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   const singleStill = await bootScenario("");
   expect(singleStill.el("multi").checked === false, "multi off by default");
   expect(singleStill.api.calc().panRows == null, "single slope has no pan rows");
-  expect(/id="gridStatus"[\s\S]*id="multiCheck"[\s\S]*<\/section>\s*<div class="result-pair slot-yield"/.test(html), "multi checkbox sits at the bottom of 1B");
+  expect(/id="gridStatus"[\s\S]*id="multiCheck"[\s\S]*<\/section>\s*<\/div>\s*<div class="result-pair slot-yield"/.test(html), "multi checkbox sits at the bottom of 1B");
+  // #164 : dans le tableau des versants, l’orientation s’écrit court ; le menu de 1B garde le mot entier.
+  expect(multiPage.api.orientShortLabelFor(180) === "180° (S)", "short label S");
+  expect(multiPage.api.orientShortLabelFor(135) === "135° (SE)", "short label SE");
+  expect(multiPage.api.orientShortLabelFor(225) === "225° (SO)", "short label SO");
+  expect(multiPage.api.orientShortLabelFor(15) === "15°", "short label plain degrees");
+  expect(multiPage.api.orientShortLabelFor("abc") === "180° (S)", "short label invalid → Sud");
+  expect(multiPage.api.orientLabelFor(180) === "180° (Sud)", "1B menu keeps the full cardinal");
+  expect(app.includes("label: orientShortLabelFor(k)"), "pan rows use the short label");
+  expect(/\.pans-table select,\s*\.pans-table input\[type="number"\] \{[^}]*text-align: center;[^}]*text-align-last: center;/.test(css), "pan table numbers centred");
+  expect(/\.pans-table \.pans-area input \{ padding-left: 2\.3rem; padding-right: 2\.3rem; text-align: center; \}/.test(css), "pan area centred between unit paddings");
   expect(/<label class="check check-multi single-only" id="multiCheck"/.test(html), "multi checkbox hides once the table is open");
   const onePan = await bootScenario("?multi=1&pans=25:90:30:50");
   expect(onePan.el("multi").checked === false, "one slope in the link flips back to single");
   expect(onePan.el("area").value === "25" && onePan.el("orient").value === "90" && onePan.el("tilt").value === "30" && onePan.el("deneige").value === "50", `single fields take the slope ${onePan.el("area").value}/${onePan.el("orient").value}/${onePan.el("tilt").value}/${onePan.el("deneige").value}`);
   expect(!onePan.location.search.includes("multi=1"), `URL drops multi for one slope ${onePan.location.search}`);
 
-  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=5600&battTaxes=0");
+  const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battKwh=350&battTaxes=0");
   expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");
-  expect(batteryScenario.el("battPrice").value === "5600", "shared battery price");
+  expect(batteryScenario.el("battKwh").value === "350", "shared battery price");
   expect(batteryScenario.el("battTaxes").checked === false, "shared battery taxes");
   expect(batteryScenario.api.calc().reserveKwh === 20, "shared reserve calculation");
-  expect(batteryScenario.api.calc().battCost === 5600, "shared battery total calculation");
+  expect(batteryScenario.api.calc().battModules === 1, "20 kWh is one 16.1 kWh module");
+  expect(Math.abs(batteryScenario.api.calc().battCost - 16.1 * 350) < 1e-6, "shared battery total calculation (1 module × 16,1 × 350)");
+  const legacyBattery = await bootScenario("?battPrice=4800");
+  expect(legacyBattery.el("battKwh").value === "300", `legacy battPrice=4800 → 300 $/kWh, got ${legacyBattery.el("battKwh").value}`);
+
+  // #165 : le champ tarif s’écrit avec la virgule et deux décimales.
+  const ratePage = await bootScenario("");
+  expect(ratePage.el("rate").value === "12,81", `rate default shown 12,81, got ${ratePage.el("rate").value}`);
+  expect(Math.abs(ratePage.api.calc().rateOk - 0.1281) < 1e-12, "rate default 0,1281 $/kWh");
+  fireInput(ratePage, "rate", "9.536");
+  expect(Math.abs(ratePage.api.calc().rateOk - 0.0954) < 1e-12, "typed 9.536 snaps to 9,54 ¢ in the calc");
+  expect(ratePage.location.search.includes("rate=9.54"), `URL rate two decimals ${ratePage.location.search}`);
+  ratePage.el("rate").dispatchEvent({ type: "change", target: ratePage.el("rate") });
+  expect(ratePage.el("rate").value === "9,54", `change formats the field with a comma, got ${ratePage.el("rate").value}`);
+  const rateShared = await bootScenario("?rate=9,5");
+  expect(rateShared.el("rate").value === "9,50", `shared 9,5 shows 9,50, got ${rateShared.el("rate").value}`);
 
   if (fails.length) {
     fails.forEach((msg) => console.log("  scenario URL FAIL:", msg));
@@ -2273,13 +2396,31 @@ const goodFirstUi =
   app.includes("function wireRateWheel") &&
   app.includes("passive: false") &&
   html.includes('id="battDraftNote" hidden') &&
-  html.includes("Brouillon — le prix du module Volthium reste à confirmer.") &&
+  html.includes("Brouillon — le prix au kWh des batteries reste à confirmer.") &&
   app.includes("battDraft.hidden") &&
   html.includes("16,1") &&
-  html.includes('min="2400"') &&
+  // #168 : curseur $/kWh 100–500, défaut 300 ; un module = 16,1 × $/kWh.
+  /<input id="battKwh" type="range" min="100" max="500" step="10" value="300" \/>/.test(html) &&
+  html.includes('id="battKwhVal">300&nbsp;$/kWh') &&
+  html.includes("Prix des batteries ($/kWh)") &&
+  !html.includes('min="2400"') &&
+  !html.includes("Prix d’un module (16,1") &&
   app.includes("BATT_MODULE_KWH = 16.1") &&
-  html.includes("tone-green") &&
-  css.includes(".tone-green") &&
+  app.includes("BATT_KWH_PRICE_DEFAULT = 300") &&
+  app.includes("function battModulePriceFrom") &&
+  // #167 : la boîte du total va du vert au bleu.
+  /class="result-pill tone-blend has-info" id="projectOut"/.test(html) &&
+  !html.includes("tone-green has-info") &&
+  /\.result-pill\.tone-blend \{[^}]*linear-gradient\(90deg, var\(--blend-green\) 0%, var\(--blend-blue\) 100%\)/.test(css) &&
+  css.includes(".tone-blend .prod-num") &&
+  css.includes("html[data-theme=\"dark\"] .tone-blend") &&
+  // #170 : 1A + 1B forment une case posée sur la rangée Mesurage net / Autonomie.
+  /<div class="slot-roof" data-slot="roof" id="slot-roof">\s*(<!--[\s\S]*?-->\s*)?<section class="block slot-size" id="sec-prod"/.test(html) &&
+  /"roof need"\s*"yield fill"\s*"cost batt"\s*"roi total"/.test(css) &&
+  /html:not\(\[data-mode="webi"\]\) \.slot-roof,\s*html:not\(\[data-mode="webi"\]\) \.slot-need \{ align-self: end; \}/.test(css) &&
+  /html\[data-mode="webi"\] \.slot-roof \{ display: contents; \}/.test(css) &&
+  !css.includes('"size need"') &&
+  design.includes("issue #170") &&
   css.includes(".town-region") &&
   app.includes('region.className = "town-region"') &&
   html.includes("selon l’orientation, l’inclinaison et le déneigement") &&
