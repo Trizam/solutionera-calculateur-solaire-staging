@@ -974,9 +974,9 @@ console.log(`  ⓘ HQ lock moyenne 9,53 ¢ + 2 paliers HT+TTC: ${hasRateInfoUi ?
 console.log(`  ⓘ floating cards + tilt tip: ${infoSheetUi ? "PASS" : "FAIL"}`);
 const orientVersantTip =
   html.includes("tpl-info-orient") &&
-  html.includes("Indiquez un seul versant à la fois") &&
-  html.includes("refaites le calcul") &&
-  html.includes("additionnez les résultats") &&
+  html.includes("laissez la case décochée") &&
+  html.includes("Ma toiture a plusieurs versants") &&
+  html.includes("Le total additionne les productions") &&
   !html.includes("Ne répartissez pas le calcul");
 console.log(`  ⓘ orientation un seul versant + addition: ${orientVersantTip ? "PASS" : "FAIL"}`);
 const orientAzimuthHint =
@@ -2143,6 +2143,24 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(prefs.el("editorNotes").hidden === true, "editor notes hidden by default");
   expect(!prefs.location.search.includes("battPrice"), "battery price stays out of the URL");
   expect(!prefs.location.search.includes("autoStop"), "reserve duration stays out of the URL");
+  const multiPage = await bootScenario("?multi=1&pans=40:180:45:100;20:90:45:0");
+  const multiCalc = multiPage.api.calc();
+  const slopeA = await bootScenario("?area=40&orient=180&tilt=45&deneige=100");
+  const slopeB = await bootScenario("?area=20&orient=90&tilt=45&deneige=0");
+  const a = slopeA.api.calc();
+  const b = slopeB.api.calc();
+  expect(multiPage.el("multi").checked === true, "multi checkbox from URL");
+  expect(Math.abs(multiCalc.kW - (a.kW + b.kW)) < 1e-9, `multi kWc sums ${multiCalc.kW} vs ${a.kW}+${b.kW}`);
+  expect(multiCalc.nPv === a.nPv + b.nPv, `multi panels sum ${multiCalc.nPv}`);
+  expect(Math.abs(multiCalc.kWh - (a.kWh + b.kWh)) < 1e-6, "multi annual kWh sums");
+  expect(Math.abs(multiCalc.kWhDec - (a.kWhDec + b.kWhDec)) < 1e-6, "multi December kWh sums");
+  expect(multiCalc.showVerticalRec === true, "one uncleared slope recommends vertical");
+  expect(multiPage.location.search.includes("multi=1"), "URL keeps multi=1");
+  expect(multiPage.location.search.includes("pans=40"), "URL keeps pans");
+  const singleStill = await bootScenario("");
+  expect(singleStill.el("multi").checked === false, "multi off by default");
+  expect(singleStill.api.calc().panRows == null, "single slope has no pan rows");
+
   const batteryScenario = await bootScenario("?consoJour=8&autoStop=15&battPrice=5600&battTaxes=0");
   expect(batteryScenario.el("autoStop").value === "15", "shared reserve duration");
   expect(batteryScenario.el("battPrice").value === "5600", "shared battery price");

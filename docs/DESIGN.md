@@ -106,6 +106,8 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
 
+Case « Ma toiture a plusieurs versants », décochée par défaut, visible en mode webi. Cochée : 1A ne garde que la localisation. 1B devient le tableau des versants, avec la densité au-dessus (une seule valeur pour toute la toiture). Colonnes : superficie (m² / pi² dans l’en-tête), orientation, inclinaison, déneigement. Le déneigement est un menu 0 %, 25 %, 50 %, 75 %, 100 % (défaut 100 %). Quatre versants au maximum. Sous chaque rangée : panneaux, kWc, efficacité. Le total additionne les panneaux, les kWc, les kWh/an et les kWh/j de décembre. L’efficacité du total est pondérée par les kWc. Le coût, le retour et l’autonomie partent de ces sommes. Décochée, 1A et 1B restent le versant unique.
+
 La colonne de gauche porte le solaire : toit, production, mesurage et jour de décembre, coût, retour. La colonne de droite est bleue et reste affichée : 4A, 4B, remplissage, batteries, total. Chaque carte garde la hauteur de son contenu. Les deux boîtes vertes du rendement ont la même hauteur.
 
 La consommation du jour est le curseur (0 à 40 kWh/j) plus la ligne libre. Les neuf premiers usages restent l’échelle hors réseau et s’arrêtent à 6,3 kWh/j. Le chauffe-eau entre à 18 kWh/j. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux. Le total du jour s’écrit en kWh/j.
@@ -122,6 +124,6 @@ Pastille en bas de 1B : « Efficacité de l’installation », unité kWh/kWc/An
 
 La puissance de 1A s’écrit en watts-crête (6,4 kWc → 6 400 Wc). Le jour de décembre s’écrit « kWh / j en décembre ». Sous l’inclinaison : 45° donne généralement le maximum de production. La molette sur le tarif marginal fait bouger les décimales (pas de 0,001 ¢). La note « brouillon » du prix batterie ne s’affiche que si « Afficher les notes d’édition » est coché. Dans le menu des villes, la région suit le nom en léger et s’efface avant le productible si la ligne déborde. Le texte du chiffre de droite vit dans l’aide ⓘ de la localisation.
 
-L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus la consommation du jour (kWh/j) et la ligne libre. La durée de réserve et le prix des batteries n’y vont pas.
+L’URL de partage contient le scénario de toiture (ville, superficie, unité, densité, orientation, inclinaison, déneigement, prix au watt, taxes, subvention, consommation annuelle, tarif) plus la consommation du jour (kWh/j), la ligne libre, la durée de réserve, le prix et les taxes des batteries. Plusieurs versants : `multi=1` et `pans=` (m², azimut, inclinaison, déneigement, séparés par `:`, rangées séparées par `;`).
 
 En mode webi, tout ce qui porte `.mode-full-only` est masqué : la colonne bleue, le coût, le retour, la consommation du jour, la réserve, le remplissage, la batterie, le total. Le kWh/j de décembre reste à côté de Mesurage Net, en vert.
