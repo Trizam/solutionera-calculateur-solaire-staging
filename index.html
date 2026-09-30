@@ -734,7 +734,7 @@
           <li>Consommation par jour = curseur de 0 à 40&nbsp;kWh/j (pas de 0,1), plus la ligne libre. Ce n’est pas la facture annuelle. Le jour de décembre, les appareils et les batteries restent à l’écran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
-          <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. La consommation du jour (kWh/j) et la ligne libre, oui.</li>
+          <li>Le lien du scénario conserve aussi la durée de réserve, le prix et les taxes des batteries, la consommation du jour et la ligne libre.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
       </aside>
@@ -747,6 +747,9 @@
     </footer>
     </main>
   </div>
+
+  <!-- Rebuilt from the current scenario immediately before browser printing. -->
+  <article class="print-report" id="printReport" aria-hidden="true"></article>
 
   <!-- Pedagogical info modal -->
   <div class="modal-backdrop info-sheet mode-full-only" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoDesc">
@@ -1108,6 +1111,7 @@
     </div>
   </div>
 
+  <script src="assets/vendor/qrcode-generator.js"></script>
   <script src="assets/app.js"></script>
   <script src="assets/board-panes.js"></script>
 </body>

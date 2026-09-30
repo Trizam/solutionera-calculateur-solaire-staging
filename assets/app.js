@@ -70,6 +70,9 @@
    * 33 kWh of reserve is two modules, not reserve × a $/kWh draft.
    */
   const BATT_MODULE_KWH = 16.1;
+  const BATT_PRICE_MIN = 2400;
+  const BATT_PRICE_MAX = 7200;
+  const BATT_PRICE_STEP = 100;
   const BATT_PRICE_DEFAULT = 4800;
   /**
    * Reserve duration stops. The left label is the stop name.
@@ -1283,7 +1286,11 @@
     conso: DEFAULT_CONSO_KWH,
     rate: DEFAULT_RATE_CENTS,
     consoJour: 0,
-    consoExtra: 0
+    consoExtra: 0,
+    autoStop: RESERVE_DEFAULT_INDEX,
+    battPrice: BATT_PRICE_DEFAULT,
+    battTaxes: true,
+    fullAuto: false
   };
 
   function snapStep(n, min, max, step) {
@@ -1379,15 +1386,27 @@
     }
     let consoExtra = d.consoExtra;
     if (q.has("consoExtra")) consoExtra = clampExtraKwh(q.get("consoExtra"));
+    let autoStop = d.autoStop;
+    if (q.has("autoStop")) {
+      const v = snapStep(q.get("autoStop"), 0, RESERVE_STOPS.length - 1, 1);
+      if (isFinite(v)) autoStop = v;
+    }
+    let battPrice = d.battPrice;
+    if (q.has("battPrice")) {
+      const v = snapStep(q.get("battPrice"), BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP);
+      if (isFinite(v)) battPrice = v;
+    }
+    const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
+    const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
     let ville = d.ville;
     if (q.has("ville")) {
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battPrice, battTaxes, fullAuto };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battPrice", "battTaxes", "fullAuto"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1421,6 +1440,10 @@
       p.set("rate", trimNum(s.rate, 3));
       p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
+      p.set("autoStop", String(s.autoStop));
+      p.set("battPrice", String(s.battPrice));
+      p.set("battTaxes", s.battTaxes ? "1" : "0");
+      p.set("fullAuto", s.fullAuto ? "1" : "0");
       return p.toString();
     }
     if (mode === "webi") p.set("mode", "webi");
@@ -1438,6 +1461,10 @@
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
     if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
+    if (s.autoStop !== d.autoStop) p.set("autoStop", String(s.autoStop));
+    if (s.battPrice !== d.battPrice) p.set("battPrice", String(s.battPrice));
+    if (!s.battTaxes) p.set("battTaxes", "0");
+    if (s.fullAuto) p.set("fullAuto", "1");
     return p.toString();
   }
 
@@ -1456,6 +1483,10 @@
     $("rate").value = trimNum(s.rate, 3);
     if ($("consoJour")) $("consoJour").value = String(Math.round(s.consoJour * 10));
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
+    if ($("autoStop")) $("autoStop").value = String(s.autoStop);
+    if ($("battPrice")) $("battPrice").value = String(s.battPrice);
+    if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
+    if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
     paintTownButton();
@@ -1493,6 +1524,10 @@
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
       consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
+      autoStop: reserveStopIndex(),
+      battPrice: readRange("battPrice", BATT_PRICE_MIN, BATT_PRICE_MAX, BATT_PRICE_STEP, d.battPrice),
+      battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
+      fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
       ville: canonicalVille(selectedVille)
     };
   }
@@ -1511,8 +1546,232 @@
     history.replaceState(history.state, "", path);
   }
 
-  function printPdf() {
+  const PRINT_CARD_PAGES = [
+    ["sec-prod", "sec-prod-b", "sec-auto", "sec-reserve", "sec-yield", "sec-fill"],
+    ["sec-cost", "sec-batt", "sec-value", "sec-total"]
+  ];
+
+  function printNode(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function printValue(id, fallback) {
+    const node = $(id);
+    const value = node ? String(node.textContent || "").replace(/\s+/g, " ").trim() : "";
+    return value || fallback || "—";
+  }
+
+  function syncPrintControls(source, clone) {
+    const sourceControls = source.querySelectorAll("input, select, textarea");
+    const cloneControls = clone.querySelectorAll("input, select, textarea");
+    sourceControls.forEach(function (control, index) {
+      const copy = cloneControls[index];
+      if (!copy) return;
+      copy.value = control.value;
+      if ("checked" in control) copy.checked = control.checked;
+      if (copy.tagName === "SELECT") {
+        Array.from(copy.options).forEach(function (option, optionIndex) {
+          option.selected = optionIndex === control.selectedIndex;
+        });
+      }
+    });
+  }
+
+  function namespacePrintIds(root, sourceId) {
+    const idMap = new Map();
+    const nodes = [root].concat(Array.from(root.querySelectorAll("[id]")));
+    nodes.forEach(function (node, index) {
+      if (!node.id) return;
+      const next = "print-" + sourceId + "-" + index + "-" + node.id;
+      idMap.set(node.id, next);
+      node.id = next;
+    });
+    ["for", "aria-labelledby", "aria-describedby", "aria-controls"].forEach(function (attr) {
+      [root].concat(Array.from(root.querySelectorAll("[" + attr + "]"))).forEach(function (node) {
+        const value = node.getAttribute(attr);
+        if (!value) return;
+        node.setAttribute(attr, value.split(/\s+/).map(function (id) {
+          return idMap.get(id) || id;
+        }).join(" "));
+      });
+    });
+  }
+
+  function clonePrintCard(sourceId) {
+    const source = $(sourceId);
+    if (!source) return null;
+    const clone = source.cloneNode(true);
+    syncPrintControls(source, clone);
+    namespacePrintIds(clone, sourceId);
+    clone.classList.remove("mode-full-only", "mode-webi-only");
+    clone.querySelectorAll(".mode-full-only, .mode-webi-only").forEach(function (node) {
+      node.classList.remove("mode-full-only", "mode-webi-only");
+    });
+    clone.classList.add("print-card");
+    clone.setAttribute("data-print-source", sourceId);
+    clone.removeAttribute("tabindex");
+    return clone;
+  }
+
+  function scenarioPrintUrl() {
+    syncScenarioUrl();
+    const url = new URL(window.location.href);
+    url.hash = "";
+    return url.href;
+  }
+
+  function appendPrintBrand(parent, subtitle) {
+    const header = printNode("header", "print-report-brand");
+    const logo = document.querySelector(".brand-logo");
+    if (logo) {
+      const logoCopy = logo.cloneNode(true);
+      logoCopy.removeAttribute("class");
+      header.appendChild(logoCopy);
+    }
+    const words = printNode("div", "print-report-brand-words");
+    words.appendChild(printNode("strong", "", "Solution ERA | DÉFI Autonomie Énergétique"));
+    words.appendChild(printNode("span", "", subtitle));
+    header.appendChild(words);
+    parent.appendChild(header);
+  }
+
+  function appendPrintSummary(report, url) {
+    const page = printNode("section", "print-sheet print-summary-page");
+    appendPrintBrand(page, "Calculateur solaire");
+    page.appendChild(printNode("h1", "", "Résumé de votre projet solaire"));
+    const town = $("villeBtn");
+    page.appendChild(printNode("p", "print-summary-context", "Scénario calculé pour " + (town && town.value ? town.value : "la localisation choisie") + "."));
+
+    const summary = printNode("div", "print-summary-grid");
+    [
+      [printValue("outPv"), "panneaux solaires"],
+      [printValue("outKwh"), "production annuelle (kWh)"],
+      [printValue("autoStopVal"), "autonomie choisie"],
+      [printValue("outProject"), "coût total estimé"]
+    ].forEach(function (item) {
+      const card = printNode("div", "print-summary-card");
+      card.appendChild(printNode("strong", "", item[0]));
+      card.appendChild(printNode("span", "", item[1]));
+      summary.appendChild(card);
+    });
+    page.appendChild(summary);
+
+    const share = printNode("section", "print-share");
+    share.appendChild(printNode("h2", "", "Rouvrir ce calcul exact"));
+    const link = printNode("a", "print-scenario-link", url);
+    link.href = url;
+    share.appendChild(link);
+    const qr = document.createElement("img");
+    qr.className = "print-qr";
+    qr.alt = "Code QR pour rouvrir ce calcul";
+    qr.width = 190;
+    qr.height = 190;
+    if (typeof qrcode === "function") {
+      const code = qrcode(0, "M");
+      code.addData(url, "Byte");
+      code.make();
+      qr.src = code.createDataURL(5, 4);
+    }
+    share.appendChild(qr);
+    share.appendChild(printNode("p", "print-qr-caption", "Scannez avec l’appareil photo d’un cellulaire."));
+    page.appendChild(share);
+    page.appendChild(printNode("p", "print-page-warning", "Attention : ce rapport est long. Vérifiez le nombre de pages sélectionnées avant d’imprimer."));
+    report.appendChild(page);
+  }
+
+  function appendPrintCardPage(report, cardIds, title, pageClass) {
+    const page = printNode("section", "print-sheet print-card-page " + pageClass);
+    appendPrintBrand(page, "Détails du scénario");
+    page.appendChild(printNode("h1", "", title));
+    const grid = printNode("div", "print-card-grid");
+    cardIds.forEach(function (id) {
+      const card = clonePrintCard(id);
+      if (card) grid.appendChild(card);
+    });
+    page.appendChild(grid);
+    report.appendChild(page);
+  }
+
+  function appendPrintDetailSection(parent, title, content) {
+    const section = printNode("section", "print-detail-section");
+    section.appendChild(printNode("h2", "", title));
+    section.appendChild(content);
+    parent.appendChild(section);
+  }
+
+  function appendPrintAppendix(report) {
+    const appendix = printNode("section", "print-appendix");
+    appendPrintBrand(appendix, "Détails de calcul");
+    appendix.appendChild(printNode("h1", "", "Hypothèses, formules et sources"));
+    appendix.appendChild(printNode("p", "print-appendix-intro", "Les sections suivantes regroupent les explications disponibles dans les boutons d’information du calculateur."));
+
+    const general = $("infoDesc");
+    if (general) appendPrintDetailSection(appendix, "Méthode de calcul", general.cloneNode(true));
+    const rate = $("rateDesc");
+    if (rate) appendPrintDetailSection(appendix, "Tarif Hydro-Québec", rate.cloneNode(true));
+
+    const seen = new Set();
+    document.querySelectorAll("[data-info]").forEach(function (button) {
+      const key = button.getAttribute("data-info");
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const template = $("tpl-info-" + key);
+      if (!template) return;
+      const fragment = template.content.cloneNode(true);
+      const titleNode = fragment.querySelector("[data-info-title]");
+      const title = titleNode ? titleNode.textContent.trim() : "Information";
+      if (titleNode) titleNode.remove();
+      const body = printNode("div", "print-detail-body");
+      body.appendChild(fragment);
+      appendPrintDetailSection(appendix, title, body);
+    });
+
+    const disclaimers = document.querySelector(".disclaimers");
+    if (disclaimers) {
+      const assumptions = disclaimers.cloneNode(true);
+      assumptions.querySelectorAll("button").forEach(function (button) { button.remove(); });
+      appendPrintDetailSection(appendix, "À retenir", assumptions);
+    }
+    report.appendChild(appendix);
+  }
+
+  function buildPrintReport() {
+    const report = $("printReport");
+    if (!report) return null;
+    report.replaceChildren();
+    const url = scenarioPrintUrl();
+    appendPrintSummary(report, url);
+    appendPrintCardPage(report, PRINT_CARD_PAGES[0], "Production et autonomie", "print-card-page-production");
+    appendPrintCardPage(report, PRINT_CARD_PAGES[1], "Coûts et valeur", "print-card-page-costs");
+    appendPrintAppendix(report);
+    report.dataset.scenarioUrl = url;
+    return report;
+  }
+
+  function waitForPrintImages(report) {
+    if (!report) return Promise.resolve();
+    const pending = Array.from(report.querySelectorAll("img")).filter(function (img) {
+      return !img.complete;
+    });
+    if (!pending.length) return Promise.resolve();
+    return Promise.race([
+      Promise.all(pending.map(function (img) {
+        return new Promise(function (resolve) {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+        });
+      })),
+      new Promise(function (resolve) { window.setTimeout(resolve, 4000); })
+    ]);
+  }
+
+  async function printPdf() {
     closeInfo();
+    const report = buildPrintReport();
+    await waitForPrintImages(report);
     window.print();
   }
 
@@ -2338,8 +2597,6 @@
 
     let initialSearch = "";
     try { initialSearch = location.search || ""; } catch (_) { initialSearch = ""; }
-    scenarioSnapshot = searchHasScenario(initialSearch);
-    applyScenario(parseScenarioSearch(initialSearch));
     if ($("autoStop")) {
       $("autoStop").min = "0";
       $("autoStop").max = String(RESERVE_STOPS.length - 1);
@@ -2347,6 +2604,8 @@
       $("autoStop").value = String(RESERVE_DEFAULT_INDEX);
     }
     if ($("battPrice")) $("battPrice").value = String(BATT_PRICE_DEFAULT);
+    scenarioSnapshot = searchHasScenario(initialSearch);
+    applyScenario(parseScenarioSearch(initialSearch));
     try {
       if (location.hash === "#bugModal") openBugReport();
     } catch (_) {}
@@ -3122,6 +3381,13 @@
 
   window.addEventListener("beforeprint", () => {
     closeInfo();
+    const report = $("printReport");
+    if (report && !report.hasChildNodes()) buildPrintReport();
+  });
+
+  window.addEventListener("afterprint", () => {
+    const report = $("printReport");
+    if (report) report.replaceChildren();
   });
 
   // Skip-link: browsers often leave focus on <body> after hash jump — force #main
