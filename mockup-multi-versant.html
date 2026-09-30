@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr" data-mode="full" data-theme-pref="sys">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b4332" />
+  <meta name="robots" content="noindex" />
+  <title>Maquette · multi-versant · Calculateur solaire</title>
+  <!-- Maquette (issue #146). Le calculateur en ligne n’est pas touché. Règles : docs/DESIGN.md -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/mockup-multi-versant.css" />
+  <script src="assets/theme-mode.js"></script>
+</head>
+<body>
+  <div class="wrap wrap-mockup">
+    <main id="main" tabindex="-1">
+    <div class="brand">
+      <img class="brand-logo" src="assets/logo-solution-era.png" alt="Solution ERA | DÉFI Autonomie Énergétique" width="50" height="50" decoding="async" />
+      <div class="brand-text">
+        <div class="brand-name">Solution ERA | DÉFI Autonomie Énergétique</div>
+        <div class="brand-sub">Calculateur solaire · <span class="mockup-badge">Maquette multi-versant</span></div>
+      </div>
+    </div>
+
+    <!-- Porte du mode : une case sous le titre de 1A. Décochée = 1A et 1B habituels. -->
+    <label class="check check-multi" id="multiCheck">
+      <input type="checkbox" id="multi" checked />
+      <span>Ma toiture a plusieurs versants<span class="sub">→ Un tableau remplace 1A et 1B : une rangée par versant, chacun avec son orientation, son inclinaison et son déneigement.</span></span>
+    </label>
+
+    <div class="mockup-board">
+
+    <!-- 1A · Localisation -->
+    <section class="block" id="sec-loc" aria-labelledby="h-loc">
+      <h2 id="h-loc"><span class="num">1A</span> Où est ma toiture&nbsp;?</h2>
+      <div class="field" id="field-loc">
+        <div class="label-row field-info-wrap">
+          <label class="field-label" id="locLabel" for="villeBtn">Localisation</label>
+          <button type="button" class="field-info-btn" aria-label="Aide : Localisation" title="Aide : Localisation"><span aria-hidden="true">ⓘ</span></button>
+        </div>
+        <div class="town-picker">
+          <div class="town-field">
+            <input type="text" id="villeBtn" class="town-input" autocomplete="off" placeholder="Ville, MRC ou région" value="Québec" readonly />
+            <span class="town-yield" id="villeYield">1&nbsp;270 kWh/kWc/an</span>
+            <button type="button" class="town-caret-btn" tabindex="-1" aria-label="Afficher les villes"><span class="town-caret" aria-hidden="true"></span></button>
+          </div>
+        </div>
+        <p class="hint">→ Le chiffre à droite est le productible pour 1&nbsp;kWc, plein sud, 45°, en kWh/kWc/an. Il sert de référence à chaque versant du tableau.</p>
+      </div>
+    </section>
+
+    <!-- 1B · Versants -->
+    <section class="block" id="sec-pans" aria-labelledby="h-pans">
+      <h2 id="h-pans"><span class="num">1B</span> Mes versants&nbsp;: combien de panneaux, combien d’énergie&nbsp;?</h2>
+
+      <div class="field">
+        <div class="label-row field-info-wrap">
+          <label for="util">Densité d’installation (utilisation du toit)</label>
+          <button type="button" class="field-info-btn" aria-label="Aide : Densité d’installation"><span aria-hidden="true">ⓘ</span></button>
+        </div>
+        <div class="prod-control-row slider-row">
+          <div class="slider-val-left" id="utilVal">80 %</div>
+          <div class="slider-track">
+            <input id="util" type="range" min="60" max="100" step="1" value="80" />
+            <div class="slider-meta"><span>60&nbsp;%</span><span>100&nbsp;%</span></div>
+          </div>
+        </div>
+        <p class="hint">→ La même densité s’applique à tous les versants.</p>
+      </div>
+
+      <div class="field field-pans">
+        <table class="pans-table" id="pansTable" aria-label="Versants de la toiture">
+          <thead>
+            <tr>
+              <th scope="col" class="pans-th-area">
+                <div class="pans-th-head">
+                  <span class="pans-th-label">Superficie</span>
+                  <div class="unit-toggle unit-toggle-mini" role="group" aria-label="Unité de surface">
+                    <button type="button" id="unitM2" class="active" aria-pressed="true">m²</button>
+                    <button type="button" id="unitSqft" aria-pressed="false">pi²</button>
+                  </div>
+                </div>
+              </th>
+              <th scope="col" class="pans-th-az"><span class="pans-th-label">Orientation</span></th>
+              <th scope="col" class="pans-th-tilt"><span class="pans-th-label">Inclinaison</span></th>
+              <th scope="col" class="pans-th-snow"><span class="pans-th-label">Déneigement</span></th>
+              <th scope="col" class="pans-th-x"><span class="sr-only">Retirer</span></th>
+            </tr>
+          </thead>
+          <tbody id="pansBody"></tbody>
+          <tfoot>
+            <tr class="pans-add-row">
+              <td colspan="5">
+                <button type="button" class="pans-add" id="pansAdd">+ Ajouter un versant</button>
+              </td>
+            </tr>
+            <tr class="pans-total-row">
+              <th scope="row" colspan="5">
+                <div class="pans-total">
+                  <span class="pans-total-word">Total</span>
+                  <span class="pans-out"><strong id="totPv">—</strong> panneaux</span>
+                  <span class="pans-out"><strong id="totKw">—</strong> kWc</span>
+                  <span class="pans-out"><strong id="totEff">—</strong> efficacité</span>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+        <p class="hint">→ Efficacité en kWh/kWc/an, après l’orientation, l’inclinaison et le déneigement de chaque versant. Le total est la moyenne pondérée par la puissance.</p>
+      </div>
+
+      <div class="result-pair">
+        <div class="result-pill">
+          <div class="label">Panneaux solaires installés</div>
+          <div class="big prod-line" id="outPv"><span class="prod-num">—</span></div>
+        </div>
+        <div class="result-pill">
+          <div class="label">Puissance</div>
+          <div class="big prod-line" id="outKw"><span class="prod-num">—</span><span class="prod-unit">kWc</span></div>
+        </div>
+      </div>
+      <p class="grid-status is-loading" id="gridStatus" aria-live="polite">Chargement de la grille d’irradiation…</p>
+    </section>
+
+    <!-- Rendement : la même paire que le site -->
+    <div class="result-pair slot-yield" id="sec-yield">
+      <div class="result-pill">
+        <div class="label">Mesurage Net</div>
+        <div class="big prod-line" id="outKwh"><span class="prod-num">—</span><span class="prod-unit">kWh / an</span></div>
+      </div>
+      <div class="yield-auto">
+        <div class="result-pill dec-daily">
+          <div class="label">Autonomie</div>
+          <div class="big prod-line" id="outKwhDay"><span class="prod-num">—</span><span class="prod-unit">kWh / j déc</span></div>
+        </div>
+        <aside class="autonomy-snow theme-yellow dec-daily" id="autonomySnow" hidden>
+          <p class="autonomy-snow-rec">Un versant n’est pas déneigé à 100&nbsp;%. En pleine autonomie, mettez ses panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.</p>
+        </aside>
+      </div>
+    </div>
+
+    </div>
+
+    <aside class="disclaimers mockup-notes">
+      <div class="disc-head"><strong>Maquette — ce qui change</strong></div>
+      <ul>
+        <li>La case « plusieurs versants » est la porte. Décochée, 1A et 1B restent tels quels.</li>
+        <li>Cochée&nbsp;: 1A garde la localisation. 1B devient le tableau, une rangée par versant, avec la densité au-dessus.</li>
+        <li>Par rangée&nbsp;: superficie (m²/pi² en tête de colonne), orientation, inclinaison et déneigement en menus. Sous la rangée&nbsp;: panneaux, kWc, efficacité.</li>
+        <li>Par versant&nbsp;: kWc = m² × densité × 0,20&nbsp;; kWh/an = cellule (inclinaison × orientation) × kWc × (1 − (1−d)×W)&nbsp;; décembre = cellule déc × kWc × (1 − (1−d)×C).</li>
+        <li>Total&nbsp;: sommes des panneaux, des kWc, des kWh/an et des kWh/j de décembre. L’efficacité totale est pondérée par les kWc. Le coût, le retour et l’autonomie repartent de ces sommes.</li>
+        <li>Sur téléphone, chaque rangée devient une petite carte de versant.</li>
+      </ul>
+    </aside>
+
+    <footer class="bug">
+      <span class="bug-ver">© Solution ERA | Calculateur solaire | maquette multi-versant · issue #146</span>
+    </footer>
+    </main>
+  </div>
+
+  <template id="tpl-pan-row">
+    <tr class="pans-row">
+      <td class="pans-td-area">
+        <div class="pans-area">
+          <input type="number" class="pan-area" min="0" step="1" inputmode="numeric" autocomplete="off" aria-label="Superficie du versant" />
+          <span class="pans-area-unit" data-unit>m²</span>
+        </div>
+      </td>
+      <td class="pans-td-az"><select class="pan-az" aria-label="Orientation du versant"></select></td>
+      <td class="pans-td-tilt"><select class="pan-tilt" aria-label="Inclinaison du versant"></select></td>
+      <td class="pans-td-snow"><select class="pan-snow" aria-label="Déneigement du versant"></select></td>
+      <td class="pans-td-x"><button type="button" class="pans-remove" aria-label="Retirer ce versant" title="Retirer ce versant">×</button></td>
+    </tr>
+    <tr class="pans-sub">
+      <td colspan="5">
+        <div class="pans-sub-line">
+          <span class="pans-sub-name" data-name>Versant 1</span>
+          <span class="pans-out"><strong data-pv>—</strong> panneaux</span>
+          <span class="pans-out"><strong data-kw>—</strong> kWc</span>
+          <span class="pans-out"><strong data-eff>—</strong> efficacité</span>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  <script src="assets/mockup-multi-versant.js"></script>
+</body>
+</html>
