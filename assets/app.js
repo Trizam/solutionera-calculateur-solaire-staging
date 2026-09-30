@@ -1054,7 +1054,9 @@
       cellSource = cell.source;
       acDec = isFinite(cell.ac_dec) ? cell.ac_dec : FALLBACK_S30.ac_dec;
     }
-    const fullAuto = fullAutoOn();
+    const consoJour = consoJourKwh();
+    // À zéro en 4A, la coche est masquée (#179) : l’ignorer pour ne jamais figer la conso.
+    const fullAuto = fullAutoOn() && consoJour > 0;
     // #162 : la note de neige ne s’affiche qu’à celui qui veut être 100 % autonome.
     const snowFlag = showVerticalRec && fullAuto;
 
@@ -1064,9 +1066,8 @@
     const subv = subvOn ? Math.min(1000 * kW, 0.4 * HT) : 0;
     const base = taxesOn ? TTC : HT;
     const reel = Math.max(0, base - subv);
-    const consoJour = consoJourKwh();
     const consoFromAuto = consoJour * DAYS_IN_YEAR;
-    const conso = fullAuto ? (consoFromAuto > 0 ? consoFromAuto : null) : consoAnnuelleKwh();
+    const conso = fullAuto ? consoFromAuto : consoAnnuelleKwh();
     const consoShort = !fullAuto && conso != null && consoFromAuto > conso;
     const consoMin = Math.ceil(consoFromAuto);
     const kWhCredites = creditKwh(kWh, conso);
@@ -1515,10 +1516,25 @@
     syncScenarioUrl();
   }
 
-  /** 4A « 100 % autonome » freezes the annual consumption at 365 × kWh/j. */
+  /**
+   * 4A « 100 % autonome » freezes the annual consumption at 365 × kWh/j.
+   * Remember the user’s own value before locking; restore it on unlock
+   * (manual uncheck or 4A back to zero, which ignores the hidden checkbox).
+   */
+  let savedUserConso = null;
+  let consoWasLocked = false;
   function renderConsoLock(r) {
     const consoEl = $("conso");
     if (consoEl) {
+      if (r.fullAuto && !consoWasLocked) {
+        const parsed = parseGroupedInt(consoEl.value);
+        savedUserConso = (isFinite(parsed) && parsed > 0) ? parsed : DEFAULT_CONSO_KWH;
+      } else if (!r.fullAuto && consoWasLocked) {
+        const restore = (savedUserConso != null && savedUserConso > 0) ? savedUserConso : DEFAULT_CONSO_KWH;
+        consoEl.value = fmtGroupedInt(restore);
+        savedUserConso = null;
+      }
+      consoWasLocked = !!r.fullAuto;
       consoEl.disabled = r.fullAuto;
       if (r.fullAuto) consoEl.value = fmtGroupedInt(Math.round(r.consoFromAuto));
     }
