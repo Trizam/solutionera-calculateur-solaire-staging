@@ -775,6 +775,12 @@
   }
 
   function syncMultiLayout() {
+    // Un lien avec un seul versant : c’est le versant unique, pas le tableau.
+    if (multiOn() && pans && pans.length === 1 && pansFromUrl) {
+      writePanToSingle(pans[0]);
+      pansFromUrl = false;
+      if ($("multi")) $("multi").checked = false;
+    }
     const on = multiOn();
     if (document.documentElement) document.documentElement.setAttribute("data-multi", on ? "on" : "off");
     const loc = $("field-loc");
@@ -847,6 +853,14 @@
       rm.addEventListener("click", function () {
         if (pans.length <= 1) return;
         pans.splice(i, 1);
+        if (pans.length === 1) {
+          // Un seul versant qui reste : on redevient le versant unique, avec ses valeurs.
+          if ($("multi")) $("multi").checked = false;
+          syncMultiLayout();
+          buildPanRows();
+          onScenarioEdit();
+          return;
+        }
         buildPanRows();
         onScenarioEdit();
       });

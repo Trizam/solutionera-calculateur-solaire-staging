@@ -86,10 +86,6 @@
       Narrow full mode keeps both columns side by side: swipe, with a peek.
       Rules: docs/DESIGN.md
     -->
-    <label class="check check-multi" id="multiCheck">
-      <input type="checkbox" id="multi" />
-      <span>Ma toiture a plusieurs versants<span class="sub">→ 1A garde la localisation. 1B devient un tableau : une rangée par versant (superficie, orientation, inclinaison, déneigement 0–25–50–75–100&nbsp;%). Quatre versants au maximum. Même tableau en mode webi.</span></span>
-    </label>
     <div class="board-viewport" id="boardViewport">
     <div class="board" id="board">
     <div class="col col-solar">
@@ -390,6 +386,12 @@
       </div>
       <div id="slotResults" class="multi-slot"></div>
       <p class="grid-status is-loading" id="gridStatus" aria-live="polite" aria-busy="true">Chargement de la grille d’irradiation…</p>
+      <!-- Le crochet vit en bas à droite de 1B. Il disparaît en mode plusieurs versants :
+           on revient au versant unique en retirant les versants jusqu’au dernier. -->
+      <label class="check check-multi single-only" id="multiCheck">
+        <input type="checkbox" id="multi" />
+        <span>Ma toiture a plusieurs versants</span>
+      </label>
     </section>
 
     <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
@@ -755,7 +757,7 @@
       <ul>
         <li>Ceci est une <strong>estimation</strong> pédagogique — <strong>pas une soumission</strong> ni un devis.</li>
         <li>Production annuelle&nbsp;: PVWatts v8 (NSRDB), 1&nbsp;kWc, pertes 14&nbsp;%, selon la ville choisie. Le menu indique le productible sud 45° en kWh/kWc pour 1&nbsp;kWc. La boîte Efficacité de l’installation en bas de 1B reprend ce chiffre, en kWh/kWc/An, selon l’orientation, l’inclinaison et le déneigement. Le déneigement part à 100&nbsp;%.</li>
-        <li>Plusieurs versants&nbsp;: la case en haut du calculateur. Une densité pour toute la toiture. Jusqu’à quatre rangées. Chaque versant a sa superficie, son orientation, son inclinaison et son déneigement (0, 25, 50, 75 ou 100&nbsp;%). Les kWh/an et le jour de décembre sont la somme. L’efficacité du total est pondérée par les kWc.</li>
+        <li>Plusieurs versants&nbsp;: le crochet en bas à droite de 1B. Retirer les versants jusqu’au dernier ramène le versant unique. Une densité pour toute la toiture. Jusqu’à quatre rangées. Chaque versant a sa superficie, son orientation, son inclinaison et son déneigement (0, 25, 50, 75 ou 100&nbsp;%). Les kWh/an et le jour de décembre sont la somme. L’efficacité du total est pondérée par les kWc.</li>
         <li>Déneigement (W)&nbsp;: modèle simplifié selon l’<strong>inclinaison</strong> — 18&nbsp;% si ≤45°, 0&nbsp;% à 90° (vertical), interpolation linéaire entre les deux (ex. ~12&nbsp;% à 60°, ~6&nbsp;% à 75°). Concept déc+jan+fév simplifié. Formule&nbsp;: kWh_eff = kWh_an × (1−(1−d)×W).</li>
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
@@ -948,7 +950,7 @@
     <div class="info-block">
       <h4>Plusieurs versants</h4>
       <p>Un seul versant&nbsp;: laissez la case décochée et indiquez-le ici.</p>
-      <p>Plusieurs versants&nbsp;: cochez «&nbsp;Ma toiture a plusieurs versants&nbsp;». Chaque rangée a sa superficie, son orientation, son inclinaison et son déneigement. Le total additionne les productions.</p>
+      <p>Plusieurs versants&nbsp;: cochez «&nbsp;Ma toiture a plusieurs versants&nbsp;», en bas de 1B. Chaque rangée a sa superficie, son orientation, son inclinaison et son déneigement. Le total additionne les productions.</p>
     </div>
   </template>
   <template id="tpl-info-area">
