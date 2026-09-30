@@ -2708,6 +2708,15 @@ const goodFirstUi =
   html.includes('id="outFillSun"') &&
   html.includes("jours · décembre");
 console.log(`  good first issues (rate wheel, $/W, batteries, copy): ${goodFirstUi ? "PASS" : "FAIL"}`);
+
+// Carte 2 : plus d’équation « W × $/W » à l’écran ; le ⓘ du coût réel est juste à gauche du montant.
+const costCardOk =
+  !html.includes('id="outLight"') &&
+  !app.includes("$(\"outLight\")") &&
+  /<div class="line total"><span>Total estimé \(coût réel\)<\/span><span class="line-total-amt"><button type="button" class="field-info-btn result-info-btn result-info-inline" data-result-info="reel"/.test(html) &&
+  css.includes(".line-total-amt {") &&
+  html.includes('<span class="line-with-info">Total estimé pour l’autonomie');
+console.log(`  carte 2 : pas d’équation, ⓘ à gauche du total: ${costCardOk ? "PASS" : "FAIL"}`);
 const pass =
   ok &&
   !bad &&
@@ -2888,6 +2897,7 @@ const pass =
   needLive &&
   flagDockAlignOk &&
   goodFirstUi &&
+  costCardOk &&
   ghConfigRoute &&
   ghStartRoute &&
   ghStartGuards &&
