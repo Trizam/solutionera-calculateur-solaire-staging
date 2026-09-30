@@ -1395,8 +1395,6 @@
     }
     if (r.panRows) paintPanStats(r.panRows);
     updateConsoJourUi(r.kWhDay);
-    $("outLight").textContent =
-      fmtNum(r.kW * 1000, 0) + " W × " + fmtNum(r.priceW, 2) + " $/W = " + fmtShownMoney(r.HT) + " (HT)";
 
     $("lineHT").textContent = fmtShownMoney(r.HT);
     $("lineTaxes").textContent = r.taxesOn ? fmtShownMoney(r.taxes) : "—";

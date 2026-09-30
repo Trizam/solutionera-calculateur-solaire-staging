@@ -638,7 +638,8 @@ section.block > h2,
 }
 .result-pill.has-info > .label { padding: 0 1.1rem; }
 .card-kpi.has-info { padding-top: 1.45rem; }
-.line-with-info {
+.line-with-info,
+.line-total-amt {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;

@@ -93,12 +93,13 @@ Une seule petite boîte (`#yearsPinBar` › `.years-pin-card`) : « Retour » et
 
 ## 3 bis. ⓘ « Comment c’est calculé » (issue #140)
 
-Chaque boîte de résultat (`.result-pill`, `.card-kpi`) porte `.has-info` et un petit ⓘ en haut à droite (`.result-info-btn`, `data-result-info="clé"`). Les lignes « Total estimé » des cartes 2 et 5 ont le même ⓘ, en ligne.
+Chaque boîte de résultat (`.result-pill`, `.card-kpi`) porte `.has-info` et un petit ⓘ en haut à droite (`.result-info-btn`, `data-result-info="clé"`). Les lignes « Total estimé » des cartes 2 et 5 ont le même ⓘ : sur la carte 2 il est juste à gauche du montant, sur la carte 5 à droite du titre.
 
 - Le ⓘ ouvre la feuille partagée `#fieldInfoModal` avec un tableau (`.calc-table`) : chaque donnée, sa valeur, son origine. Trois origines, avec une légende en tête : **Ta donnée** (vert), **Hypothèse standard** (jaune doux), **Calculé** (neutre).
 - Sous le tableau : la formule, le **résultat** en précision complète, puis **l’arrondi affiché dans la boîte**. Ensuite les hypothèses (panneau générique 2 m² / 400 W, 0,20 kWc/m², PVWatts avec 14 % de pertes, loi des deux chiffres).
 - Les spécifications vivent dans `RESULT_INFO` (`assets/app.js`), une fonction par clé, alimentée par `calc()`. Une nouvelle boîte = une nouvelle clé, pas un nouveau gabarit HTML.
 - Dans la boîte des années (carte 3), le ⓘ a le coin droit ; l’épingle prend le coin gauche.
+- Sur la ligne « Total estimé (coût réel) » de la carte 2, le ⓘ est dans `.line-total-amt`, juste à gauche du montant. La carte 5 garde le sien à droite du titre.
 
 ## 4. Case « Je veux les détails »
 
@@ -130,7 +131,7 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 | Besoin **4A** | Quels appareils je veux en autonomie ? | Curseur de 0 à « maison pleinement autonome », sans repère sur la piste (issue #169). Le tableau Usage / kWh/j est au-dessus du curseur, du plus léger au plus lourd ; il s’arrête à la thermopompe (30 kWh/j), pas de ligne « Chauffage ». À zéro, pas de tableau ni de ligne « Autre consommation » ; dès le premier cran, « Téléphone » et « Autre consommation » apparaissent, et la ligne libre reste ensuite (issue #173). La coche « 100 % autonome » et le reste de la colonne bleue attendent le relâchement du curseur (§ 2 bis) |
 | Durée **4B** | Pendant combien de temps je veux cette autonomie | Sous 4A, dans la colonne bleue. Piste sans repère (issue #171). Phrase avec la flèche : « → Secours jusqu’à 12 h. Autonomie de maison dès 1 jour. » (issue #172) |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée. Toujours en jours (une décimale sous 10 jours). Sous la boîte : heures de plein soleil par jour en décembre (production du jour ÷ kWc), selon orientation, inclinaison et déneigement. Au-dessus de 3 jours, drapeau jaune. Si ça ne se remplit pas, la notice devient rouge quand « 100 % autonome » est coché (issue #175) |
-| Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
+| Coût **2** | Combien coûte le solaire ? | Le détail (sous-total, taxes, subvention, total). Pas d’équation « W × $/W » sur la carte. Le ⓘ de « Total estimé (coût réel) » est juste à gauche du montant |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, comme la carte 2 : curseur du prix en $/kWh de batterie (100–500, issue #168), case « Inclure les taxes » (cochée), case figée « Non admissible à la subvention ». Détail : sous-total HT, taxes, subvention 0 $, total estimé pour l’autonomie |
 | Retour **3** | Valeur des panneaux | Trio `.card-kpi`. La petite boîte qui flotte dit « Retour », comme la boîte. Elle se pose dans la boîte des années quand celle-ci arrive à l’écran, et en ressort quand elle le quitte (§ 1 quater) |
 | Total **6** | Coût total du projet | Carte bleue. Deux boîtes `.card-kpi` (panneaux en vert `.theme-green`, batteries en bleu), puis le total dans une boîte `.result-pill` en dégradé vert → bleu (`.tone-blend`, issue #167). Le retour des panneaux est dans l’autre colonne |
