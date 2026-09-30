@@ -2027,17 +2027,35 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(reserveMath.consoJour - 6.3) < 1e-9, "slider 6.3 kWh/j feeds the reserve");
   expect(Math.abs(reserveMath.reserveKwh - 6.3) < 1e-9, "reserve = daily × 1 day");
   expect(reserveMath.battModules === 1, "6.3 kWh is one 16.1 kWh module");
+  expect(reserveMath.battTaxes === 0 && Math.abs(reserveMath.battHT - 1200) < 1e-6, "battery taxes off → one module × price");
   expect(Math.abs(reserveMath.battCost - 1200) < 1e-6, "battery cost = modules × module price");
+  live.el("battTaxes").checked = true;
+  const battTaxed = live.api.calc();
+  expect(Math.abs(battTaxed.battCost - 1200 * 1.14975) < 1e-6, "battery taxes on → module HT × 1,14975");
+  expect(Math.abs(battTaxed.projectTotal - (battTaxed.reel + battTaxed.battCost)) < 1e-6, "project = panels + taxed batteries");
+  live.el("battTaxes").checked = false;
   live.el("consoJour").value = "333";
   live.el("battPrice").value = "4800";
   const volthium = live.api.calc();
   expect(Math.abs(volthium.reserveKwh - 33.3) < 1e-9, "33.3 kWh reserve");
   expect(volthium.battModules === 2, "33.3 kWh is two 16.1 kWh modules");
-  expect(Math.abs(volthium.battCost - 9600) < 1e-6, "two Volthium modules × 4 800 $");
-  const fillDays = live.api.fmtFillDuration(3.24);
-  expect(fillDays.num === "3,2", "single-digit fill days keep a decimal, got " + fillDays.num);
-  expect(String(fillDays.unit).indexOf("soleil de décembre") >= 0, "fill unit names December sun");
-  expect(live.api.fmtFillDuration(12.4).num === "12", "two-digit fill days stay whole");
+  expect(Math.abs(volthium.battHT - 9600) < 1e-6, "two Volthium modules × 4 800 $");
+  live.el("consoJour").value = "400";
+  live.el("battPrice").value = "1200";
+  live.el("conso").value = "12 000";
+  const shortConso = live.api.calc();
+  expect(shortConso.consoShort === true && shortConso.consoMin === 14600, `conso flag min 365×40 = ${shortConso.consoMin}`);
+  live.el("fullAuto").checked = true;
+  const fullAutoCalc = live.api.calc();
+  expect(fullAutoCalc.conso === 14600 && fullAutoCalc.consoShort === false, "100 % autonome → conso = 365 × kWh/j, no flag");
+  live.el("fullAuto").checked = false;
+  live.el("conso").value = "17 000";
+  expect(live.api.fmtFillDuration(0.371).num === "0,4" && live.api.fmtFillDuration(0.371).unit === "jour · décembre", "fill 0,4 jour");
+  expect(live.api.fmtFillDuration(3.25).num === "3,3" && live.api.fmtFillDuration(3.25).unit === "jours · décembre", "fill 3,3 jours");
+  expect(live.api.fmtFillDuration(14.6).num === "15", "fill ≥ 10 days → 2 sig figs");
+  expect(live.api.fmtFillDuration(0.01).num === "< 0,1", "tiny fill");
+  const sunCalc = live.api.calc();
+  expect(Math.abs(sunCalc.sunHoursDec - sunCalc.kWhDay / sunCalc.kW) < 1e-9, "December sun hours = kWh/j ÷ kWc");
   live.el("consoJour").value = "0";
   live.el("autoStop").value = "11";
   live.el("battPrice").value = "1200";
@@ -2156,7 +2174,8 @@ const goodFirstUi =
   html.includes("selon l’orientation, l’inclinaison et le déneigement") &&
   html.includes("Le chiffre à droite est le productible pour 1") &&
   !html.includes('id="locHint"') &&
-  html.includes("jours · soleil de décembre");
+  html.includes('id="outFillSun"') &&
+  html.includes("jours · décembre");
 console.log(`  good first issues (rate wheel, $/W, batteries, copy): ${goodFirstUi ? "PASS" : "FAIL"}`);
 const pass =
   ok &&

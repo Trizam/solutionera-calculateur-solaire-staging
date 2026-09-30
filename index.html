@@ -357,7 +357,7 @@
             <span class="prod-unit">kWh / j en décembre</span>
           </div>
         </div>
-        <aside class="autonomy-snow theme-yellow dec-daily" id="autonomySnow" hidden>
+        <aside class="autonomy-snow theme-yellow dec-daily" id="autonomySnow" data-flag="Neige en décembre" hidden>
           <p class="autonomy-snow-rec" id="autonomySnowRec">
             Vous ne déneigez pas à 100&nbsp;%. En pleine autonomie, mettez les panneaux à la verticale&nbsp;: la neige n’accumule pas, et décembre ne tombe pas à zéro.
           </p>
@@ -415,7 +415,12 @@
           <input id="conso" class="grouped-int" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="17 000" />
           <span>kWh / an</span>
         </div>
-        <p class="hint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
+        <p class="hint" id="consoHint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
+        <p class="hint conso-locked-note" id="consoLockedNote" hidden>→ Ce chiffre est figé parce qu’il vient de la coche « Je suis 100&nbsp;% autonome » en 4A (365&nbsp;j × kWh/j).</p>
+        <p class="surplus-alert conso-flag theme-yellow" id="consoFlag" data-flag="Conso annuelle trop basse" hidden role="status">
+          <strong>Ta consommation d’autonomie dépasse ta consommation annuelle.</strong>
+          En 4A tu consommes <span id="consoFlagDay">—</span>, soit <span id="consoFlagYear">—</span> sur 365&nbsp;jours. Le chiffre à mettre ici, au minimum&nbsp;: <strong class="conso-flag-min" id="consoFlagMin">—</strong>.
+        </p>
       </div>
 
       <div class="field">
@@ -450,7 +455,7 @@
           <div class="kpi-label">Retour<br />années pour rentrer</div>
         </div>
       </div>
-      <p class="surplus-alert theme-yellow" id="surplusAlert" hidden role="status">
+      <p class="surplus-alert theme-yellow" id="surplusAlert" data-flag="Surplus de production" hidden role="status">
         <strong>Moins optimal : tu produis plus que tu consommes.</strong>
         Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
       </p>
@@ -522,6 +527,12 @@
         </div>
         <p class="hint" id="consoJourHint">La valeur est la consommation du jour. Le tableau au-dessus détaille les appareils.</p>
         <p class="calc-line" id="consoJourNote" hidden></p>
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="fullAuto" />
+            <span>Je suis 100&nbsp;% autonome<span class="sub">→ La consommation annuelle de la carte 3 devient 365&nbsp;j × ce total par jour</span></span>
+          </label>
+        </div>
       </div>
     </section>
 
@@ -585,9 +596,10 @@
       </div>
       <div class="big prod-line" id="outFill">
         <span class="prod-num" id="outFillNum">—</span>
-        <span class="prod-unit" id="outFillUnit">jours · soleil de décembre</span>
+        <span class="prod-unit" id="outFillUnit">jours · décembre</span>
       </div>
-      <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
+      <p class="fill-sun" id="outFillSun">—</p>
+      <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" data-flag="Réserve ne se remplit pas" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
     </section>
 
     <!-- 5 · Batteries -->
@@ -616,9 +628,25 @@
         </div>
         <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix du module Volthium reste à confirmer.</p>
       </div>
+      <div class="field" role="group" aria-labelledby="battOptsLabel">
+        <div class="field-label" id="battOptsLabel">Options sur le prix</div>
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="battTaxes" checked />
+            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+          </label>
+          <label class="check check-locked">
+            <input type="checkbox" id="battNoSubv" checked disabled />
+            <span>Non admissible à la subvention<span class="sub">→ LogisVert ne couvre pas les batteries</span></span>
+          </label>
+        </div>
+      </div>
       <p class="calc-line" id="outBatt">—</p>
       <div class="breakdown" aria-live="polite">
-        <div class="line total"><span>Coût des batteries</span><span id="lineBatt">—</span></div>
+        <div class="line"><span>Sous-total (HT)</span><span id="lineBattHT">—</span></div>
+        <div class="line"><span>Taxes</span><span id="lineBattTaxes">—</span></div>
+        <div class="line neg"><span>Subvention</span><span id="lineBattSubv">0&nbsp;$</span></div>
+        <div class="line total"><span>Total estimé pour l’autonomie</span><span id="lineBatt">—</span></div>
       </div>
     </section>
 
@@ -638,9 +666,15 @@
           <span aria-hidden="true">ⓘ</span>
         </button>
       </h2>
-      <div class="breakdown">
-        <div class="line"><span>Panneaux (coût réel)</span><span id="lineProjectSolar">—</span></div>
-        <div class="line"><span>Batteries</span><span id="lineProjectBatt">—</span></div>
+      <div class="cards cards-two project-cards">
+        <div class="card-kpi theme-green">
+          <div class="kpi" id="lineProjectSolar">—</div>
+          <div class="kpi-label">Panneaux solaires<br />coût réel (carte 2)</div>
+        </div>
+        <div class="card-kpi">
+          <div class="kpi" id="lineProjectBatt">—</div>
+          <div class="kpi-label">Batteries<br />total (carte 5)</div>
+        </div>
       </div>
       <div class="result-pill tone-green" id="projectOut">
         <div class="label">Coût total</div>
@@ -699,7 +733,7 @@
           <li>Prix batterie : module Volthium 16,1&nbsp;kWh, curseur 2&nbsp;400–7&nbsp;200&nbsp;$, défaut 4&nbsp;800. Le nombre de modules est l’arrondi de la réserve ÷ 16,1 (au moins un). Brouillon à confirmer. Pas une soumission.</li>
           <li>Consommation par jour = curseur de 0 à 40&nbsp;kWh/j (pas de 0,1), plus la ligne libre. Ce n’est pas la facture annuelle. Le jour de décembre, les appareils et les batteries restent à l’écran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
-          <li>Les taxes et LogisVert restent sur les panneaux. Elles ne s’appliquent pas au coût des batteries.</li>
+          <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
           <li>La durée de réserve et le prix des batteries ne vont pas dans l’URL. La consommation du jour (kWh/j) et la ligne libre, oui.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
@@ -751,7 +785,7 @@
         <div class="info-block">
           <h4>Batterie</h4>
           <p>Réserve = consommation par jour (curseur, plus la ligne libre) × durée choisie.</p>
-          <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × prix du module. 33&nbsp;kWh, c’est deux modules. Les taxes et LogisVert restent sur les panneaux.</p>
+          <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × prix du module, plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
           <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
@@ -919,25 +953,27 @@
     <span data-info-title>Temps pour remplir la réserve</span>
     <div class="info-block">
       <h4>Décembre d’abord</h4>
-      <p>Le temps s’affiche en jours. Un compte d’un seul chiffre garde sa décimale.</p>
-      <p>La production du jour de décembre (l’ensoleillement du mois ÷ 31) couvre d’abord la consommation. Seul le surplus remplit la réserve.</p>
-      <p>Le rythme est toujours celui de décembre, même si l’été produit plus.</p>
+      <p>Le temps s’affiche en jours. Sous 10 jours, une décimale.</p>
+      <p>La production du jour de décembre couvre d’abord la consommation. Seul le surplus remplit la réserve.</p>
+      <p>Le rythme est toujours celui de décembre, même si l’été produit plus. Il tient compte de l’orientation, de l’inclinaison et du déneigement choisis.</p>
+      <p>Temps (jours) = réserve (kWh) ÷ (production du jour de décembre − consommation du jour).</p>
+      <p>Heures d’ensoleillement de décembre = production du jour de décembre ÷ puissance (kWc). Ce sont des heures de plein soleil équivalentes.</p>
     </div>
   </template>
   <template id="tpl-info-battprice">
     <span data-info-title>Prix d’un module</span>
     <div class="info-block">
       <h4>Coût de la réserve</h4>
-      <p>Un module Volthium fait 16,1&nbsp;kWh. Le coût est le nombre de modules × le prix du module (défaut 4&nbsp;800&nbsp;$).</p>
+      <p>Un module Volthium fait 16,1&nbsp;kWh. Sous-total (HT) = nombre de modules × prix du module (défaut 4&nbsp;800&nbsp;$).</p>
       <p>Le nombre de modules est l’arrondi de la réserve ÷ 16,1. Pour 33&nbsp;kWh, cela fait deux modules. Au moins un module dès qu’il y a une réserve.</p>
-      <p>Les taxes et LogisVert restent sur les panneaux.</p>
+      <p>Taxes (TPS+TVQ, 15&nbsp;%) si la case est cochée. Les batteries ne sont pas admissibles à LogisVert&nbsp;: subvention 0&nbsp;$.</p>
     </div>
   </template>
   <template id="tpl-info-project">
     <span data-info-title>Coût total du projet</span>
     <div class="info-block">
       <h4>Panneaux + batteries</h4>
-      <p>Total = coût réel des panneaux (taxes et subvention comprises) + coût des batteries.</p>
+      <p>Total = coût réel des panneaux (carte 2, taxes et subvention comprises) + total des batteries (carte 5).</p>
       <p>Le retour des panneaux ne compte que les panneaux.</p>
     </div>
   </template>
@@ -994,6 +1030,13 @@
     </div>
   </template>
 
+  <div id="flagDock" class="flag-dock mode-full-only" hidden>
+    <div class="flag-dock-menu" id="flagDockMenu" role="menu" aria-label="Points à vérifier" hidden></div>
+    <button type="button" class="flag-dock-btn theme-yellow" id="flagDockBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="flagDockMenu">
+      <span class="flag-mark" aria-hidden="true"></span>
+      <span class="flag-dock-label" id="flagDockLabel">—</span>
+    </button>
+  </div>
   <div id="yearsPinBar" class="years-pin" hidden>
     <div class="years-pin-card">
       <span class="years-pin-kicker">Retour</span>

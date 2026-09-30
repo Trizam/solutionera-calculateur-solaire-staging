@@ -8,6 +8,8 @@
   /** Default: the snow is always cleared off the panels. */
   const DEFAULT_DENEIGEMENT = 1;
   const DAYS_IN_DEC = 31;
+  const DAYS_IN_YEAR = 365;
+  const FLAG_FOCUS_MS = 1600;
 
   const PANEL_KW_PER_M2 = 0.20;
   /** Standard pedagogical panel footprint (not used for kWc). */
@@ -590,17 +592,25 @@
     return Math.max(1, Math.round(reserveKwh / BATT_MODULE_KWH));
   }
 
-  /**
-   * Fill time in days, at the December surplus (production of the month ÷ 31,
-   * minus the daily load). Single-digit day counts keep a decimal, same habit
-   * as the two-digit display law. Longer counts stay whole.
-   */
+  /** Fill duration in days at the December daily rate. One decimal under 10 days. Display only. */
   function fmtFillDuration(days) {
     if (!isFinite(days) || days < 0) return { num: "—", unit: "" };
-    if (days > 365) return { num: "> 1 an", unit: "soleil de décembre" };
-    const num = days < 10 ? fmtShown(days, 1) : fmtShown(days, 0);
-    const one = num === "1" || num === "1,0";
-    return { num: num, unit: (one ? "jour" : "jours") + " · soleil de décembre" };
+    if (days > 365) return { num: "> 1 an", unit: "au rythme de décembre" };
+    const unit = (days < 2 ? "jour" : "jours") + " · décembre";
+    if (detailsOn()) return { num: fmtNum(days, 2), unit: unit };
+    if (days < 0.05) return { num: "< 0,1", unit: "jour · décembre" };
+    if (days < 10) return { num: fmtNum(days, 1), unit: unit };
+    return { num: fmtSig2(days), unit: unit };
+  }
+
+  function fullAutoOn() {
+    const el = $("fullAuto");
+    return !!(el && el.checked);
+  }
+
+  function battTaxesOn() {
+    const el = $("battTaxes");
+    return el ? !!el.checked : true;
   }
 
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
@@ -663,7 +673,12 @@
     const subv = subvOn ? Math.min(1000 * kW, 0.4 * HT) : 0;
     const base = taxesOn ? TTC : HT;
     const reel = Math.max(0, base - subv);
-    const conso = consoAnnuelleKwh();
+    const consoJour = consoJourKwh();
+    const fullAuto = fullAutoOn();
+    const consoFromAuto = consoJour * DAYS_IN_YEAR;
+    const conso = fullAuto ? (consoFromAuto > 0 ? consoFromAuto : null) : consoAnnuelleKwh();
+    const consoShort = !fullAuto && conso != null && consoFromAuto > conso;
+    const consoMin = Math.ceil(consoFromAuto);
     const kWhCredites = creditKwh(kWh, conso);
     const ecoClamped = conso != null && kWh > conso;
     const surplusKwh = ecoClamped ? kWh - conso : 0;
@@ -674,8 +689,8 @@
     const years = eco > 0 ? reel / eco : Infinity;
 
     const kWhDay = isFinite(kWhDec) ? kWhDec / DAYS_IN_DEC : NaN;
+    const sunHoursDec = kW > 0 && isFinite(kWhDay) ? kWhDay / kW : NaN;
     const auto = autonomyChoice();
-    const consoJour = consoJourKwh();
     const reserveKwh = consoJour == null ? NaN : consoJour * auto.days;
     const surplusDay = consoJour == null || !isFinite(kWhDay) ? NaN : kWhDay - consoJour;
     let fillState = "unknown";
@@ -691,16 +706,20 @@
     const shortfall = consoJour != null && consoJour > 0 && isFinite(kWhDay) && kWhDay < consoJour;
     const battPrice = battModulePrice();
     const battModules = battModuleCount(reserveKwh);
-    const battCost = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
+    const battTaxOn = battTaxesOn();
+    const battHT = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
+    const battTaxes = battTaxOn ? battHT * (TAX_MULT - 1) : 0;
+    const battCost = isFinite(battHT) ? battHT + (battTaxOn ? battHT * (TAX_MULT - 1) : 0) : NaN;
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
-      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, W, snowCover, showVerticalRec,
-      conso, kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
+      kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec,
+      conso, fullAuto, consoFromAuto, consoShort, consoMin,
+      kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
       HT, TTC, taxes, subv, reel, eco, years,
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
-      battPrice, battModules, battCost, projectTotal,
+      battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
       gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cell.source
     };
   }
@@ -995,6 +1014,7 @@
         ? "Crédit (plafonné à la conso) × tarif"
         : "Production × tarif";
     }
+    renderConsoLock(r);
     $("kpiReel").textContent = fmtShownMoney(r.reel);
     $("kpiEco").textContent = fmtShownMoney(r.eco);
     const alert = $("surplusAlert");
@@ -1047,14 +1067,17 @@
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
     }
     if ($("outBatt")) {
-      if (!(r.battModules > 0) || !isFinite(r.battCost)) {
+      if (!(r.battModules > 0) || !isFinite(r.battHT)) {
         $("outBatt").textContent = "Aucun module";
       } else {
         const word = r.battModules > 1 ? "modules" : "module";
         $("outBatt").textContent =
-          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(r.battPrice, 0) + " $ = " + fmtShownMoney(r.battCost);
+          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(r.battPrice, 0) + " $ = " + fmtShownMoney(r.battHT);
       }
     }
+    if ($("lineBattHT")) $("lineBattHT").textContent = fmtShownMoney(r.battHT);
+    if ($("lineBattTaxes")) $("lineBattTaxes").textContent = r.battTaxOn ? fmtShownMoney(r.battTaxes) : "—";
+    if ($("lineBattSubv")) $("lineBattSubv").textContent = fmtShownMoney(0);
     if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
     if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
     if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtShownMoney(r.battCost);
@@ -1072,9 +1095,138 @@
       fillUnit.textContent = fillText.unit;
       fillUnit.hidden = !fillText.unit;
     }
+    const fillSun = $("outFillSun");
+    if (fillSun) {
+      fillSun.textContent = isFinite(r.sunHoursDec)
+        ? "Décembre : " + fmtShown(r.sunHoursDec, 2) + " h de plein soleil / j"
+        : "—";
+    }
     const flag = $("permaFlag");
     if (flag) flag.hidden = !r.shortfall;
+    syncFlagDock();
     syncScenarioUrl();
+  }
+
+  /** 4A « 100 % autonome » freezes the annual consumption at 365 × kWh/j. */
+  function renderConsoLock(r) {
+    const consoEl = $("conso");
+    if (consoEl) {
+      consoEl.disabled = r.fullAuto;
+      if (r.fullAuto) consoEl.value = fmtGroupedInt(Math.round(r.consoFromAuto));
+    }
+    if ($("consoHint")) $("consoHint").hidden = r.fullAuto;
+    if ($("consoLockedNote")) $("consoLockedNote").hidden = !r.fullAuto;
+    const flag = $("consoFlag");
+    if (!flag) return;
+    flag.hidden = !r.consoShort;
+    if (!r.consoShort) return;
+    if ($("consoFlagDay")) $("consoFlagDay").textContent = fmtKwhDay(r.consoJour) + " kWh/j";
+    if ($("consoFlagYear")) $("consoFlagYear").textContent = fmtGroupedInt(Math.round(r.consoFromAuto)) + " kWh / an";
+    if ($("consoFlagMin")) $("consoFlagMin").textContent = fmtGroupedInt(r.consoMin) + " kWh / an";
+  }
+
+  /* Yellow flags: every visible [data-flag] shows in the fixed dock above « Retour ». */
+  let flagDockKey = "";
+  let flagDockOpen = false;
+
+  function visibleFlags() {
+    return Array.prototype.filter.call(document.querySelectorAll("[data-flag]"), function (el) {
+      return !el.hidden && el.getClientRects().length > 0;
+    });
+  }
+
+  function markFlags() {
+    document.querySelectorAll("[data-flag]").forEach(function (el) {
+      if (el.querySelector(".flag-mark")) return;
+      const mark = document.createElement("span");
+      mark.className = "flag-mark";
+      mark.setAttribute("aria-hidden", "true");
+      el.insertBefore(mark, el.firstChild);
+    });
+  }
+
+  function setFlagMenu(open) {
+    const menu = $("flagDockMenu");
+    const btn = $("flagDockBtn");
+    flagDockOpen = !!open;
+    if (menu) menu.hidden = !flagDockOpen;
+    if (btn) btn.setAttribute("aria-expanded", flagDockOpen ? "true" : "false");
+  }
+
+  function goToFlag(el) {
+    setFlagMenu(false);
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+    try { el.focus({ preventScroll: true }); } catch (_) {}
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.remove("is-flag-focus");
+    void el.offsetWidth;
+    el.classList.add("is-flag-focus");
+    clearTimeout(el._flagFocusTimer);
+    el._flagFocusTimer = setTimeout(function () { el.classList.remove("is-flag-focus"); }, FLAG_FOCUS_MS);
+  }
+
+  function syncFlagDock() {
+    const dock = $("flagDock");
+    if (!dock) return;
+    const flags = visibleFlags();
+    dock.hidden = flags.length === 0;
+    if (document.body) document.body.classList.toggle("has-flags", flags.length > 0);
+    if (!flags.length) {
+      flagDockKey = "";
+      setFlagMenu(false);
+      return;
+    }
+    const names = flags.map(function (el) { return el.getAttribute("data-flag"); });
+    const key = names.join("|");
+    if (key === flagDockKey) return;
+    flagDockKey = key;
+    const label = $("flagDockLabel");
+    if (label) label.textContent = flags.length === 1 ? names[0] : String(flags.length);
+    const btn = $("flagDockBtn");
+    if (btn) {
+      btn.setAttribute("aria-label", flags.length === 1
+        ? "Point à vérifier : " + names[0]
+        : flags.length + " points à vérifier");
+    }
+    const menu = $("flagDockMenu");
+    if (!menu) return;
+    menu.innerHTML = "";
+    flags.forEach(function (el, i) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "flag-dock-item";
+      item.setAttribute("role", "menuitem");
+      const mark = document.createElement("span");
+      mark.className = "flag-mark";
+      mark.setAttribute("aria-hidden", "true");
+      const text = document.createElement("span");
+      text.textContent = names[i];
+      item.appendChild(mark);
+      item.appendChild(text);
+      item.addEventListener("click", function () { goToFlag(el); });
+      menu.appendChild(item);
+    });
+  }
+
+  function wireFlagDock() {
+    markFlags();
+    const dock = $("flagDock");
+    const btn = $("flagDockBtn");
+    if (!dock || !btn) return;
+    const canHover = typeof window.matchMedia === "function" && window.matchMedia("(hover: hover)").matches;
+    btn.addEventListener("click", function () {
+      setFlagMenu(canHover ? true : !flagDockOpen);
+    });
+    if (canHover) {
+      dock.addEventListener("mouseenter", function () { setFlagMenu(true); });
+      dock.addEventListener("mouseleave", function () { setFlagMenu(false); });
+    }
+    document.addEventListener("click", function (e) {
+      if (flagDockOpen && !dock.contains(e.target)) setFlagMenu(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && flagDockOpen) setFlagMenu(false);
+    });
   }
 
   /** Integer-only area: paste/blur/change/input */
@@ -2007,7 +2159,8 @@
   }
 
   function wireUi() {
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
+    wireFlagDock();
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);

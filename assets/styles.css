@@ -342,6 +342,123 @@ html[data-theme="dark"] .theme-blue {
   --hover-soft: #243e56;
   --shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
 }
+/* Boîte verte dans une carte bleue (panneaux, carte 6). */
+.theme-green {
+  --green: #2d6a4f;
+  --green-soft: #d8f3dc;
+  --green-dark: #1b4332;
+  --border: #cfe3d4;
+  --pill-end: #e9f5ee;
+}
+html[data-theme="dark"] .theme-green {
+  --green: #52b788;
+  --green-soft: #1f3a2d;
+  --green-dark: #d8f3dc;
+  --border: #2f4a3c;
+  --pill-end: #1a3026;
+}
+/* Drapeau jaune : triangle « i » en haut à droite. Règle : docs/DESIGN.md §1 ter */
+[data-flag].theme-yellow {
+  position: relative;
+  padding-right: 2.1rem;
+  scroll-margin: 5rem 0;
+}
+.flag-mark {
+  display: grid;
+  place-items: end center;
+  width: 1.2rem;
+  height: 1.05rem;
+  padding-bottom: 0.08rem;
+  background: #e0a800;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  color: #1a1a1a;
+  font: 700 0.64rem/1 var(--font);
+  flex-shrink: 0;
+}
+.flag-mark::after { content: "i"; }
+[data-flag] > .flag-mark {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.55rem;
+}
+[data-flag]:focus { outline: none; }
+.theme-yellow.is-flag-focus {
+  animation: flag-focus 1.6s ease-out;
+}
+@keyframes flag-focus {
+  0%, 45% {
+    background: #ffe066;
+    border-color: #d4a300;
+    box-shadow: 0 0 0 4px rgba(224, 168, 0, 0.45);
+  }
+  100% { box-shadow: 0 0 0 0 rgba(224, 168, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-yellow.is-flag-focus { animation: none; outline: 3px solid #d4a300; }
+}
+.flag-dock {
+  position: fixed;
+  z-index: 36;
+  right: max(0.65rem, env(safe-area-inset-right, 0px));
+  bottom: calc(max(0.4rem, env(safe-area-inset-bottom, 0px)) + 2.35rem + 0.45rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  max-width: calc(100vw - 5rem);
+}
+.flag-dock[hidden] { display: none !important; }
+html[data-mode="webi"] .flag-dock { display: none !important; }
+.flag-dock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  max-width: 100%;
+  padding: 0.3rem 0.8rem 0.3rem 0.6rem;
+  border-radius: 999px;
+  font: 700 0.8rem/1.2 var(--font);
+  box-shadow: 0 8px 22px rgba(120, 90, 0, 0.18);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.flag-dock-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flag-dock-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--flag-border);
+  border-radius: 12px;
+  background: var(--flag-bg-end);
+  box-shadow: 0 8px 22px rgba(120, 90, 0, 0.18);
+}
+.flag-dock-menu[hidden] { display: none; }
+.flag-dock-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--flag-text);
+  font: 400 0.85rem/1.25 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.flag-dock-item:hover,
+.flag-dock-item:focus-visible { background: var(--flag-bg); }
+@media (min-width: 700px) {
+  .flag-dock { bottom: calc(max(0.85rem, env(safe-area-inset-bottom, 0px)) + 3.05rem + 0.5rem); }
+}
+body.has-flags footer.bug {
+  padding-bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 9rem);
+}
 html[data-autonomy="off"] .autonomy-rest {
   display: none !important;
 }
@@ -1420,11 +1537,31 @@ html[data-theme="dark"] .years-pin-btn[aria-pressed="true"] {
   margin-bottom: 0.2rem;
   font-size: 0.88rem;
 }
-.surplus-alert #surplusKwh {
+.surplus-alert #surplusKwh,
+.conso-flag .conso-flag-min {
   display: inline;
   margin: 0;
   font-size: inherit;
 }
+.rate-box input:disabled {
+  background: var(--green-soft);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.check-locked { opacity: 0.85; }
+.check-locked input { cursor: not-allowed; }
+.fill-sun {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+@media (min-width: 480px) {
+  .cards.cards-two { grid-template-columns: repeat(2, 1fr); }
+}
+#sec-total .project-cards { margin: 0.5rem 0 0.85rem; }
+#sec-batt .field + .breakdown { margin-top: 0; }
 .btn {
   display: inline-flex;
   align-items: center;
@@ -2204,7 +2341,8 @@ section.block h2 .field-info-btn {
     display: flex;
     flex-direction: column;
   }
-  html:not([data-mode="webi"]) .slot-need { align-self: start; }
+  /* Verrou #151 (docs/DESIGN.md §2 bis) : 4A–4B posées sur « Temps pour remplir ». */
+  html:not([data-mode="webi"]) .slot-need { align-self: end; }
   html:not([data-mode="webi"]) .project-note-side { display: block; }
   html:not([data-mode="webi"]) .project-note-stack { display: none; }
   html:not([data-mode="webi"]) .flow-arrow {
@@ -2377,6 +2515,8 @@ section.block h2 .field-info-btn {
   }
   .result-pair { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: repeat(3, 1fr); }
+  .cards.cards-two { grid-template-columns: repeat(2, 1fr); }
+  .flag-dock, .flag-mark { display: none !important; }
   a { color: inherit; text-decoration: none; }
   /* Compact inputs for PDF */
   .field input[type="number"],
