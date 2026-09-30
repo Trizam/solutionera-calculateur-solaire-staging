@@ -9,6 +9,7 @@ on:
       - master
     paths:
       - index.html
+      - mockup-*.html
       - favicon.ico
       - favicon.png
       - assets/**
@@ -36,6 +37,9 @@ jobs:
           set -euo pipefail
           mkdir -p _site/docs
           cp index.html favicon.ico favicon.png _site/
+          # Maquettes autonomes (mockup-*.html) : publiées à côté du calculateur, pas liées depuis index.html.
+          shopt -s nullglob
+          for f in mockup-*.html; do cp "$f" _site/; done
           cp -a assets _site/assets
           cp docs/DESIGN.md _site/docs/DESIGN.md
 
