@@ -12,6 +12,12 @@ import {
   handleBugReportRequest
 } from "./api/bug-report-core.mjs";
 import { handler as netlifyBugHandler } from "./api/bug-report.mjs";
+import {
+  SESSION_HEADER,
+  sealSession,
+  openSession,
+  parseCookie
+} from "./api/github-auth.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TAX_MULT = 1.14975;
@@ -1752,6 +1758,211 @@ console.log(`  app.js modal wired, no mailto-first: ${bugJsWired ? "PASS" : "FAI
 console.log(`  no GitHub token in frontend: ${noTokenInFrontend ? "PASS" : "FAIL"}`);
 console.log(`  bug-report docs + worker + Action: ${bugDocs && bugWorkflow ? "PASS" : "FAIL"}`);
 
+/* Optional GitHub identity: linked visitors author their own issue, everyone else stays on the bot. */
+const ghEnv = {
+  BUG_REPORT_GITHUB_TOKEN: "bot-token",
+  GITHUB_OAUTH_CLIENT_ID: "Iv1.client",
+  GITHUB_OAUTH_CLIENT_SECRET: "client-secret",
+  BUG_REPORT_SESSION_SECRET: "session-secret"
+};
+const ghBase = "https://proxy.test";
+const ghOrigin = { Origin: "https://trizam.github.io", "Content-Type": "application/json" };
+const cfgOff = await (await handleBugReportRequest(new Request(ghBase + "/auth/config"), { BUG_REPORT_GITHUB_TOKEN: "x" })).json();
+const cfgOn = await (await handleBugReportRequest(new Request(ghBase + "/auth/config"), ghEnv)).json();
+const ghConfigRoute = cfgOff.ok === true && cfgOff.github === false && cfgOn.ok === true && cfgOn.github === true;
+
+const startRes = await handleBugReportRequest(
+  new Request(ghBase + "/auth/github/start?mode=popup&return_to=" + encodeURIComponent("https://trizam.github.io/solutionera-calculateur-solaire-staging/?mode=webi")),
+  ghEnv
+);
+const startLoc = new URL(startRes.headers.get("Location") || "https://invalid.test/");
+const startCookie = startRes.headers.get("Set-Cookie") || "";
+const startNonce = parseCookie(startCookie, "bug_oauth_nonce");
+const ghStartRoute =
+  startRes.status === 302 &&
+  startLoc.origin + startLoc.pathname === "https://github.com/login/oauth/authorize" &&
+  startLoc.searchParams.get("client_id") === "Iv1.client" &&
+  startLoc.searchParams.get("redirect_uri") === ghBase + "/auth/github/callback" &&
+  startLoc.searchParams.get("scope") === "public_repo" &&
+  String(startLoc.searchParams.get("state") || "").length > 20 &&
+  startNonce.length > 10 &&
+  /HttpOnly/.test(startCookie) &&
+  /SameSite=Lax/.test(startCookie);
+const startBad = await handleBugReportRequest(
+  new Request(ghBase + "/auth/github/start?return_to=" + encodeURIComponent("https://evil.test/")),
+  ghEnv
+);
+const startOff = await handleBugReportRequest(
+  new Request(ghBase + "/auth/github/start?return_to=" + encodeURIComponent("https://trizam.github.io/x")),
+  { BUG_REPORT_GITHUB_TOKEN: "x" }
+);
+const ghStartGuards = startBad.status === 400 && startOff.status === 503;
+
+const ghCalls = [];
+function ghFetchMock(responses) {
+  return async function (url, init) {
+    const u = String(url);
+    ghCalls.push({ url: u, init: init || {} });
+    for (const r of responses) {
+      if (u.indexOf(r.match) >= 0) {
+        return new Response(JSON.stringify(r.body), {
+          status: r.status || 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+    return new Response("{}", { status: 404 });
+  };
+}
+const oauthFetch = ghFetchMock([
+  { match: "github.com/login/oauth/access_token", body: { access_token: "gho_user", token_type: "bearer" } },
+  { match: "api.github.com/user", body: { login: "visiteur", avatar_url: "https://avatars.test/v.png" } }
+]);
+const cbUrl = ghBase + "/auth/github/callback?code=abc&state=" + encodeURIComponent(startLoc.searchParams.get("state"));
+const cbRes = await handleBugReportRequest(
+  new Request(cbUrl, { headers: { Cookie: "bug_oauth_nonce=" + encodeURIComponent(startNonce) } }),
+  ghEnv,
+  oauthFetch
+);
+const cbHtml = await cbRes.text();
+const cbSessionMatch = cbHtml.match(/"session":"([^"]+)"/);
+const cbSession = cbSessionMatch ? cbSessionMatch[1] : "";
+const tokenCall = ghCalls.find((c) => c.url.indexOf("access_token") >= 0);
+const tokenBody = tokenCall ? JSON.parse(tokenCall.init.body) : {};
+const ghCallbackRoute =
+  cbRes.status === 200 &&
+  /text\/html/.test(cbRes.headers.get("Content-Type") || "") &&
+  cbHtml.includes("@visiteur") &&
+  cbHtml.includes("bug-report-github-session") &&
+  cbHtml.includes("opener.postMessage(msg,origin)") &&
+  cbHtml.includes('"https://trizam.github.io"') &&
+  cbHtml.includes("#'+key+'='") &&
+  !cbHtml.includes("gho_user") &&
+  cbSession.length > 20 &&
+  tokenBody.client_secret === "client-secret" &&
+  tokenBody.redirect_uri === ghBase + "/auth/github/callback";
+const cbNoCookie = await handleBugReportRequest(new Request(cbUrl), ghEnv, oauthFetch);
+const cbBadState = await handleBugReportRequest(
+  new Request(ghBase + "/auth/github/callback?code=abc&state=nope", { headers: { Cookie: "bug_oauth_nonce=" + startNonce } }),
+  ghEnv,
+  oauthFetch
+);
+const ghCallbackGuards = cbNoCookie.status === 400 && cbBadState.status === 400;
+
+const opened = await openSession("session-secret", cbSession);
+const sealed = await sealSession("session-secret", { token: "t", login: "l", avatar: "" }, 1000);
+const tampered = sealed.slice(0, -4) + (sealed.slice(-4) === "AAAA" ? "BBBB" : "AAAA");
+const ghSessionCrypto =
+  opened && opened.token === "gho_user" && opened.login === "visiteur" &&
+  (await openSession("session-secret", tampered)) === null &&
+  (await openSession("other-secret", sealed)) === null &&
+  (await openSession("session-secret", sealed, 1000 + 400 * 24 * 3600 * 1000)) === null &&
+  (await openSession("session-secret", sealed, 2000)) !== null;
+
+const ghBugGood = Object.assign({}, bugGood, { openedAt: Date.now() - 3000 });
+ghCalls.length = 0;
+const asUserRes = await handleBugReportRequest(
+  new Request(ghBase + "/", {
+    method: "POST",
+    headers: Object.assign({}, ghOrigin, { [SESSION_HEADER]: cbSession }),
+    body: JSON.stringify(ghBugGood)
+  }),
+  ghEnv,
+  ghFetchMock([
+    { match: "/issues/42/labels", body: [] },
+    { match: "/issues", status: 201, body: { number: 42, html_url: "https://github.com/x/y/issues/42" } }
+  ])
+);
+const asUserJson = await asUserRes.json();
+const issueCall = ghCalls.find((c) => /\/issues$/.test(c.url));
+const labelCall = ghCalls.find((c) => /\/issues\/42\/labels$/.test(c.url));
+const ghPostAsUser =
+  asUserRes.status === 201 && asUserJson.ok === true && asUserJson.as === "user" && asUserJson.login === "visiteur" &&
+  issueCall && issueCall.init.headers.Authorization === "Bearer gho_user" &&
+  labelCall && labelCall.init.headers.Authorization === "Bearer bot-token" &&
+  JSON.parse(labelCall.init.body).labels.indexOf("user-report") >= 0;
+
+ghCalls.length = 0;
+const revokedRes = await handleBugReportRequest(
+  new Request(ghBase + "/", {
+    method: "POST",
+    headers: Object.assign({}, ghOrigin, { [SESSION_HEADER]: cbSession }),
+    body: JSON.stringify(ghBugGood)
+  }),
+  ghEnv,
+  async function (url, init) {
+    ghCalls.push({ url: String(url), init });
+    if (init.headers.Authorization === "Bearer gho_user") {
+      return new Response(JSON.stringify({ message: "Bad credentials" }), { status: 401 });
+    }
+    return new Response(JSON.stringify({ number: 43, html_url: "" }), { status: 201 });
+  }
+);
+const revokedJson = await revokedRes.json();
+const ghFallbackToBot =
+  revokedRes.status === 201 && revokedJson.ok === true && revokedJson.as === "bot" && revokedJson.session === "expired" &&
+  ghCalls.length === 2 && ghCalls[1].init.headers.Authorization === "Bearer bot-token";
+
+ghCalls.length = 0;
+const anonRes = await handleBugReportRequest(
+  new Request(ghBase + "/", { method: "POST", headers: ghOrigin, body: JSON.stringify(ghBugGood) }),
+  ghEnv,
+  ghFetchMock([{ match: "/issues", status: 201, body: { number: 44 } }])
+);
+const anonJson = await anonRes.json();
+const garbageRes = await handleBugReportRequest(
+  new Request(ghBase + "/", {
+    method: "POST",
+    headers: Object.assign({}, ghOrigin, { [SESSION_HEADER]: "not-a-session" }),
+    body: JSON.stringify(ghBugGood)
+  }),
+  ghEnv,
+  ghFetchMock([{ match: "/issues", status: 201, body: { number: 45 } }])
+);
+const garbageJson = await garbageRes.json();
+const ghAnonUnchanged =
+  anonRes.status === 201 && anonJson.as === "bot" && !("session" in anonJson) &&
+  ghCalls.length === 2 && ghCalls.every((c) => c.init.headers.Authorization === "Bearer bot-token") &&
+  garbageRes.status === 201 && garbageJson.as === "bot";
+const ghCorsHeader = String(
+  (await handleBugReportRequest(new Request(ghBase + "/", { method: "OPTIONS", headers: { Origin: "https://trizam.github.io" } }), {}))
+    .headers.get("Access-Control-Allow-Headers") || ""
+).indexOf(SESSION_HEADER) >= 0;
+
+const ghFrontend =
+  html.includes('id="bugIdentity"') &&
+  html.includes('id="btnBugGithub"') &&
+  html.includes('id="bugIdentityAvatar"') &&
+  css.includes(".bug-identity") &&
+  css.includes(".bug-identity-btn") &&
+  app.includes('const BUG_GH_HEADER = "X-Bug-Report-Session"') &&
+  app.includes("function toggleBugGithub") &&
+  app.includes("function renderBugIdentity") &&
+  app.includes("function probeBugGithubOffer") &&
+  app.includes("function consumeBugGithubHash") &&
+  app.includes("function onBugGithubMessage") &&
+  app.includes("e.origin !== expected") &&
+  app.includes("/auth/config") &&
+  app.includes("/auth/github/start?mode=") &&
+  app.includes("Signer avec mon compte GitHub") &&
+  app.includes("Envoyé comme @") &&
+  app.includes('data.session === "expired"') &&
+  !app.includes("gho_") &&
+  !app.includes("client_secret");
+const ghDocs =
+  bugDocsSrc.includes("GITHUB_OAUTH_CLIENT_ID") &&
+  bugDocsSrc.includes("GITHUB_OAUTH_CLIENT_SECRET") &&
+  bugDocsSrc.includes("BUG_REPORT_SESSION_SECRET") &&
+  bugDocsSrc.includes("/auth/github/callback") &&
+  readFileSync(join(__dirname, "netlify.toml"), "utf8").includes('from = "/auth/*"');
+console.log(`  GitHub identity: /auth/config + start redirect + guards: ${ghConfigRoute && ghStartRoute && ghStartGuards ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: callback page + state/nonce guards: ${ghCallbackRoute && ghCallbackGuards ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: sealed session round-trip / tamper / expiry: ${ghSessionCrypto ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: issue as visitor + bot relabels: ${ghPostAsUser ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: revoked token falls back to bot: ${ghFallbackToBot ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: anonymous path unchanged + CORS header: ${ghAnonUnchanged && ghCorsHeader ? "PASS" : "FAIL"}`);
+console.log(`  GitHub identity: modal row, app wiring, docs, netlify: ${ghFrontend && ghDocs ? "PASS" : "FAIL"}`);
+
 function makeClassList() {
   const set = new Set();
   return {
@@ -2455,7 +2666,19 @@ const pass =
   paneOk &&
   resultInfoOk &&
   yearsFloatOk &&
-  goodFirstUi;
+  goodFirstUi &&
+  ghConfigRoute &&
+  ghStartRoute &&
+  ghStartGuards &&
+  ghCallbackRoute &&
+  ghCallbackGuards &&
+  ghSessionCrypto &&
+  ghPostAsUser &&
+  ghFallbackToBot &&
+  ghAnonUnchanged &&
+  ghCorsHeader &&
+  ghFrontend &&
+  ghDocs;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");
 process.exit(pass ? 0 : 1);
