@@ -538,6 +538,35 @@ section.block > h2,
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
+/* result-info : ⓘ en haut à droite d’une boîte de résultat → « Comment c’est calculé » (issue #140) */
+.has-info { position: relative; }
+.result-info-btn {
+  width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+.has-info > .result-info-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.4rem;
+  z-index: 1;
+}
+.result-pill.has-info > .label { padding: 0 1.3rem; }
+.card-kpi.has-info { padding-top: 1.45rem; }
+.line-with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.result-info-inline {
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: 0.7rem;
+}
+html[data-theme="dark"] .result-info-btn { background: rgba(255, 255, 255, 0.08); }
+html[data-theme="dark"] .result-info-btn:hover,
+html[data-theme="dark"] .result-info-btn:focus-visible { background: rgba(255, 255, 255, 0.16); }
 .prod-control-row {
   display: grid;
   grid-template-columns: var(--prod-gutter) minmax(0, 1fr);
@@ -2037,6 +2066,100 @@ html[data-theme="dark"] .bug-done {
 .modal-body .rate-table-source a {
   color: var(--green);
   font-weight: 700;
+}
+/* « Comment c’est calculé » : la table des données derrière une boîte (issue #140).
+   Ta donnée = vert, hypothèse standard = jaune doux, calculé = neutre. */
+.calc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+.calc-kind {
+  display: inline-block;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--card);
+}
+.calc-kind-input {
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+.calc-kind-std {
+  background: var(--flag-bg);
+  color: var(--flag-text);
+  border-color: var(--flag-border);
+}
+.modal-body .calc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  margin: 0 0 1.1rem;
+}
+.modal-body .calc-table th,
+.modal-body .calc-table td {
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+.modal-body .calc-table thead th {
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.modal-body .calc-table tbody th {
+  font-weight: 700;
+  color: var(--text);
+}
+.modal-body .calc-table .calc-note {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin-top: 0.1rem;
+}
+.modal-body .calc-table .amt {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text);
+}
+.modal-body .calc-table tr.calc-row-input th { border-left: 4px solid var(--green-mid); }
+.modal-body .calc-table tr.calc-row-std th { border-left: 4px solid var(--flag-border); }
+.modal-body .calc-table tr.calc-row-std th,
+.modal-body .calc-table tr.calc-row-std td { background: var(--flag-bg-end); color: var(--flag-text); }
+.modal-body .calc-table tr.calc-row-std .calc-note { color: #5a4d1a; }
+.modal-body .calc-table tfoot th { font-weight: 700; color: var(--green-dark); }
+.modal-body .calc-table tr.calc-row-formula td {
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--green-dark);
+  white-space: normal;
+}
+.modal-body .calc-table tr.calc-row-exact th,
+.modal-body .calc-table tr.calc-row-exact td { background: var(--green-soft); }
+.modal-body .calc-table tr.calc-row-exact .amt,
+.modal-body .calc-table tr.calc-row-shown .amt {
+  font-weight: 700;
+  color: var(--green-dark);
+  font-size: 0.95rem;
+}
+.modal-body .calc-table tr.calc-row-shown .amt { font-size: 1.1rem; }
+.modal-body .calc-notes { margin-top: 0.25rem; }
+.info-sheet .modal-body .calc-notes li { font-size: 0.92rem; }
+@media (max-width: 420px) {
+  .modal-body .calc-table { font-size: 0.8rem; }
+  .modal-body .calc-table th,
+  .modal-body .calc-table td { padding: 0.4rem 0.35rem; }
+  .modal-body .calc-table .amt { white-space: normal; }
 }
 .modal-card .btn { margin-top: 0.5rem; }
 .modal-card textarea {

@@ -693,6 +693,7 @@
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
+      usedM2, acDec: cell.ac_dec,
       kW, nPv, table, kWhPerKwc, kWhAnnuel, kWh, kWhDecMonth, kWhDec, kWhDay, sunHoursDec, W, snowCover, showVerticalRec,
       conso, fullAuto, consoFromAuto, consoShort, consoMin,
       kWhCredites, ecoClamped, surplusKwh, surplusBuyback, surplusIfAvoided, surplusGap,
@@ -1841,6 +1842,358 @@
     bodyEl.replaceChildren(frag);
     openModal("fieldInfoModal");
   }
+  /*
+   * « Comment c’est calculé » (issue #140). Every result box carries a ⓘ that opens
+   * the same sheet: a table of the numbers behind the box, each one tagged as the
+   * person’s own input, a standard assumption of the calculator, or an intermediate
+   * step; then the formula, the exact result and the rounded figure the box shows.
+   */
+  const RESULT_KIND_LABEL = { input: "Ta donnée", std: "Hypothèse standard", calc: "Calculé" };
+  const NOTE_PANEL = "Panneau générique de 2\u00A0m² (≈ 1\u00A0m × 2\u00A0m) et 400\u00A0W. Aucune marque\u00A0: le calcul ne dépend pas du fabricant.";
+  const NOTE_DENSITY = "Densité de puissance\u00A0: 0,20\u00A0kWc par m² de surface utile (200\u00A0W/m²), soit 400\u00A0W pour 2\u00A0m².";
+  const NOTE_PVWATTS = "Production\u00A0: PVWatts v8 (NSRDB), 1\u00A0kWc, pertes système de 14\u00A0% déjà comprises (onduleur, câblage, salissure, disponibilité). La transformation courant continu → courant alternatif est dans ces pertes.";
+  const NOTE_ROUNDING = "Le calcul garde toute la précision. La boîte montre l’arrondi à deux chiffres significatifs (loi des deux chiffres).";
+
+  function pct(n, d) {
+    return fmtNum(n * 100, d == null ? 0 : d) + "\u00A0%";
+  }
+  function kwhVal(n, d) {
+    return fmtNum(n, d == null ? 0 : d) + "\u00A0kWh";
+  }
+  function row(label, value, kind, note) {
+    return { label: label, value: value, kind: kind, note: note || "" };
+  }
+  function areaRow(r) {
+    const raw = parseFloat($("area") ? $("area").value : "");
+    const shown = areaUnit === "sqft"
+      ? fmtNum(raw, 0) + "\u00A0pi² (" + fmtNum(r.m2, 1) + "\u00A0m²)"
+      : fmtNum(r.m2, 0) + "\u00A0m²";
+    return row("Superficie de l’installation", shown, "input");
+  }
+  function usedAreaRows(r) {
+    return [
+      areaRow(r),
+      row("Densité d’installation", pct(r.util), "input"),
+      row("Surface utile", fmtNum(r.usedM2, 2) + "\u00A0m²", "calc", "superficie × densité")
+    ];
+  }
+  function locationRows(r) {
+    const src = r.cellSource === "scaled"
+      ? "grille de Québec mise à l’échelle de cette ville"
+      : (r.cellSource === "fallback" ? "cellule de secours (grille non chargée)" : "cellule PVWatts de la ville");
+    return [
+      row("Localisation", selectedTownLabel(), "input"),
+      row("Orientation", orientLabelFor(r.az), "input"),
+      row("Inclinaison", Math.round(Number(r.tilt)) + "°", "input"),
+      row("Productible pour 1\u00A0kWc", fmtNum(r.table, 1) + "\u00A0kWh/kWc/an", "std", src)
+    ];
+  }
+  function snowRows(r, share, shareLabel) {
+    return [
+      row("Fréquence de déneigement (d)", pct(r.deneige), "input"),
+      row(shareLabel, pct(share, 0), "std", "selon l’inclinaison\u00A0: 18\u00A0% jusqu’à 45°, 0\u00A0% à 90°, linéaire entre les deux"),
+      row("Facteur neige", fmtNum(1 - (1 - r.deneige) * share, 3), "calc", "1 − (1 − d) × part à risque")
+    ];
+  }
+  function costRows(r) {
+    const rows = [
+      row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc = " + fmtNum(r.kW * 1000, 0) + "\u00A0W", "calc", "boîte Puissance de 1A"),
+      row("Prix au watt installé", fmtNum(r.priceW, 2) + "\u00A0$/W", "input"),
+      row("Sous-total (HT)", fmtMoney(r.HT), "calc", "W × $/W"),
+      row("Taxes TPS + TVQ", r.taxesOn ? fmtMoney(r.taxes) : "non comprises", r.taxesOn ? "std" : "input", r.taxesOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
+      row("Subvention LogisVert", r.subvOn ? "− " + fmtMoney(r.subv) : "non appliquée", r.subvOn ? "std" : "input", r.subvOn ? "min(1\u00A0000\u00A0$/kW, 40\u00A0% du HT)" : "case décochée")
+    ];
+    return rows;
+  }
+  function battRows(r) {
+    return [
+      row("Réserve", kwhVal(r.reserveKwh, 3), "calc", "boîte Réserve de 4B"),
+      row("Prix au kWh installé", fmtMoney(r.battPrice), "input"),
+      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "réserve × prix"),
+      row("Taxes TPS + TVQ", r.battTaxOn ? fmtMoney(r.battTaxes) : "non comprises", r.battTaxOn ? "std" : "input", r.battTaxOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
+      row("Subvention", "0\u00A0$", "std", "LogisVert ne couvre pas les batteries")
+    ];
+  }
+  function consoRow(r) {
+    if (r.fullAuto) return row("Consommation annuelle", kwhVal(r.consoFromAuto, 0) + " / an", "calc", "365\u00A0j × " + fmtKwhDay(r.consoJour) + "\u00A0kWh/j (case « 100\u00A0% autonome »)");
+    if (r.conso == null) return row("Consommation annuelle", "aucune", "input", "sans plafond");
+    return row("Consommation annuelle", kwhVal(r.conso, 0) + " / an", "input", r.conso === DEFAULT_CONSO_KWH ? "défaut du calculateur" : "");
+  }
+  function rateRow(r) {
+    const isDefault = Math.abs(r.rateOk - DEFAULT_RATE) < 1e-9;
+    return row("Tarif marginal HQ (TTC)", fmtNum(r.rateOk * 100, 3) + "\u00A0¢/kWh", "input", isDefault ? "défaut\u00A0: 2e tranche Tarif D, taxes comprises" : "");
+  }
+
+  const RESULT_INFO = {
+    pv: function (r) {
+      return {
+        title: "Panneaux solaires installés",
+        rows: usedAreaRows(r).concat([row("Surface d’un panneau", "2\u00A0m²", "std", "panneau générique de 400\u00A0W")]),
+        formula: "panneaux = arrondi(surface utile ÷ 2\u00A0m²)",
+        exact: isFinite(r.nPv) ? fmtNum(r.usedM2 / PANEL_M2, 2) + " panneaux" : "—",
+        shown: isFinite(r.nPv) ? fmtNum(r.nPv, 0) + " panneaux" : "—",
+        shownNote: "arrondi au panneau entier",
+        notes: [NOTE_PANEL, NOTE_DENSITY]
+      };
+    },
+    kw: function (r) {
+      return {
+        title: "Puissance",
+        rows: usedAreaRows(r).concat([row("Densité de puissance", "0,20\u00A0kWc/m²", "std", "200\u00A0W par m² de surface utile")]),
+        formula: "kWc = surface utile × 0,20",
+        exact: fmtNum(r.kW, 3) + "\u00A0kWc",
+        shown: fmtShown(r.kW, 2) + "\u00A0kWc",
+        notes: [NOTE_DENSITY, NOTE_PANEL, NOTE_ROUNDING]
+      };
+    },
+    kwhkwc: function (r) {
+      return {
+        title: "Efficacité de l’installation",
+        rows: locationRows(r).concat(snowRows(r, r.W, "Part de l’année à risque neige (W)")),
+        formula: "kWh/kWc/an = productible × (1 − (1 − d) × W)",
+        exact: fmtNum(r.kWhPerKwc, 2) + "\u00A0kWh/kWc/an",
+        shown: fmtGroupedInt(Math.round(r.kWhPerKwc)) + "\u00A0kWh/kWc/an",
+        shownNote: "arrondi à l’entier, comme le menu des villes",
+        notes: [NOTE_PVWATTS, "W est une part simplifiée de la production de décembre à février, pas une mesure de ton toit."]
+      };
+    },
+    kwh: function (r) {
+      return {
+        title: "Mesurage Net",
+        rows: [row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "boîte Puissance de 1A")]
+          .concat(locationRows(r))
+          .concat([row("Production brute", kwhVal(r.kWhAnnuel, 1) + " / an", "calc", "kWc × productible")])
+          .concat(snowRows(r, r.W, "Part de l’année à risque neige (W)")),
+        formula: "kWh/an = kWc × productible × (1 − (1 − d) × W)",
+        exact: kwhVal(r.kWh, 1) + " / an",
+        shown: fmtShown(r.kWh, 0) + "\u00A0kWh / an",
+        notes: [NOTE_PVWATTS, "Mesurage net\u00A0: les kWh produits sont crédités sur la facture Hydro-Québec. Le crédit ne dépasse pas la consommation annuelle (voir Économies).", NOTE_ROUNDING]
+      };
+    },
+    kwhday: function (r) {
+      return {
+        title: "Autonomie — un jour de décembre",
+        rows: [row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "boîte Puissance de 1A")]
+          .concat(locationRows(r).slice(0, 3))
+          .concat([
+            row("Décembre pour 1\u00A0kWc", fmtNum(r.acDec, 2) + "\u00A0kWh/kWc", "std", "PVWatts, même cellule que l’annuel"),
+            row("Décembre brut", kwhVal(r.kWhDecMonth, 2), "calc", "kWc × décembre pour 1\u00A0kWc")
+          ])
+          .concat(snowRows(r, r.snowCover, "Part de décembre à risque neige (C)"))
+          .concat([row("Jours en décembre", "31", "std")]),
+        formula: "kWh/j = kWc × décembre (1\u00A0kWc) × (1 − (1 − d) × C) ÷ 31",
+        exact: fmtNum(r.kWhDay, 3) + "\u00A0kWh/j",
+        shown: fmtShown(r.kWhDay, 2) + "\u00A0kWh/j",
+        notes: ["Sans déneigement, tout décembre est à risque si les panneaux ne sont pas verticaux\u00A0: C = 100\u00A0% jusqu’à 45°, 0\u00A0% à 90°.", NOTE_PVWATTS, NOTE_ROUNDING]
+      };
+    },
+    reel: function (r) {
+      return {
+        title: "Coût réel des panneaux",
+        rows: costRows(r),
+        formula: r.taxesOn ? "coût réel = HT + taxes − subvention" : "coût réel = HT − subvention",
+        exact: fmtMoney(r.reel),
+        shown: fmtShownMoney(r.reel),
+        notes: ["Le prix au watt couvre panneaux, onduleur, structure et pose. Estimation pédagogique, pas une soumission.", NOTE_ROUNDING]
+      };
+    },
+    eco: function (r) {
+      return {
+        title: "Économies par an",
+        rows: [
+          row("Production (Mesurage Net)", kwhVal(r.kWh, 0) + " / an", "calc"),
+          consoRow(r),
+          row("kWh crédités", kwhVal(r.kWhCredites, 0) + " / an", "calc", r.ecoClamped ? "plafonné à la consommation" : "min(production, consommation)"),
+          rateRow(r)
+        ],
+        formula: "économies = kWh crédités × tarif",
+        exact: fmtMoney(r.eco) + " / an",
+        shown: fmtShownMoney(r.eco) + " / an",
+        notes: ["Le surplus au-delà de la consommation n’est pas compté ici\u00A0: HQ le rachète à 4,730\u00A0¢/kWh (drapeau jaune).", NOTE_ROUNDING]
+      };
+    },
+    years: function (r) {
+      return {
+        title: "Retour — années pour rentrer",
+        rows: [
+          row("Coût réel des panneaux", fmtMoney(r.reel), "calc", "boîte Coût réel"),
+          row("Économies par an", fmtMoney(r.eco) + " / an", "calc", "boîte Économies / an")
+        ],
+        formula: "années = coût réel ÷ économies par an",
+        exact: isFinite(r.years) && r.years > 0 ? fmtNum(r.years, 2) + " ans" : "—",
+        shown: fmtYears(r.years),
+        notes: ["Hypothèses\u00A0: tarif constant, aucune dégradation des panneaux, aucun entretien ni financement. Le retour ne compte que les panneaux, pas les batteries.", NOTE_ROUNDING]
+      };
+    },
+    reserve: function (r) {
+      return {
+        title: "Réserve",
+        rows: [
+          row("Consommation du jour", fmtKwhDay(r.consoJour) + "\u00A0kWh/j", "input", "curseur 4A + ligne libre"),
+          row("Durée d’autonomie", r.autonomyLabel + " (" + fmtNum(r.autonomyDays * 24, 2) + "\u00A0h)", "input"),
+          row("Durée en jours", fmtNum(r.autonomyDays, 4), "calc", "heures ÷ 24")
+        ],
+        formula: "réserve = kWh/j × durée (jours)",
+        exact: kwhVal(r.reserveKwh, 3),
+        shown: r.consoJour === 0 ? "Aucune réserve" : fmtReserveKwh(r.reserveKwh) + "\u00A0kWh",
+        shownNote: "sous 100\u00A0kWh, au centième",
+        notes: ["La réserve est l’énergie utile à stocker. Le rendement des batteries et la profondeur de décharge ne sont pas comptés."]
+      };
+    },
+    fill: function (r) {
+      let exact = "—";
+      if (r.fillState === "ok") exact = fmtNum(r.fillDays, 3) + " jours";
+      else if (r.fillState === "none") exact = "aucune réserve à remplir";
+      else if (r.fillState === "impossible") exact = "surplus nul ou négatif\u00A0: ne se remplit pas";
+      const shownText = r.fillState === "ok"
+        ? (function () { const f = fmtFillDuration(r.fillDays); return f.num + " " + f.unit; })()
+        : (r.fillState === "none" ? "Aucune réserve" : (r.fillState === "impossible" ? "Ne se remplit pas" : "—"));
+      return {
+        title: "Temps pour remplir la réserve",
+        rows: [
+          row("Réserve", kwhVal(r.reserveKwh, 3), "calc", "boîte Réserve de 4B"),
+          row("Production d’un jour de décembre", fmtNum(r.kWhDay, 3) + "\u00A0kWh/j", "calc", "boîte Autonomie"),
+          row("Consommation du jour", fmtKwhDay(r.consoJour) + "\u00A0kWh/j", "input", "curseur 4A + ligne libre"),
+          row("Surplus de décembre", fmtNum(r.surplusDay, 3) + "\u00A0kWh/j", "calc", "production − consommation"),
+          row("Puissance", fmtNum(r.kW, 3) + "\u00A0kWc", "calc", "boîte Puissance de 1A"),
+          row("Plein soleil en décembre", isFinite(r.sunHoursDec) ? fmtNum(r.sunHoursDec, 2) + "\u00A0h/j" : "—", "calc", "production du jour ÷ kWc")
+        ],
+        formula: "jours = réserve ÷ surplus de décembre",
+        exact: exact,
+        shown: shownText,
+        shownNote: "toujours en jours, une décimale sous 10 jours",
+        notes: [],
+        tpl: "remplissage"
+      };
+    },
+    battcost: function (r) {
+      return {
+        title: "Coût des batteries",
+        rows: battRows(r),
+        formula: r.battTaxOn ? "batteries = HT + taxes" : "batteries = HT",
+        exact: fmtMoney(r.battCost),
+        shown: fmtShownMoney(r.battCost),
+        notes: ["Le prix au kWh installé est une fourchette pédagogique (600 à 1\u00A0800\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING]
+      };
+    },
+    project: function (r) {
+      return {
+        title: "Coût total du projet",
+        rows: [
+          row("Panneaux solaires (coût réel)", fmtMoney(r.reel), "calc", "carte 2\u00A0: HT + taxes − subvention"),
+          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: réserve × prix + taxes")
+        ],
+        formula: "total = panneaux + batteries",
+        exact: fmtMoney(r.projectTotal),
+        shown: fmtShownMoney(r.projectTotal),
+        notes: ["Le retour sur investissement ne compte que les panneaux.", NOTE_ROUNDING]
+      };
+    }
+  };
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function buildResultInfo(spec) {
+    const frag = document.createDocumentFragment();
+    const legend = el("p", "calc-legend");
+    ["input", "std", "calc"].forEach(function (kind) {
+      const chip = el("span", "calc-kind calc-kind-" + kind, RESULT_KIND_LABEL[kind]);
+      legend.appendChild(chip);
+    });
+    frag.appendChild(legend);
+
+    const table = el("table", "calc-table");
+    const thead = el("thead");
+    const hr = el("tr");
+    hr.appendChild(el("th", null, "Donnée"));
+    hr.appendChild(el("th", null, "Valeur"));
+    hr.appendChild(el("th", null, "Origine"));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    spec.rows.forEach(function (it) {
+      const tr = el("tr", "calc-row-" + it.kind);
+      const th = el("th");
+      th.setAttribute("scope", "row");
+      th.appendChild(document.createTextNode(it.label));
+      if (it.note) th.appendChild(el("span", "calc-note", it.note));
+      tr.appendChild(th);
+      tr.appendChild(el("td", "amt", it.value));
+      const kindTd = el("td");
+      kindTd.appendChild(el("span", "calc-kind calc-kind-" + it.kind, RESULT_KIND_LABEL[it.kind]));
+      tr.appendChild(kindTd);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    const tfoot = el("tfoot");
+    const fr = el("tr", "calc-row-formula");
+    const fth = el("th");
+    fth.setAttribute("scope", "row");
+    fth.textContent = "Formule";
+    fr.appendChild(fth);
+    const ftd = el("td", "calc-formula", spec.formula);
+    ftd.setAttribute("colspan", "2");
+    fr.appendChild(ftd);
+    tfoot.appendChild(fr);
+    const er = el("tr", "calc-row-exact");
+    const eth = el("th");
+    eth.setAttribute("scope", "row");
+    eth.textContent = "Résultat";
+    eth.appendChild(el("span", "calc-note", "précision complète"));
+    er.appendChild(eth);
+    const etd = el("td", "amt", spec.exact);
+    etd.setAttribute("colspan", "2");
+    er.appendChild(etd);
+    tfoot.appendChild(er);
+    const sr = el("tr", "calc-row-shown");
+    const sth = el("th");
+    sth.setAttribute("scope", "row");
+    sth.textContent = "Affiché dans la boîte";
+    sth.appendChild(el("span", "calc-note", spec.shownNote || (detailsOn() ? "« Je veux les détails » est coché" : "arrondi à deux chiffres significatifs")));
+    sr.appendChild(sth);
+    const std = el("td", "amt", spec.shown);
+    std.setAttribute("colspan", "2");
+    sr.appendChild(std);
+    tfoot.appendChild(sr);
+    table.appendChild(tfoot);
+    frag.appendChild(table);
+
+    if (spec.notes && spec.notes.length) {
+      const block = el("div", "info-block calc-notes");
+      block.appendChild(el("h4", null, "Hypothèses"));
+      const ul = el("ul");
+      spec.notes.forEach(function (n) { ul.appendChild(el("li", null, n)); });
+      block.appendChild(ul);
+      frag.appendChild(block);
+    }
+    if (spec.tpl) {
+      const tpl = document.getElementById("tpl-info-" + spec.tpl);
+      if (tpl) {
+        const extra = tpl.content.cloneNode(true);
+        const t = extra.querySelector("[data-info-title]");
+        if (t) t.remove();
+        frag.appendChild(extra);
+      }
+    }
+    return frag;
+  }
+
+  function openResultInfo(key) {
+    const make = RESULT_INFO[key];
+    const titleEl = $("fieldInfoTitle");
+    const bodyEl = $("fieldInfoBody");
+    if (!make || !titleEl || !bodyEl) return;
+    const spec = make(calc());
+    titleEl.textContent = "Comment c’est calculé — " + spec.title;
+    bodyEl.replaceChildren(buildResultInfo(spec));
+    openModal("fieldInfoModal");
+  }
+
   function closeInfo() {
     const m = currentModal();
     if (!m || m.hidden) return;
@@ -2244,7 +2597,9 @@
     if ($("btnRateInfo")) $("btnRateInfo").addEventListener("click", openRateInfo);
     document.querySelectorAll(".field-info-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        openFieldInfo(btn.getAttribute("data-info"));
+        const resultKey = btn.getAttribute("data-result-info");
+        if (resultKey) openResultInfo(resultKey);
+        else openFieldInfo(btn.getAttribute("data-info"));
       });
     });
     ["btnInfoClose", "btnInfoOk", "btnRateClose", "btnRateOk", "btnFieldInfoClose", "btnFieldInfoOk", "btnBugClose"].forEach(function (id) {
