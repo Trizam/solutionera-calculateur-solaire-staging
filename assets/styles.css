@@ -95,6 +95,7 @@ html[data-mode="webi"] .mode-full-only {
   vertical-align: middle;
   white-space: nowrap;
 }
+html { overflow-anchor: none; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -978,14 +979,28 @@ section.block > h2,
 .autonomy-snow-rec {
   margin: 0;
 }
+/* Mesurage et le jour de décembre sont les deux cases de la rangée.
+   La note de neige occupe la ligne du dessous, sous ce jour. */
 .slot-yield {
   align-items: stretch;
+  min-width: 0;
 }
-/* Mesurage et Autonomie sont les deux cases de la rangée.
-   La note de neige occupe la ligne du dessous, sous Autonomie. */
 .slot-yield > .result-pill {
   grid-column: 1;
   grid-row: 1;
+  margin-top: 0;
+}
+.yield-auto > .result-pill {
+  grid-column: 2;
+  grid-row: 1;
+}
+.yield-auto .autonomy-snow {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0;
+}
+@media (max-width: 520px) {
+  .slot-yield .autonomy-snow { grid-column: 1 / -1; }
 }
 .field-conso-jour {
   margin-top: var(--section-hairline-pad);
@@ -1090,20 +1105,50 @@ section.block > h2,
 .load-table + .calc-line {
   margin-top: 0.55rem;
 }
+.load-table + .slider-ends { margin-top: 0.85rem; }
+.load-marks {
+  position: relative;
+  height: 1.65rem;
+  margin: 0.05rem 0 0;
+  pointer-events: none;
+}
+.load-mark {
+  position: absolute;
+  top: 0;
+  left: calc(22px + var(--mark) * (100% - 44px));
+  transform: translateX(-50%);
+  max-width: 6.5rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--muted);
+  text-align: center;
+  white-space: normal;
+}
+.load-mark::before {
+  content: "";
+  display: block;
+  width: 2px;
+  height: 7px;
+  margin: -0.55rem auto 0.12rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+.slider-ends {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 0 0 0.12rem calc(var(--prod-gutter) + var(--prod-gap));
+  font-size: 0.68rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--muted);
+}
+.slider-ends span:last-child { text-align: right; }
+#sec-auto { --prod-gutter: 9rem; }
 .yield-auto {
   display: contents;
-}
-.yield-auto > .result-pill {
-  grid-column: 2;
-  grid-row: 1;
-}
-.yield-auto .autonomy-snow {
-  grid-column: 2;
-  grid-row: 2;
-  margin-top: 0;
-}
-@media (max-width: 520px) {
-  .slot-yield .autonomy-snow { grid-column: 1 / -1; }
 }
 .fill-shortfall {
   margin: 0.75rem 0 0;
@@ -1205,6 +1250,52 @@ section.block > h2,
   color: var(--muted);
   margin-top: 0.2rem;
   line-height: 1.3;
+}
+.card-kpi-years { position: relative; }
+.years-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--green-dark);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.card-kpi-years > .years-pin-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+}
+.years-pin-btn:hover,
+.years-pin-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.82);
+}
+.years-pin-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.years-pin-btn[aria-pressed="true"] {
+  background: var(--green);
+  color: #fff;
+  border-color: transparent;
+}
+html[data-theme="dark"] .years-pin-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+html[data-theme="dark"] .years-pin-btn:hover,
+html[data-theme="dark"] .years-pin-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+html[data-theme="dark"] .years-pin-btn[aria-pressed="true"] {
+  background: var(--green);
+  color: #102018;
 }
 .rate-box {
   display: flex;
@@ -1396,6 +1487,76 @@ footer.bug .bug-ver { font-size: 0.72rem; }
   box-shadow: 0 0 0 2px var(--green), 0 8px 22px rgba(27, 67, 50, 0.28);
 }
 .bug-fab[aria-expanded="true"]:hover { background: var(--hover-soft); }
+
+/* Pinned payback. Pale green is translucent so the page shows through.
+   Sits to the right of the bug bubble so the two don’t cover each other. */
+.years-pin {
+  position: fixed;
+  z-index: 35;
+  left: calc(max(0.65rem, env(safe-area-inset-left, 0px)) + 3.25rem + 0.45rem);
+  right: max(0.65rem, env(safe-area-inset-right, 0px));
+  bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.years-pin[hidden] { display: none !important; }
+html[data-mode="webi"] .years-pin { display: none !important; }
+.years-pin-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  max-width: 100%;
+  padding: 0.15rem 0.2rem 0.15rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(216, 243, 220, 0.74);
+  border: 1px solid rgba(207, 227, 212, 0.9);
+  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.14);
+  backdrop-filter: blur(8px);
+}
+.years-pin-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.years-pin-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .years-pin-card {
+  background: rgba(31, 58, 45, 0.74);
+  border-color: rgba(47, 74, 60, 0.9);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+@media (min-width: 700px) {
+  .years-pin {
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  }
+  .years-pin-card {
+    gap: 0.7rem;
+    min-height: 3.05rem;
+    padding: 0.35rem 0.4rem 0.35rem 1rem;
+    border-radius: 14px;
+  }
+  .years-pin-kicker { font-size: 0.8rem; }
+  .years-pin-value { font-size: 1.35rem; }
+}
+body.is-years-pinned footer.bug {
+  padding-bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 6.25rem);
+}
+/* Hide the bar while the years card is on screen. Pin state stays. */
+body.is-years-source-visible .years-pin {
+  visibility: hidden;
+  pointer-events: none;
+}
 html[data-theme="dark"] .bug-fab {
   background: var(--green);
   color: #102018;
@@ -1778,6 +1939,8 @@ html[data-theme="dark"] .bug-done {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  /* Result updates must not yank the viewport while the map pan runs. */
+  overflow-anchor: none;
 }
 .board > .block,
 .board > .result-pair,
@@ -1888,6 +2051,23 @@ section.block h2 .field-info-btn {
   align-self: center;
 }
 .project-note { text-align: center; }
+.project-note-side { display: none; }
+.autonomy-none {
+  margin: 0;
+  padding: 1.15rem 1.2rem;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.autonomy-none p { margin: 0; }
+.autonomy-none[hidden] { display: none !important; }
 #sec-total .breakdown { margin-bottom: 0.85rem; }
 #sec-total .result-pill { margin-top: 0; }
 
@@ -1916,6 +2096,11 @@ section.block h2 .field-info-btn {
   html:not([data-mode="webi"]) .slot-batt { grid-area: batt; align-self: start; }
   html:not([data-mode="webi"]) .slot-roi { grid-area: roi; align-self: start; }
   html:not([data-mode="webi"]) .slot-total { grid-area: total; align-self: start; }
+  html:not([data-mode="webi"]) #autonomyNone {
+    grid-column: 2;
+    grid-row: fill-start / total-end;
+    align-self: stretch;
+  }
   html:not([data-mode="webi"]) .slot-need,
   html:not([data-mode="webi"]) .slot-batt,
   html:not([data-mode="webi"]) .slot-total {
@@ -1923,6 +2108,8 @@ section.block h2 .field-info-btn {
     flex-direction: column;
   }
   html:not([data-mode="webi"]) .slot-need { align-self: start; }
+  html:not([data-mode="webi"]) .project-note-side { display: block; }
+  html:not([data-mode="webi"]) .project-note-stack { display: none; }
   html:not([data-mode="webi"]) .flow-arrow {
     display: grid;
     place-items: center;
@@ -1955,7 +2142,7 @@ section.block h2 .field-info-btn {
   body { background: #fff; color: #000; }
   body.modal-open { overflow: visible; touch-action: auto; }
   .skip-link,
-  .btn, .bug-fab, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
+  .btn, .bug-fab, .years-pin, .years-pin-btn, .bug-done, footer.bug, .unit-toggle, .theme-toggle, .cards-disclaimer, .info-btn, .rate-info-btn, .field-info-btn, .field-info-tip, .tilt-viz,
   .modal-backdrop, .hint, .mode-badge, .editor-tools, .flow-arrow { display: none !important; }
   .board {
     display: block !important;
@@ -2003,6 +2190,8 @@ section.block h2 .field-info-btn {
   /* Hide slider chrome; keep the numeric value on the left */
   .slider-track,
   .slider-meta,
+  .slider-ends,
+  .load-marks,
   .slider-track input[type="range"] { display: none !important; }
   .orient-dial,
   .orient-val { display: none !important; }

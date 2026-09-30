@@ -24,12 +24,14 @@
   /** Ballpark résidentiel Québec (~17 600 kWh/ménage HQ) — round pedagogical default */
   const DEFAULT_CONSO_KWH = 17000;
   /**
-   * Autonomy ladder, kWh/day in tenths (no electric heat).
-   * Rounded off-grid audits: phone ~0.02–0.05 → 0.1 so the first notch shows;
-   * laptop ~0.25 + router 24 h ~0.25; LED house ~0.5; TV ~0.4;
-   * well/pressure pump ~0.5–1.5; efficient fridge ~1–1.5; chest freezer ~0.8;
-   * one washer load ~0.5 (no dryer); modest electric cooking ~1–1.5.
-   * Full right stop ≈ 6.3 kWh/day. A Québec grid house is ~45 kWh/day.
+   * Daily-load ladder, kWh/day in tenths.
+   * Slider max is 40 kWh/day (400 tenths): enough for a fully autonomous
+   * Québec house (base loads, hot water, heat pump, backup heat) and still
+   * under a typical grid home (~45 kWh/day). The first nine loads stay the
+   * off-grid ladder (phone through cooking) and still sum to 6.3 kWh/day.
+   * Later loads open the range toward « maison pleinement autonome ».
+   * The slider itself is kWh/day (0.1 steps), not a notch index. A device
+   * appears once the slider reaches that device’s cumulative total.
    */
   /** 16px stroke icons, same language as the theme marks. Shown only on a visible row. */
   function loadIcon(paths) {
@@ -45,8 +47,16 @@
     { label: "Réfrigérateur", tenths: 12, icon: loadIcon('<rect x="3.75" y="1.5" width="8.5" height="13" rx="1.2"' + ICO_STROKE + '/><path d="M3.75 7h8.5M10.4 4.2v1.15M10.4 9.3v1.15"' + ICO_STROKE + '/>') },
     { label: "Congélateur", tenths: 8, icon: loadIcon('<path d="M8 1.8v12.4M2.7 4.7 13.3 11.3M13.3 4.7 2.7 11.3"' + ICO_STROKE + '/>') },
     { label: "Laveuse", tenths: 5, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="8.8" r="2.45"' + ICO_STROKE + '/><path d="M4.7 4.55h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') },
-    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') }
+    { label: "Cuisson", tenths: 15, icon: loadIcon('<path d="M4.2 6.7h7.6v4.6a1.3 1.3 0 0 1-1.3 1.3H5.5a1.3 1.3 0 0 1-1.3-1.3V6.7z"' + ICO_STROKE + '/><path d="M2.4 6.7h11.2M6.3 6.7V5a1.7 1.7 0 0 1 3.4 0v1.7"' + ICO_STROKE + '/>') },
+    { label: "Lave-vaisselle", tenths: 12, icon: loadIcon('<rect x="2.2" y="3" width="11.6" height="10" rx="1.2"' + ICO_STROKE + '/><path d="M2.2 6.2h11.6"' + ICO_STROKE + '/><circle cx="6.1" cy="9.5" r="0.7" fill="currentColor" stroke="none"/><circle cx="9.9" cy="9.5" r="0.7" fill="currentColor" stroke="none"/>') },
+    { label: "Sécheuse", tenths: 25, icon: loadIcon('<rect x="2.15" y="2.15" width="11.7" height="11.7" rx="1.3"' + ICO_STROKE + '/><circle cx="8" cy="9" r="2.2"' + ICO_STROKE + '/><path d="M4.3 4.6h1.3M6.5 4.6h1.3M8.7 4.6h1.3"' + ICO_STROKE + '/>') },
+    { label: "Chauffe-eau", tenths: 80, icon: loadIcon('<rect x="4.3" y="1.6" width="7.4" height="12.8" rx="2.4"' + ICO_STROKE + '/><path d="M6.3 5.1h3.4M6.3 7.3h3.4M6.3 9.5h3.4"' + ICO_STROKE + '/>') },
+    { label: "Thermopompe", tenths: 120, icon: loadIcon('<rect x="1.8" y="3.1" width="12.4" height="8.2" rx="1.2"' + ICO_STROKE + '/><path d="M1.8 6h12.4M4.2 8.6h2M7 8.6h2M9.8 8.6h2M8 11.3v2.2"' + ICO_STROKE + '/>') },
+    { label: "Chauffage", tenths: 100, icon: loadIcon('<path d="M3.2 13.4V6.4M5.6 13.4V3M8 13.4V3M10.4 13.4V3M12.8 13.4V6.4M3.2 13.4h9.6"' + ICO_STROKE + '/>') }
   ];
+  /** Slider ceiling, kWh/day. Must match the ladder sum (400 tenths). */
+  const DAILY_KWH_MAX = 40;
+  const DAILY_TENTH_MAX = DAILY_KWH_MAX * 10;
   const CONSO_EXTRA_MAX = 100;
   /** Draft installed-battery range until a real $/kWh band is chosen. */
   const BATT_PRICE_DEFAULT = 1200;
@@ -56,7 +66,7 @@
    * 24 h and « 1 jour » are the same stop. Default is 1 jour.
    */
   const RESERVE_STOPS = [
-    { hours: 0, label: "0" },
+    { hours: 0, label: "aucune" },
     { hours: 5 / 60, label: "5 min" },
     { hours: 15 / 60, label: "15 min" },
     { hours: 30 / 60, label: "30 min" },
@@ -401,7 +411,7 @@
     return snapped > CONSO_EXTRA_MAX ? CONSO_EXTRA_MAX : snapped;
   }
 
-  /** Slider step 0…N plus optional extra kWh/day. Sum stays in tenths. */
+  /** Ladder step 0…N plus optional extra kWh/day. Sum stays in tenths. */
   function dailyLoadKwh(step, extra) {
     const n = Math.max(0, Math.min(DAILY_LOADS.length, Math.round(Number(step) || 0)));
     let tenths = 0;
@@ -410,8 +420,31 @@
     return tenths / 10;
   }
 
-  function dailyLoadStep() {
-    return readRange("consoJour", 0, DAILY_LOADS.length, 1, 0);
+  /** Slider position in tenths of a kWh (0 … DAILY_TENTH_MAX). */
+  function sliderTenths() {
+    return readRange("consoJour", 0, DAILY_TENTH_MAX, 1, 0);
+  }
+
+  /**
+   * kWh/day from a slider position in tenths, plus the free line.
+   * Reserve uses this total, not the sum of the revealed device rows.
+   */
+  function sliderDailyKwh(tenths, extra) {
+    const t = Math.max(0, Math.min(DAILY_TENTH_MAX, Math.round(Number(tenths) || 0)));
+    return (t + Math.round(clampExtraKwh(extra) * 10)) / 10;
+  }
+
+  /** How many devices the slider has reached (cumulative tenths ≤ position). */
+  function loadsVisibleCount(tenths) {
+    const cap = Math.max(0, Math.round(Number(tenths) || 0));
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < DAILY_LOADS.length; i++) {
+      sum += DAILY_LOADS[i].tenths;
+      if (sum <= cap) n = i + 1;
+      else break;
+    }
+    return n;
   }
 
   function consoExtraKwh() {
@@ -428,11 +461,11 @@
     el.value = v > 0 ? fmtKwhDay(v) : "";
   }
 
-  function renderDailyLoadRows(step) {
+  function renderDailyLoadRows(tenths) {
     const body = $("consoJourList");
     const table = $("consoJourTable");
     if (!body) return;
-    const n = Math.max(0, Math.min(DAILY_LOADS.length, step));
+    const n = loadsVisibleCount(tenths);
     let html = "";
     for (let i = 0; i < n; i++) {
       const load = DAILY_LOADS[i];
@@ -442,29 +475,30 @@
     if (table) table.classList.toggle("is-empty", n === 0);
   }
 
-  /** Ladder on the slider; total line adds the free kWh/day. Note vs December production. */
+  /** Slider kWh; the device table sits above it. Total line adds the free kWh/day. Note vs December. */
   function updateConsoJourUi(prodDay) {
-    const step = dailyLoadStep();
+    const tenths = sliderTenths();
     const extra = consoExtraKwh();
-    const base = dailyLoadKwh(step, 0);
-    const total = dailyLoadKwh(step, extra);
+    const base = sliderDailyKwh(tenths, 0);
+    const total = sliderDailyKwh(tenths, extra);
     const val = $("consoJourVal");
-    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh";
-    const maxEl = $("consoJourMax");
-    if (maxEl) maxEl.innerHTML = fmtKwhDay(dailyLoadKwh(DAILY_LOADS.length, 0)) + "&nbsp;kWh";
+    if (val) val.innerHTML = fmtKwhDay(base) + "&nbsp;kWh/j";
     const slider = $("consoJour");
     if (slider) {
-      const last = step > 0 ? DAILY_LOADS[step - 1].label : "";
+      const n = loadsVisibleCount(tenths);
+      const last = n > 0 ? DAILY_LOADS[n - 1].label : "";
+      const spoken = fmtKwhDay(base) + (base > 1 ? " kilowattheures par jour" : " kilowattheure par jour");
+      slider.setAttribute("aria-valuenow", String(base));
+      slider.setAttribute("aria-valuemin", "0");
+      slider.setAttribute("aria-valuemax", String(DAILY_KWH_MAX));
       slider.setAttribute(
         "aria-valuetext",
-        step === 0
-          ? "0 kilowattheure par jour"
-          : fmtKwhDay(base) + " kilowattheures par jour, avec " + last
+        n === 0 ? spoken : spoken + ", avec " + last
       );
     }
-    renderDailyLoadRows(step);
+    renderDailyLoadRows(tenths);
     const totalEl = $("consoJourTotal");
-    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh";
+    if (totalEl) totalEl.textContent = fmtKwhDay(total) + " kWh/j";
     const note = $("consoJourNote");
     if (!note) return;
     if (!(total > 0) || !isFinite(prodDay)) {
@@ -479,9 +513,9 @@
       : "Décembre produit " + prodTxt + " kWh/j. Cette cible dépasse la production du mois.";
   }
 
-  /** Daily consumption for the reserve (kWh/day): ladder plus the free line. */
+  /** Daily consumption for the reserve (kWh/day): slider plus the free line. */
   function consoJourKwh() {
-    return dailyLoadKwh(dailyLoadStep(), consoExtraKwh());
+    return sliderDailyKwh(sliderTenths(), consoExtraKwh());
   }
 
   function reserveStopIndex() {
@@ -519,11 +553,16 @@
     return fmtSig2(n);
   }
 
-  /** Duration 0 hides the rest of the autonomy column. One notch shows it all. */
+  /** Duration 0 (aucune) hides the rest of the autonomy column. One notch shows it all. */
   function syncAutonomyColumn(hours) {
     if (!document.documentElement) return;
-    document.documentElement.setAttribute("data-autonomy", hours > 0 ? "on" : "off");
+    const on = hours > 0;
+    document.documentElement.setAttribute("data-autonomy", on ? "on" : "off");
+    const note = $("autonomyNone");
+    if (!note) return;
+    note.hidden = on;
   }
+
 
   function battPricePerKwh() {
     const el = $("battPrice");
@@ -944,7 +983,9 @@
         if ($("surplusGap")) $("surplusGap").textContent = fmtShownMoney(r.surplusGap);
       }
     }
-    $("kpiYears").textContent = fmtYears(r.years);
+    const yearsLabel = fmtYears(r.years);
+    $("kpiYears").textContent = yearsLabel;
+    if ($("kpiYearsPin")) $("kpiYearsPin").textContent = yearsLabel;
     const yearText = !isFinite(r.years) || r.years <= 0
       ? "—"
       : (detailsOn() ? fmtNum(r.years, 1) : fmtSig2(r.years)) + " ans";
@@ -959,7 +1000,24 @@
       autoInput.setAttribute("aria-valuetext", r.autonomyLabel);
     }
     const reserveNum = $("outReserve") && $("outReserve").querySelector(".prod-num");
-    if (reserveNum) reserveNum.textContent = fmtReserveKwh(r.reserveKwh);
+    const reserveUnit = $("outReserve") && $("outReserve").querySelector(".prod-unit");
+    if (reserveNum) {
+      if (r.consoJour === 0) {
+        reserveNum.textContent = "Aucune réserve";
+        reserveNum.classList.add("is-sentence");
+        if (reserveUnit) {
+          reserveUnit.textContent = "à remplir";
+          reserveUnit.hidden = false;
+        }
+      } else {
+        reserveNum.textContent = fmtReserveKwh(r.reserveKwh);
+        reserveNum.classList.remove("is-sentence");
+        if (reserveUnit) {
+          reserveUnit.textContent = "kWh";
+          reserveUnit.hidden = false;
+        }
+      }
+    }
     syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
@@ -1130,7 +1188,8 @@
     }
     let consoJour = d.consoJour;
     if (q.has("consoJour")) {
-      const v = snapStep(q.get("consoJour"), 0, DAILY_LOADS.length, 1);
+      /* kWh/day, 0.1 steps, not the old notch index. */
+      const v = snapStep(q.get("consoJour"), 0, DAILY_KWH_MAX, 0.1);
       if (isFinite(v)) consoJour = v;
     }
     let consoExtra = d.consoExtra;
@@ -1175,7 +1234,7 @@
       p.set("subv", s.subv ? "1" : "0");
       p.set("conso", String(s.conso));
       p.set("rate", trimNum(s.rate, 3));
-      p.set("consoJour", String(s.consoJour));
+      p.set("consoJour", trimNum(s.consoJour, 1));
       p.set("consoExtra", trimNum(s.consoExtra, 1));
       return p.toString();
     }
@@ -1192,7 +1251,7 @@
     if (!s.subv) p.set("subv", "0");
     if (s.conso !== d.conso) p.set("conso", String(s.conso));
     if (Math.abs(s.rate - d.rate) > 0.0001) p.set("rate", trimNum(s.rate, 3));
-    if (s.consoJour !== d.consoJour) p.set("consoJour", String(s.consoJour));
+    if (Math.abs(s.consoJour - d.consoJour) > 0.001) p.set("consoJour", trimNum(s.consoJour, 1));
     if (Math.abs(s.consoExtra - d.consoExtra) > 0.001) p.set("consoExtra", trimNum(s.consoExtra, 1));
     return p.toString();
   }
@@ -1210,7 +1269,7 @@
     $("subv").checked = !!s.subv;
     if ($("conso")) $("conso").value = s.conso > 0 ? fmtGroupedInt(s.conso) : "";
     $("rate").value = trimNum(s.rate, 3);
-    if ($("consoJour")) $("consoJour").value = String(s.consoJour);
+    if ($("consoJour")) $("consoJour").value = String(Math.round(s.consoJour * 10));
     if ($("consoExtra")) $("consoExtra").value = s.consoExtra > 0 ? fmtKwhDay(s.consoExtra) : "";
     selectedVille = canonicalVille(s.ville || SCENARIO_DEFAULTS.ville);
     if ($("ville")) $("ville").value = selectedVille;
@@ -1247,7 +1306,7 @@
       subv: $("subv") ? !!$("subv").checked : d.subv,
       conso: isFinite(conso) ? conso : 0,
       rate: isFinite(rateSnapped) ? rateSnapped : d.rate,
-      consoJour: readRange("consoJour", 0, DAILY_LOADS.length, 1, d.consoJour),
+      consoJour: snapStep(sliderTenths() / 10, 0, DAILY_KWH_MAX, 0.1),
       consoExtra: consoExtraKwh(),
       ville: canonicalVille(selectedVille)
     };
@@ -1874,6 +1933,21 @@
     }
   }
 
+  /** Payback years stay on screen. The bar says Retour, like the box.
+   * It steps aside while that box is already visible. */
+  function setYearsPinned(on) {
+    const bar = $("yearsPinBar");
+    const pinned = !!on;
+    if (bar) bar.hidden = !pinned;
+    if (document.body) document.body.classList.toggle("is-years-pinned", pinned);
+    const label = pinned ? "Désépingler le retour" : "Épingler le retour";
+    [$("btnPinYears"), $("btnUnpinYears")].forEach(function (btn) {
+      if (!btn) return;
+      btn.setAttribute("aria-pressed", pinned ? "true" : "false");
+      btn.setAttribute("aria-label", label);
+    });
+  }
+
   function wireUi() {
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice"].forEach((id) => {
       const el = $(id);
@@ -1881,6 +1955,32 @@
       el.addEventListener("input", onScenarioEdit);
       el.addEventListener("change", onScenarioEdit);
     });
+    const pinYears = $("btnPinYears");
+    const unpinYears = $("btnUnpinYears");
+    function onYearsPinClick() {
+      const bar = $("yearsPinBar");
+      setYearsPinned(!(bar && !bar.hidden));
+    }
+    if (pinYears) pinYears.addEventListener("click", onYearsPinClick);
+    if (unpinYears) unpinYears.addEventListener("click", onYearsPinClick);
+    if (currentDisplayMode() !== "webi") setYearsPinned(true);
+    const yearsTargets = [];
+    const yearsCard = document.querySelector(".card-kpi-years");
+    const paybackLine = $("outPayback");
+    if (yearsCard) yearsTargets.push(yearsCard);
+    if (paybackLine) yearsTargets.push(paybackLine);
+    if (yearsTargets.length && typeof IntersectionObserver === "function" && document.body) {
+      const seen = new Map();
+      const yearsWatch = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          seen.set(entry.target, !!(entry.isIntersecting && entry.intersectionRatio > 0));
+        });
+        let visible = false;
+        seen.forEach(function (on) { if (on) visible = true; });
+        document.body.classList.toggle("is-years-source-visible", visible);
+      }, { threshold: [0, 0.15] });
+      yearsTargets.forEach(function (el) { yearsWatch.observe(el); });
+    }
     const conso = $("conso");
     if (conso) {
       conso.addEventListener("input", function () { scenarioSnapshot = true; formatConsoInput(true); render(); });
@@ -2715,6 +2815,8 @@
     creditKwh,
     consoAnnuelleKwh,
     dailyLoadKwh,
+    sliderDailyKwh,
+    loadsVisibleCount,
     clampExtraKwh,
     fmtKwhDay,
     parseGroupedInt,
