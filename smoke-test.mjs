@@ -1904,6 +1904,7 @@ async function bootScenario(search, hash) {
   return {
     location,
     history,
+    html: htmlEl,
     api: sandbox.SolarCalcV02,
     el(id) { return document.getElementById(id); }
   };
@@ -2265,6 +2266,73 @@ const yearsFloatOk =
   /prefers-reduced-motion: reduce\) \{\s*\.years-pin-card \{ transition: none !important; \}/.test(css);
 console.log(`  « Retour » flottant calé sur la colonne verte + se pose dans la carte 3: ${yearsFloatOk ? "PASS" : "FAIL"}`);
 
+// #179 / #180 — 4A à zéro : seule 4A reste (ligne libre, total, coche 100 %, 4B, remplissage, 5, 6 attendent),
+// 4A descend à la place de « Temps pour remplir », et la bascule attend la fin du glissement (change).
+const needOnlyMarkup =
+  /<html lang="fr" data-mode="full" data-theme-pref="sys" data-need="off">/.test(html) &&
+  html.includes('<tr class="load-custom-row need-only">') &&
+  html.includes('<tr class="load-total-row need-only">') &&
+  html.includes('<div class="checks need-only" id="fullAutoWrap">') &&
+  html.includes('<p class="calc-line need-only" id="consoJourNote" hidden></p>') &&
+  /<section class="block mode-full-only theme-blue need-only" id="sec-reserve"/.test(html) &&
+  /<section class="result-pill mode-full-only slot-fill autonomy-rest need-only theme-blue has-info" id="sec-fill"/.test(html) &&
+  /<section class="block mode-full-only slot-batt theme-blue autonomy-rest need-only" id="sec-batt"/.test(html) &&
+  /<section class="block mode-full-only slot-total theme-blue autonomy-rest need-only" id="sec-total"/.test(html) &&
+  /<aside class="autonomy-none mode-full-only need-only" id="autonomyNone" hidden>/.test(html) &&
+  html.includes('id="fullAuto"');
+const needOnlyCss =
+  /html\[data-need="off"\] \.need-only \{\s*display: none !important;\s*\}/.test(css) &&
+  css.includes('html:not([data-mode="webi"])[data-need="off"] .slot-need { grid-row: need-start / fill-end; }') &&
+  css.includes('html:not([data-mode="webi"]) .slot-need { align-self: end; }');
+const needOnlyJs =
+  app.includes("function syncNeedColumn(consoJour)") &&
+  app.includes('document.documentElement.setAttribute("data-need", consoJour > 0 ? "on" : "off")') &&
+  app.includes("syncNeedColumn(r.consoJour);") &&
+  app.includes('consoJourEl.addEventListener("input", function () { consoJourLive = true; });') &&
+  app.includes('consoJourEl.addEventListener("change", function () { consoJourLive = false; });');
+const needLive = await (async function runNeedTests() {
+  const fails = [];
+  function expect(cond, msg) { if (!cond) fails.push(msg); }
+  const page = await bootScenario("");
+  const slider = page.el("consoJour");
+  expect(page.html.getAttribute("data-need") === "off", "default 4A at zero → data-need off");
+  slider.value = "54";
+  slider.dispatchEvent({ type: "input", target: slider });
+  expect(page.html.getAttribute("data-need") === "off", "input during the drag keeps data-need off");
+  expect(page.el("consoJourTotal").textContent === "5,4 kWh/j", `total still renders live (${page.el("consoJourTotal").textContent})`);
+  slider.dispatchEvent({ type: "change", target: slider });
+  expect(page.html.getAttribute("data-need") === "on", "change (release) flips data-need on");
+  slider.value = "0";
+  slider.dispatchEvent({ type: "input", target: slider });
+  expect(page.html.getAttribute("data-need") === "on", "dragging back to zero keeps the column until release");
+  slider.dispatchEvent({ type: "change", target: slider });
+  expect(page.html.getAttribute("data-need") === "off", "release at zero hides the column again");
+  const extra = page.el("consoExtra");
+  extra.value = "2";
+  extra.dispatchEvent({ type: "input", target: extra });
+  expect(page.html.getAttribute("data-need") === "on", "the free line alone keeps the column");
+  extra.value = "";
+  extra.dispatchEvent({ type: "input", target: extra });
+  expect(page.html.getAttribute("data-need") === "off", "clearing the free line hides it again");
+  const shared = await bootScenario("?consoJour=5.4");
+  expect(shared.html.getAttribute("data-need") === "on", "shared link with a load boots with the column");
+  fails.forEach((msg) => console.log("  4A à zéro FAIL:", msg));
+  return fails.length === 0;
+})();
+console.log(`  4A à zéro : colonne bleue réduite à 4A, bascule au relâchement (#179, #180): ${needOnlyMarkup && needOnlyCss && needOnlyJs && needLive ? "PASS" : "FAIL"}`);
+
+// #181 — la bulle jaune des drapeaux se cale sur la boîte « Retour » : bord droit sur bord droit, juste au-dessus.
+const flagDockAlignOk =
+  app.includes("function placeDock(e, f, animate)") &&
+  app.includes("const right = f ? f.x + f.w : floatRight(e);") &&
+  app.includes("e.dock.style.right = Math.max(0, vw - right).toFixed(1) + \"px\";") &&
+  app.includes("e.dock.style.bottom = bottom.toFixed(1) + \"px\";") &&
+  app.includes("placeDock(e, f, !following && docked !== null);") &&
+  app.includes("placeDock(e, null, false);") &&
+  app.includes('dock: $("flagDock")') &&
+  css.includes("#181 : le bord droit et le bas sont réécrits par le script");
+console.log(`  bulle jaune calée sur « Retour » (#181): ${flagDockAlignOk ? "PASS" : "FAIL"}`);
+
 const goodFirstUi =
   html.includes('id="priceSurprise"') &&
   html.includes("peut-être surprenant") &&
@@ -2462,6 +2530,11 @@ const pass =
   paneOk &&
   resultInfoOk &&
   yearsFloatOk &&
+  needOnlyMarkup &&
+  needOnlyCss &&
+  needOnlyJs &&
+  needLive &&
+  flagDockAlignOk &&
   goodFirstUi;
 
 console.log(pass ? "SMOKE OK" : "SMOKE FAIL");

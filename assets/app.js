@@ -567,6 +567,18 @@
     return fmtSig2(n);
   }
 
+  /**
+   * 4A at zero (#179, #180): only 4A stays in the blue column. The free line, the
+   * total, the « 100 % autonome » box, 4B, the fill box, 5 and 6 wait for a load.
+   * While the slider is being dragged the state is frozen, so the card under the
+   * thumb does not jump; the flip happens on release (`change`).
+   */
+  let consoJourLive = false;
+  function syncNeedColumn(consoJour) {
+    if (!document.documentElement || consoJourLive) return;
+    document.documentElement.setAttribute("data-need", consoJour > 0 ? "on" : "off");
+  }
+
   /** Duration 0 (aucune) hides the rest of the autonomy column. One notch shows it all. */
   function syncAutonomyColumn(hours) {
     if (!document.documentElement) return;
@@ -1388,6 +1400,7 @@
         }
       }
     }
+    syncNeedColumn(r.consoJour);
     syncAutonomyColumn(autonomyHours());
     if ($("battPriceVal") && isFinite(r.battPrice)) {
       $("battPriceVal").textContent = fmtNum(r.battPrice, 0) + " $";
@@ -3184,7 +3197,7 @@
     function els() {
       const bar = $("yearsPinBar");
       const card = bar ? bar.querySelector(".years-pin-card") : null;
-      return { bar: bar, card: card, slot: $("yearsCard"), solar: document.querySelector(".col-solar"), fab: $("bugFab") };
+      return { bar: bar, card: card, slot: $("yearsCard"), solar: document.querySelector(".col-solar"), fab: $("bugFab"), dock: $("flagDock") };
     }
     function rem() {
       const cs = styleOf(document.documentElement);
@@ -3208,21 +3221,50 @@
       });
       return right;
     }
+    function fabRight(e) {
+      return e.fab && e.fab.getClientRects().length ? e.fab.getBoundingClientRect().right : 0;
+    }
+    /** Right edge where the pill floats: the green cards' right edge, a few px inside. */
+    function floatRight(e) {
+      const vw = window.innerWidth;
+      const r = rem();
+      const colRight = solarRight(e.solar);
+      const right = isFinite(colRight) ? colRight - 0.4 * r : vw - 0.4 * r;
+      return Math.min(right, vw - 0.5 * r);
+    }
     function floatRect(e) {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const r = rem();
       const barStyle = styleOf(e.bar);
       const edge = (barStyle && parseFloat(barStyle.paddingBottom)) || 0.4 * r;
-      const inset = 0.4 * r;
-      const colRight = solarRight(e.solar);
-      let right = isFinite(colRight) ? colRight - inset : vw - edge;
-      let left = right - natural.w;
-      const minLeft = (e.fab && e.fab.getClientRects().length ? e.fab.getBoundingClientRect().right : 0) + 0.45 * r;
+      let left = floatRight(e) - natural.w;
+      const minLeft = fabRight(e) + 0.45 * r;
       if (left < minLeft) left = minLeft;
       const maxLeft = vw - 0.5 * r - natural.w;
       if (left > maxLeft) left = maxLeft;
       return { x: left, y: vh - edge - natural.h, w: natural.w, h: natural.h };
+    }
+    /**
+     * #181 — the yellow flag dock stacks straight above the floating « Retour »,
+     * right edges aligned, and follows it (phone swipe included). Without a visible
+     * pill it keeps the same right edge and drops to the pill's floating spot.
+     */
+    function placeDock(e, f, animate) {
+      if (!e.dock || !e.dock.style) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (!(vw > 0) || !(vh > 0)) return;
+      const r = rem();
+      const right = f ? f.x + f.w : floatRight(e);
+      const barStyle = e.bar ? styleOf(e.bar) : null;
+      const edge = (barStyle && parseFloat(barStyle.paddingBottom)) || 0.4 * r;
+      const bottom = f ? vh - f.y + 0.45 * r : edge;
+      const maxW = Math.max(6 * r, right - fabRight(e) - 0.45 * r);
+      e.dock.style.transition = animate ? "right 340ms cubic-bezier(0.22, 1, 0.36, 1)" : "none";
+      e.dock.style.right = Math.max(0, vw - right).toFixed(1) + "px";
+      e.dock.style.bottom = bottom.toFixed(1) + "px";
+      e.dock.style.maxWidth = maxW.toFixed(1) + "px";
     }
     function slotRect(e) {
       const s = e.slot.getBoundingClientRect();
@@ -3241,10 +3283,14 @@
     function update() {
       queued = false;
       const e = els();
-      if (!e.bar || !e.card || !e.slot || e.bar.hidden) return;
+      if (!e.bar || !e.card || !e.slot || e.bar.hidden) {
+        placeDock(e, null, false);
+        return;
+      }
       if (!natural) measure(e.card);
       if (!(natural.w > 0) || !(natural.h > 0)) { natural = null; return; }
       const f = floatRect(e);
+      placeDock(e, f, !following && docked !== null);
       const s = slotRect(e);
       const slotShown = s.w > 0 && s.h > 0;
       const shouldDock = slotShown && s.y < f.y + f.h && s.y + s.h > 0;
@@ -3337,6 +3383,17 @@
 
   function wireUi() {
     wireFlagDock();
+    const consoJourEl = $("consoJour");
+    if (consoJourEl) {
+      // Registered before the generic listeners so render() sees the live flag.
+      consoJourEl.addEventListener("input", function () { consoJourLive = true; });
+      consoJourEl.addEventListener("change", function () { consoJourLive = false; });
+      consoJourEl.addEventListener("blur", function () {
+        if (!consoJourLive) return;
+        consoJourLive = false;
+        render();
+      });
+    }
     ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battPrice", "battTaxes", "fullAuto"].forEach((id) => {
       const el = $(id);
       if (!el) return;

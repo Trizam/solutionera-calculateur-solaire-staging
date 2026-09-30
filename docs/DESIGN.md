@@ -30,6 +30,7 @@ Deux hauteurs, selon le type de boîte.
 
 - Au grand écran, Mesurage net, Autonomie (jour de décembre) et la boîte « Temps pour remplir » sont toujours sur la même rangée, à la même hauteur. La boîte « Temps pour remplir » est la référence.
 - 4A et 4B ne s’accrochent pas en haut de la page. Elles sont posées juste au-dessus de « Temps pour remplir » (`.slot-need { align-self: end; }`). Si 4A–4B raccourcissent, le vide va au-dessus d’elles, pas sous elles.
+- Exception nommée par Fred (issues #179, #180) : tant que la consommation du jour de 4A est à zéro, 4B, « Temps pour remplir », 5 et 6 sont masqués (`html[data-need="off"] .need-only`). 4A seule descend alors à la place de « Temps pour remplir », posée sur la rangée Mesurage net (`.slot-need { grid-row: need-start / fill-end; }`). Dans 4A, la ligne libre « Autre consommation », le total du jour et la coche « Je suis 100 % autonome » attendent aussi ce moment. Le basculement se fait quand on relâche le curseur (`change`), jamais pendant le glissement : la carte sous le pouce ne bouge pas. Dès qu’il y a une charge, la rangée verrouillée revient telle quelle.
 
 ## 3. Loi des deux chiffres
 
@@ -65,7 +66,7 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 Les drapeaux portent `.theme-yellow` : la note de neige, la bannière de surplus (rachat HQ), la consommation annuelle trop basse face à 4A, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
 
 - Chaque drapeau porte `data-flag="Nom du problème"`. Il reçoit un petit triangle jaune « i » (`.flag-mark`) en haut à droite.
-- Tant qu’au moins un drapeau est visible, une petite boîte jaune fixe (`#flagDock`) flotte au coin inférieur droit de l’écran. Un drapeau : son nom. Plusieurs : leur nombre, à côté du triangle.
+- Tant qu’au moins un drapeau est visible, une petite boîte jaune fixe (`#flagDock`) flotte juste au-dessus de la boîte « Retour » (§ 1 quater), bord droit sur bord droit : les bulles jaunes et la boîte « Retour » forment une pile droite, alignée à droite (issue #181). Le script `yearsFloat` écrit `right`, `bottom` et `max-width` de la bulle à chaque mise à jour de « Retour », y compris pendant le glissement des colonnes sur le téléphone. Un drapeau : son nom. Plusieurs : leur nombre, à côté du triangle.
 - Survol (ordinateur) ou toucher (mobile) : la liste des drapeaux s’ouvre. Un clic amène au drapeau, qui s’intensifie un instant (`.is-flag-focus`).
 - Masqué en mode webi et à l’impression.
 
@@ -115,7 +116,7 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 | --- | --- | --- |
 | Taille / production | Toit, panneaux, orientation | Boîtes vertes déjà en place |
 | Rendement | Mesurage net et le jour de décembre | Paire de boîtes vertes, à gauche, même hauteur. La neige reste sous le jour |
-| Besoin **4A** | Quels appareils je veux | Curseur de 0 à « maison pleinement autonome ». Repère « appareils de base » à 6,3 kWh/j, repère « chauffage » à 18. Le tableau Usage / kWh/j est au-dessus du curseur, du plus léger au plus lourd. Ligne libre conservée. Sans appareil, pas de bande vide |
+| Besoin **4A** | Quels appareils je veux | Curseur de 0 à « maison pleinement autonome ». Repère « appareils de base » à 6,3 kWh/j, repère « chauffage » à 18. Le tableau Usage / kWh/j est au-dessus du curseur, du plus léger au plus lourd. Ligne libre conservée. Sans appareil, pas de bande vide : à zéro, 4A ne montre que le curseur (ni ligne libre, ni total, ni coche 100 %), et le reste de la colonne bleue attend (§ 2 bis) |
 | Durée **4B** | Pendant combien de temps je veux cette autonomie | Sous 4A, dans la colonne bleue. Secours jusqu’à 12 h. Autonomie de maison dès 1 jour, cran marqué « maison » |
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée. Toujours en jours (une décimale sous 10 jours). Sous la boîte : heures de plein soleil par jour en décembre (production du jour ÷ kWc), selon orientation, inclinaison et déneigement |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
@@ -131,7 +132,7 @@ La colonne de gauche porte le solaire : toit, production, mesurage et jour de d�
 
 La consommation du jour est le curseur (0 à 40 kWh/j) plus la ligne libre. Les neuf premiers usages restent l’échelle hors réseau et s’arrêtent à 6,3 kWh/j. Le chauffe-eau entre à 18 kWh/j. Elle ne vient pas de la facture annuelle. La consommation annuelle sert aux économies et au retour des panneaux. Le total du jour s’écrit en kWh/j.
 
-Réserve (kWh) = consommation du jour × durée. Tant que cette consommation est nulle, la boîte réserve de 4B dit « Aucune réserve » / « à remplir ». Coût des batteries = nombre de modules × prix du module, plus taxes si la case de la carte 5 est cochée (défaut). Un module Volthium fait 16,1 kWh. Le nombre de modules est l’arrondi de la réserve ÷ 16,1, et au moins 1 dès qu’il y a une réserve. 33 kWh, c’est deux modules. LogisVert ne couvre pas les batteries (subvention 0 $).
+Réserve (kWh) = consommation du jour × durée. Tant que cette consommation est nulle, 4B, le remplissage, les batteries et le total sont masqués (§ 2 bis). Coût des batteries = nombre de modules × prix du module, plus taxes si la case de la carte 5 est cochée (défaut). Un module Volthium fait 16,1 kWh. Le nombre de modules est l’arrondi de la réserve ÷ 16,1, et au moins 1 dès qu’il y a une réserve. 33 kWh, c’est deux modules. LogisVert ne couvre pas les batteries (subvention 0 $).
 
 Case « Je suis 100 % autonome » en 4A : cochée, la consommation annuelle de la carte 3 = 365 × le total par jour de 4A. Le champ est grisé, avec la note « ce chiffre est figé ». Décochée, si 365 × le total par jour dépasse la consommation annuelle saisie, un drapeau jaune sous le champ donne le minimum à inscrire. Total du projet = coût réel des panneaux + coût des batteries. Le retour ne compte que les panneaux.
 
