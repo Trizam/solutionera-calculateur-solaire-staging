@@ -113,6 +113,10 @@
         : "none";
       board.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
       viewport.classList.toggle("is-animating", motion);
+      // The floating « Retour » follows the green column (docs/DESIGN.md).
+      if (typeof win.CustomEvent === "function") {
+        viewport.dispatchEvent(new win.CustomEvent("board-pane-move", { detail: { x: x, animate: motion } }));
+      }
     }
 
     function clearMotion() {

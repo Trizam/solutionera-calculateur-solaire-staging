@@ -65,9 +65,28 @@ Les cartes **4A**, **4B**, le remplissage, **5** et **6** portent `.theme-blue`.
 Les drapeaux portent `.theme-yellow` : la note de neige, la bannière de surplus (rachat HQ), la consommation annuelle trop basse face à 4A, et l’avertissement quand la réserve ne se remplit pas. Fond jaune clair, texte foncé, même douceur que les boîtes verte et bleue.
 
 - Chaque drapeau porte `data-flag="Nom du problème"`. Il reçoit un petit triangle jaune « i » (`.flag-mark`) en haut à droite.
-- Tant qu’au moins un drapeau est visible, une petite boîte jaune fixe (`#flagDock`) flotte au-dessus de « Retour ». Un drapeau : son nom. Plusieurs : leur nombre, à côté du triangle.
+- Tant qu’au moins un drapeau est visible, une petite boîte jaune fixe (`#flagDock`) flotte au coin inférieur droit de l’écran. Un drapeau : son nom. Plusieurs : leur nombre, à côté du triangle.
 - Survol (ordinateur) ou toucher (mobile) : la liste des drapeaux s’ouvre. Un clic amène au drapeau, qui s’intensifie un instant (`.is-flag-focus`).
 - Masqué en mode webi et à l’impression.
+
+## 1 quater. Boîte « Retour » qui flotte (issue #147)
+
+Une seule petite boîte (`#yearsPinBar` › `.years-pin-card`) : « Retour » et les années. Elle est fixe à l’écran, en bas.
+
+- Son bord droit est calé sur le bord droit des cartes vertes, quelques pixels à l’intérieur (`0,4rem`). Sur le téléphone elle suit la colonne verte pendant le glissement ; quand la colonne bleue est devant, elle reste visible à gauche, au-dessus du recoin vert, à droite de la bulle bug.
+- Quand la boîte « Retour » de la carte 3 monte jusqu’à elle, elle glisse dessus, prend sa taille et s’y fond (`.is-docked`, opacité 0). La carte reçoit une lueur brève (`.is-years-landed`). Pas de fondu enchaîné à vide : on voit où elle est allée.
+- Quand cette boîte quitte l’écran (par le bas ou par le haut), la petite boîte en ressort et revient flotter, avec le même mouvement.
+- La géométrie (`transform`, `width`, `height`) est écrite par le script (`yearsFloat` dans `assets/app.js`) ; la transition CSS dessine le mouvement. `prefers-reduced-motion` coupe la transition.
+- L’épingle (carte 3, coin gauche ; petite boîte, à droite) montre ou masque cette boîte. Masquée en mode webi et à l’impression.
+
+## 3 bis. ⓘ « Comment c’est calculé » (issue #140)
+
+Chaque boîte de résultat (`.result-pill`, `.card-kpi`) porte `.has-info` et un petit ⓘ en haut à droite (`.result-info-btn`, `data-result-info="clé"`). Les lignes « Total estimé » des cartes 2 et 5 ont le même ⓘ, en ligne.
+
+- Le ⓘ ouvre la feuille partagée `#fieldInfoModal` avec un tableau (`.calc-table`) : chaque donnée, sa valeur, son origine. Trois origines, avec une légende en tête : **Ta donnée** (vert), **Hypothèse standard** (jaune doux), **Calculé** (neutre).
+- Sous le tableau : la formule, le **résultat** en précision complète, puis **l’arrondi affiché dans la boîte**. Ensuite les hypothèses (panneau générique 2 m² / 400 W, 0,20 kWc/m², PVWatts avec 14 % de pertes, loi des deux chiffres).
+- Les spécifications vivent dans `RESULT_INFO` (`assets/app.js`), une fonction par clé, alimentée par `calc()`. Une nouvelle boîte = une nouvelle clé, pas un nouveau gabarit HTML.
+- Dans la boîte des années (carte 3), le ⓘ a le coin droit ; l’épingle prend le coin gauche.
 
 ## 4. Case « Je veux les détails »
 
@@ -101,7 +120,7 @@ Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On comme
 | Remplissage | Temps pour remplir | Surplus de décembre seulement, boîte bleue, flèche centrée. Toujours en jours (une décimale sous 10 jours). Sous la boîte : heures de plein soleil par jour en décembre (production du jour ÷ kWc), selon orientation, inclinaison et déneigement |
 | Coût **2** | Combien coûte le solaire ? | Équation `W × $/W`, puis le détail |
 | Batterie **5** | Combien coûtent les batteries ? | Carte bleue, comme la carte 2 : case « Inclure les taxes » (cochée), case figée « Non admissible à la subvention ». Détail : sous-total HT, taxes, subvention 0 $, total estimé pour l’autonomie |
-| Retour **3** | Valeur des panneaux | Trio `.card-kpi`. L’épingle dit « Retour », comme la boîte. Elle se masque tant que la boîte des années est à l’écran, sans perdre l’état épinglé |
+| Retour **3** | Valeur des panneaux | Trio `.card-kpi`. La petite boîte qui flotte dit « Retour », comme la boîte. Elle se pose dans la boîte des années quand celle-ci arrive à l’écran, et en ressort quand elle le quitte (§ 1 quater) |
 | Total **6** | Coût total du projet | Carte bleue. Deux boîtes `.card-kpi` (panneaux en vert `.theme-green`, batteries en bleu), puis le total dans une boîte `.result-pill` verte (`.tone-green`). Le retour des panneaux est dans l’autre colonne |
 
 Pastilles déjà en place à gauche : **1A** (toit), **1B** (production).
