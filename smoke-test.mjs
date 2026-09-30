@@ -2664,7 +2664,48 @@ const needLive = await (async function runNeedTests() {
   fails.forEach((msg) => console.log("  4A à zéro FAIL:", msg));
   return fails.length === 0;
 })();
+
+// Fred : à zéro en 4A, la conso annuelle ne doit jamais être figée (coche masquée mais encore cochée).
+const consoUnlockAtZero = await (async function runConsoUnlockAtZero() {
+  const fails = [];
+  function expect(cond, msg) { if (!cond) fails.push(msg); }
+  const page = await bootScenario("?consoJour=0&fullAuto=1");
+  expect(page.el("fullAuto").checked === true, "URL fullAuto=1 keeps the checkbox checked");
+  expect(page.el("conso").disabled === false, "conso unlocked when 4A is at zero");
+  expect(page.el("consoLockedNote").hidden === true, "locked note hidden at zero");
+  const zeroCalc = page.api.calc();
+  expect(zeroCalc.fullAuto === false, "calc ignores fullAuto while consoJour === 0");
+  expect(zeroCalc.conso === 17000, `conso uses annual field at zero (${zeroCalc.conso})`);
+  expect(page.el("conso").value === "17 000", `conso field stays 17 000 (${page.el("conso").value})`);
+
+  page.el("fullAuto").checked = true;
+  const slider = page.el("consoJour");
+  slider.value = "54";
+  slider.dispatchEvent({ type: "input", target: slider });
+  slider.dispatchEvent({ type: "change", target: slider });
+  const locked = page.api.calc();
+  const expectedLocked = Math.round(5.4 * 365);
+  expect(locked.fullAuto === true, "fullAuto applies again once 4A has a load");
+  expect(Math.round(locked.conso) === expectedLocked, `locked conso = 365×5.4 (${locked.conso})`);
+  expect(page.el("conso").disabled === true, "conso disabled while locked");
+  expect(page.el("conso").value === page.api.fmtGroupedInt(expectedLocked), "field shows 365×kWh/j while locked");
+
+  slider.value = "0";
+  slider.dispatchEvent({ type: "input", target: slider });
+  slider.dispatchEvent({ type: "change", target: slider });
+  const unlocked = page.api.calc();
+  expect(unlocked.fullAuto === false, "back to zero unlocks calc.fullAuto");
+  expect(page.el("conso").disabled === false, "conso re-enabled at zero");
+  expect(page.el("conso").value === "17 000", `restores user conso (${page.el("conso").value})`);
+  expect(unlocked.conso === 17000, "calc reads restored annual conso");
+  expect(page.el("fullAuto").checked === true, "checkbox state kept while ignored at zero");
+
+  fails.forEach((msg) => console.log("  conso unlock FAIL:", msg));
+  return fails.length === 0;
+})();
+const consoUnlockDocs = design.includes("À zéro en 4A, la consommation n’est jamais figée");
 console.log(`  4A à zéro : colonne bleue réduite à 4A, bascule au relâchement (#179, #180): ${needOnlyMarkup && needOnlyCss && needOnlyJs && needLive ? "PASS" : "FAIL"}`);
+console.log(`  4A à zéro : conso jamais figée si fullAuto cochée (#conso unlock): ${consoUnlockAtZero && consoUnlockDocs ? "PASS" : "FAIL"}`);
 
 // #181 — la bulle jaune des drapeaux se cale sur la boîte « Retour » : bord droit sur bord droit, juste au-dessus.
 const flagDockAlignOk =
@@ -2907,6 +2948,8 @@ const pass =
   needOnlyCss &&
   needOnlyJs &&
   needLive &&
+  consoUnlockAtZero &&
+  consoUnlockDocs &&
   flagDockAlignOk &&
   goodFirstUi &&
   costCardOk &&
