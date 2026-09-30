@@ -82,12 +82,13 @@
     </header>
 
     <!--
-      Desktop board. Each card is a slot (data-slot).
-      Wide screens place them with grid-template-areas in styles.css.
-      DOM order is the narrow stack, so a later mobile layout can move slots
-      without rewriting the cards.
+      Two columns. Wide screens place the slots with grid-template-areas.
+      Narrow full mode keeps both columns side by side: swipe, with a peek.
+      Rules: docs/DESIGN.md
     -->
+    <div class="board-viewport" id="boardViewport">
     <div class="board" id="board">
+    <div class="col col-solar">
 
     <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
@@ -365,6 +366,98 @@
       </div>
     </div>
 
+    <!-- 2 · Coût -->
+    <section class="block mode-full-only slot-cost" id="sec-cost" data-slot="cost" aria-labelledby="h-cost">
+      <h2 id="h-cost"><span class="num">2</span> Combien coûte le solaire&nbsp;?</h2>
+
+      <div class="field">
+        <label for="priceW">Prix au watt installé (CAD)</label>
+        <div class="slider-row">
+          <div class="slider-val-left" id="priceVal">3,00 $/W</div>
+          <div class="slider-track">
+            <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
+            <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
+          </div>
+        </div>
+        <p class="hint">Bas → toit accessible, pose simple · Haut → plus de défis (accès, structure, complexité)</p>
+        <p class="calc-line" id="outLight">—</p>
+      </div>
+
+      <div class="field" role="group" aria-labelledby="optsLabel">
+        <div class="field-label" id="optsLabel">Options sur le prix</div>
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="taxes" checked />
+            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="subv" checked />
+            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="breakdown" aria-live="polite">
+        <div class="line"><span>Sous-total (HT)</span><span id="lineHT">—</span></div>
+        <div class="line"><span>Taxes</span><span id="lineTaxes">—</span></div>
+        <div class="line neg"><span>Subvention</span><span id="lineSubv">—</span></div>
+        <div class="line total"><span>Total estimé (coût réel)</span><span id="lineTotal">—</span></div>
+      </div>
+    </section>
+
+    <!-- 3 · Valeur + résultat — retour solaire seulement -->
+    <section class="block mode-full-only slot-roi" id="sec-value" data-slot="roi" aria-labelledby="h-value">
+      <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
+
+      <div class="field">
+        <label for="conso">Consommation annuelle (kWh / an)</label>
+        <div class="rate-box">
+          <input id="conso" class="grouped-int" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="17 000" />
+          <span>kWh / an</span>
+        </div>
+        <p class="hint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
+      </div>
+
+      <div class="field">
+        <label for="rate">Tarif marginal HQ (TTC)</label>
+        <div class="rate-box">
+          <input id="rate" type="number" min="0" step="0.001" value="12.811" inputmode="decimal" autocomplete="off" />
+          <span>¢/kWh</span>
+          <button type="button" class="rate-info-btn" id="btnRateInfo" aria-haspopup="dialog" aria-controls="rateModal" title="Moyenne résidentielle et paliers Tarif D" aria-label="Moyenne résidentielle QC et deux paliers Tarif D, avant taxes et taxes comprises">
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
+        <p class="hint">→ Défaut 12,811&nbsp;¢/kWh (2<sup>e</sup> tranche TTC) · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
+        <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
+      </div>
+
+      <div class="cards">
+        <div class="card-kpi">
+          <div class="kpi" id="kpiReel">—</div>
+          <div class="kpi-label">Coût réel<br />taxé − subv.</div>
+        </div>
+        <div class="card-kpi">
+          <div class="kpi" id="kpiEco">—</div>
+          <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
+        </div>
+        <div class="card-kpi">
+          <div class="kpi" id="kpiYears">—</div>
+          <div class="kpi-label">Retour<br />années pour rentrer</div>
+        </div>
+      </div>
+      <p class="surplus-alert theme-yellow" id="surplusAlert" hidden role="status">
+        <strong>Moins optimal : tu produis plus que tu consommes.</strong>
+        Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
+      </p>
+      <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
+      <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
+
+      <button type="button" class="btn" id="btnPdf">Imprimer / enregistrer en PDF</button>
+      <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
+    </section>
+
+    </div>
+    <div class="col col-auto">
     <!-- 4A · Réserve (durée). 4B · consommation, en dessous. -->
     <div class="slot-need" data-slot="need">
     <section class="block mode-full-only theme-blue" id="sec-reserve" aria-labelledby="h-reserve">
@@ -482,45 +575,6 @@
       <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
     </section>
 
-    <!-- 2 · Coût -->
-    <section class="block mode-full-only slot-cost" id="sec-cost" data-slot="cost" aria-labelledby="h-cost">
-      <h2 id="h-cost"><span class="num">2</span> Combien coûte le solaire&nbsp;?</h2>
-
-      <div class="field">
-        <label for="priceW">Prix au watt installé (CAD)</label>
-        <div class="slider-row">
-          <div class="slider-val-left" id="priceVal">3,00 $/W</div>
-          <div class="slider-track">
-            <input id="priceW" type="range" min="2.5" max="4.5" step="0.05" value="3" />
-            <div class="slider-meta"><span>2,50&nbsp;$</span><span>4,50&nbsp;$</span></div>
-          </div>
-        </div>
-        <p class="hint">Bas → toit accessible, pose simple · Haut → plus de défis (accès, structure, complexité)</p>
-        <p class="calc-line" id="outLight">—</p>
-      </div>
-
-      <div class="field" role="group" aria-labelledby="optsLabel">
-        <div class="field-label" id="optsLabel">Options sur le prix</div>
-        <div class="checks">
-          <label class="check">
-            <input type="checkbox" id="taxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
-          </label>
-          <label class="check">
-            <input type="checkbox" id="subv" checked />
-            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="breakdown" aria-live="polite">
-        <div class="line"><span>Sous-total (HT)</span><span id="lineHT">—</span></div>
-        <div class="line"><span>Taxes</span><span id="lineTaxes">—</span></div>
-        <div class="line neg"><span>Subvention</span><span id="lineSubv">—</span></div>
-        <div class="line total"><span>Total estimé (coût réel)</span><span id="lineTotal">—</span></div>
-      </div>
-    </section>
-
     <!-- 5 · Batteries -->
     <section class="block mode-full-only slot-batt theme-blue autonomy-rest" id="sec-batt" data-slot="batt" aria-labelledby="h-batt">
       <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
@@ -550,57 +604,6 @@
       <div class="breakdown" aria-live="polite">
         <div class="line total"><span>Coût des batteries</span><span id="lineBatt">—</span></div>
       </div>
-    </section>
-
-    <!-- 3 · Valeur + résultat — retour solaire seulement -->
-    <section class="block mode-full-only slot-roi" id="sec-value" data-slot="roi" aria-labelledby="h-value">
-      <h2 id="h-value"><span class="num">3</span> Valeur + résultat final</h2>
-
-      <div class="field">
-        <label for="conso">Consommation annuelle (kWh / an)</label>
-        <div class="rate-box">
-          <input id="conso" class="grouped-int" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="17 000" />
-          <span>kWh / an</span>
-        </div>
-        <p class="hint">→ Défaut 17&nbsp;000 kWh / an · ballpark résidentiel Québec · ajuste selon ta facture</p>
-      </div>
-
-      <div class="field">
-        <label for="rate">Tarif marginal HQ (TTC)</label>
-        <div class="rate-box">
-          <input id="rate" type="number" min="0" step="0.001" value="12.811" inputmode="decimal" autocomplete="off" />
-          <span>¢/kWh</span>
-          <button type="button" class="rate-info-btn" id="btnRateInfo" aria-haspopup="dialog" aria-controls="rateModal" title="Moyenne résidentielle et paliers Tarif D" aria-label="Moyenne résidentielle QC et deux paliers Tarif D, avant taxes et taxes comprises">
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
-        <p class="hint">→ Défaut 12,811&nbsp;¢/kWh (2<sup>e</sup> tranche TTC) · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
-        <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
-      </div>
-
-      <div class="cards">
-        <div class="card-kpi">
-          <div class="kpi" id="kpiReel">—</div>
-          <div class="kpi-label">Coût réel<br />taxé − subv.</div>
-        </div>
-        <div class="card-kpi">
-          <div class="kpi" id="kpiEco">—</div>
-          <div class="kpi-label">Économies / an<br />crédit élec. sauvé</div>
-        </div>
-        <div class="card-kpi">
-          <div class="kpi" id="kpiYears">—</div>
-          <div class="kpi-label">Retour<br />années pour rentrer</div>
-        </div>
-      </div>
-      <p class="surplus-alert theme-yellow" id="surplusAlert" hidden role="status">
-        <strong>Moins optimal : tu produis plus que tu consommes.</strong>
-        Au-delà de ta consommation (<strong id="surplusKwh">—</strong>), HQ rachète le surplus à <strong>4,730&nbsp;¢/kWh</strong> (≈&nbsp;<span id="surplusBuyback">—</span>&nbsp;/ an) — pas au tarif que tu évites (<span id="surplusAvoidedRate">—</span>). Écart ≈&nbsp;<span id="surplusGap">—</span>&nbsp;/ an : mieux de caler la taille sur ta conso.
-      </p>
-      <p class="calc-line" id="outPayback" style="text-align:center;margin-top:0.85rem">—</p>
-      <p class="cards-disclaimer">Estimation pédagogique — pas une soumission ni un devis. Les 3 indicateurs ci-dessus sont indicatifs.</p>
-
-      <button type="button" class="btn" id="btnPdf">Imprimer / enregistrer en PDF</button>
-      <p class="hint" style="text-align:center">Ouvre le dialogue d’impression du navigateur — choisis «&nbsp;Enregistrer au format PDF&nbsp;».</p>
     </section>
 
     <!-- 6 · Coût total du projet -->
@@ -633,6 +636,8 @@
       <p class="hint project-note">Le retour à gauche ne compte que les panneaux.</p>
     </section>
 
+    </div>
+    </div>
     </div>
 
     <aside class="disclaimers mode-full-only">
@@ -1021,5 +1026,6 @@
   </div>
 
   <script src="assets/app.js"></script>
+  <script src="assets/board-panes.js"></script>
 </body>
 </html>

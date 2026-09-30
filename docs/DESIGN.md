@@ -74,7 +74,11 @@ Les règles durables sont seulement dans ce fichier.
 
 ## 6. Plateau
 
-Ordre étroit = ordre du HTML. Au grand écran (≥ 1100px, hors mode webi), la grille est : taille | besoin, production | besoin, rendement | remplissage, coût | batterie, retour | total.
+Deux colonnes. Colonne solaire : taille, production, rendement, coût, retour. Colonne autonomie : réserve 4A, besoin 4B, remplissage, batteries, total.
+
+Au grand écran (≥ 1100px, hors mode webi), la grille est : taille | besoin, production | besoin, rendement | remplissage, coût | batterie, retour | total. Les enveloppes `.col` ne font pas de boîte (`display: contents`), pour que chaque case garde sa place.
+
+Sous 1100px, en mode complet, les deux colonnes restent côte à côte. On commence sur la colonne solaire, avec un recoin de la colonne bleue visible à droite. Un coup rapide vers la gauche amène la colonne bleue et laisse voir un recoin de la colonne verte à gauche. Le doigt qui reste posé et glisse lentement s’arrête là où il se lève, y compris entre les deux. Le mode webi ne montre pas ce couloir : 1A, 1B et le rendement restent en pile.
 
 | Emplacement | Question | Réponse |
 | --- | --- | --- |
