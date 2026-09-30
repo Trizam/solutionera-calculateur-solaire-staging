@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1b4332" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="description" content="Calculateur solaire — Solution ERA | DÉFI Autonomie Énergétique. Estimation pédagogique de ton projet solaire en quelques minutes." />
+  <link rel="canonical" href="https://trizam.github.io/solutionera-calculateur-solaire-staging/" />
   <title>Calculateur solaire · Solution ERA</title>
   <!-- Règles de design, seule copie : docs/DESIGN.md -->
   <!-- Lato: CDN when online; system fallback offline -->
@@ -89,6 +90,9 @@
     <div class="board-viewport" id="boardViewport">
     <div class="board" id="board">
     <div class="col col-solar">
+    <!-- 1A + 1B forment une case (#170) : au grand écran elle s’appuie sur la rangée
+         Mesurage net / Autonomie, comme 4A–4B sur « Temps pour remplir ». -->
+    <div class="slot-roof" data-slot="roof" id="slot-roof">
 
     <!-- 1A · Taille d’installation — visible in both modes; webi = 1A + 1B -->
     <section class="block slot-size" id="sec-prod" data-slot="size" aria-labelledby="h-prod" tabindex="-1">
@@ -393,6 +397,7 @@
         <span>Ma toiture a plusieurs versants</span>
       </label>
     </section>
+    </div>
 
     <div class="result-pair slot-yield" id="sec-yield" data-slot="yield">
       <div class="result-pill has-info" id="mesuragePill">
@@ -481,13 +486,13 @@
       <div class="field">
         <label for="rate">Tarif marginal HQ (TTC)</label>
         <div class="rate-box">
-          <input id="rate" type="number" min="0" step="0.001" value="12.811" inputmode="decimal" autocomplete="off" />
+          <input id="rate" type="text" value="12,81" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="rateHint" />
           <span>¢/kWh</span>
           <button type="button" class="rate-info-btn" id="btnRateInfo" aria-haspopup="dialog" aria-controls="rateModal" title="Moyenne résidentielle et paliers Tarif D" aria-label="Moyenne résidentielle QC et deux paliers Tarif D, avant taxes et taxes comprises">
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        <p class="hint">→ Défaut 12,811&nbsp;¢/kWh (2<sup>e</sup> tranche TTC) · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
+        <p class="hint" id="rateHint">→ Défaut 12,81&nbsp;¢/kWh (2<sup>e</sup> tranche TTC) · virgule, deux décimales · ⓘ moyenne 9,53&nbsp;¢ + 2 paliers</p>
         <p class="calc-line"><span id="outEcoFormula">Production × tarif</span> = <strong id="outEcoYear">≈ — $/an</strong></p>
       </div>
 
@@ -531,15 +536,15 @@
     <section class="block mode-full-only theme-blue" id="sec-auto" aria-labelledby="h-auto">
       <h2 id="h-auto">
         <span class="num">4A</span>
-        <label for="consoJour">Quels appareils je veux</label>
+        <label for="consoJour">Quels appareils je veux en autonomie&nbsp;?</label>
         <button
           type="button"
           class="field-info-btn"
           data-info="conso-jour"
           aria-haspopup="dialog"
           aria-controls="fieldInfoModal"
-          aria-label="Aide : Quels appareils je veux"
-          title="Aide : Quels appareils je veux"
+          aria-label="Aide : Quels appareils je veux en autonomie"
+          title="Aide : Quels appareils je veux en autonomie"
         >
           <span aria-hidden="true">ⓘ</span>
         </button>
@@ -577,10 +582,6 @@
           <div class="slider-val-left" id="consoJourVal" aria-live="polite">0&nbsp;kWh/j</div>
           <div class="slider-track">
             <input id="consoJour" type="range" min="0" max="400" step="1" value="0" aria-label="Consommation par jour en kilowattheures" aria-valuemin="0" aria-valuemax="40" aria-valuenow="0" aria-valuetext="0 kilowattheure par jour" aria-describedby="consoJourHint" />
-            <div class="load-marks" aria-hidden="true">
-              <span class="load-mark" style="--mark: 0.1575">appareils de base</span>
-              <span class="load-mark" style="--mark: 0.45">chauffage</span>
-            </div>
           </div>
         </div>
         <p class="hint" id="consoJourHint">La valeur est la consommation du jour. Le tableau au-dessus détaille les appareils.</p>
@@ -615,13 +616,10 @@
           <div class="slider-val-left" id="autoStopVal">1 jour</div>
           <div class="slider-track">
             <input id="autoStop" type="range" min="0" max="16" step="1" value="11" aria-valuemin="0" aria-valuemax="16" aria-valuenow="11" aria-valuetext="1 jour" />
-            <div class="load-marks" aria-hidden="true">
-              <span class="load-mark" style="--mark: 0.6875">maison</span>
-            </div>
             <div class="slider-meta"><span>aucune</span><span>3 jours</span></div>
           </div>
         </div>
-        <p class="hint" id="autoStopHint">Secours jusqu’à 12 h. Autonomie de maison dès 1 jour.</p>
+        <p class="hint" id="autoStopHint">→ Secours jusqu’à 12 h. Autonomie de maison dès 1 jour.</p>
       </div>
       <div class="reserve-out result-pill autonomy-rest has-info" id="reserveOut">
         <button type="button" class="field-info-btn result-info-btn" data-result-info="reserve" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Réserve" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
@@ -647,7 +645,8 @@
         <span class="prod-unit" id="outFillUnit">jours · décembre</span>
       </div>
       <p class="fill-sun" id="outFillSun">—</p>
-      <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" data-flag="Réserve ne se remplit pas" hidden role="status" aria-live="polite">En décembre, les panneaux produisent moins que la consommation quotidienne. La réserve ne peut pas se remplir.</p>
+      <p class="fill-shortfall theme-yellow mode-full-only" id="fillLongFlag" data-flag="Remplissage long" hidden role="status">Ça commence à être long pour remplir.</p>
+      <p class="fill-shortfall theme-yellow mode-full-only" id="permaFlag" data-flag="Production insuffisante" hidden role="status" aria-live="polite">Vous produisez moins d’énergie que vous en consommez en autonomie.</p>
     </section>
 
     <!-- 5 · Batteries -->
@@ -655,26 +654,27 @@
       <h2 id="h-batt"><span class="num">5</span> Combien coûtent les batteries&nbsp;?</h2>
       <div class="field">
         <div class="label-row field-info-wrap">
-          <label for="battPrice">Prix d’un module (16,1&nbsp;kWh)</label>
+          <label for="battKwh">Prix des batteries ($/kWh)</label>
           <button
             type="button"
             class="field-info-btn"
             data-info="battprice"
             aria-haspopup="dialog"
             aria-controls="fieldInfoModal"
-            aria-label="Aide : Prix d’un module"
+            aria-label="Aide : Prix des batteries"
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
         <div class="slider-row">
-          <div class="slider-val-left" id="battPriceVal">4&nbsp;800&nbsp;$</div>
+          <div class="slider-val-left" id="battKwhVal">300&nbsp;$/kWh</div>
           <div class="slider-track">
-            <input id="battPrice" type="range" min="2400" max="7200" step="100" value="4800" />
-            <div class="slider-meta"><span>2&nbsp;400&nbsp;$</span><span>7&nbsp;200&nbsp;$</span></div>
+            <input id="battKwh" type="range" min="100" max="500" step="10" value="300" />
+            <div class="slider-meta"><span>100&nbsp;$/kWh</span><span>500&nbsp;$/kWh</span></div>
           </div>
         </div>
-        <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix du module Volthium reste à confirmer.</p>
+        <p class="hint">→ Fourchette du marché. Un module Volthium de 16,1&nbsp;kWh coûte 16,1 × ce prix.</p>
+        <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix au kWh des batteries reste à confirmer.</p>
       </div>
       <div class="field" role="group" aria-labelledby="battOptsLabel">
         <div class="field-label" id="battOptsLabel">Options sur le prix</div>
@@ -726,7 +726,7 @@
           <div class="kpi-label">Batteries<br />total (carte 5)</div>
         </div>
       </div>
-      <div class="result-pill tone-green has-info" id="projectOut">
+      <div class="result-pill tone-blend has-info" id="projectOut">
         <button type="button" class="field-info-btn result-info-btn" data-result-info="project" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Coût total" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button>
         <div class="label">Coût total</div>
         <div class="big prod-line">
@@ -762,9 +762,9 @@
         <li>Autonomie (décembre)&nbsp;: sans déneigement, la production du mois est <strong>nulle</strong> si l’inclinaison ≤45° (100&nbsp;% du mois à risque). 0&nbsp;% de perte à 90° (vertical) ; interpolation entre les deux. Formule&nbsp;: kWh_déc = kWh_déc_brut × (1−(1−d)×C).</li>
         <li>Subvention LogisVert&nbsp;: non applicable aux condos / immeubles exclus — décoche si tu ne qualifies pas.</li>
         <li>Économies&nbsp;: on ne crédite pas plus de kWh que ta <strong>consommation annuelle</strong> (kWh_crédités = min(production, conso)). Défaut 17&nbsp;000 kWh / an (ballpark résidentiel Québec). Au-delà, une bannière jaune rappelle le rachat HQ du surplus (4,730&nbsp;¢/kWh, art.&nbsp;2.51) — moins payant que le kWh évité.</li>
-        <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur de 0 à 40&nbsp;kWh/j. Les appareils de base vont jusqu’à environ 6,3&nbsp;kWh/j&nbsp;; la suite couvre l’eau chaude et le chauffage, jusqu’à une maison pleinement autonome. La ligne libre s’ajoute. Ce n’est pas la consommation annuelle de la facture.</li>
+        <li>Consommation d’autonomie (kWh/j)&nbsp;: curseur de 0 à 40&nbsp;kWh/j. Les appareils de base vont jusqu’à environ 6,3&nbsp;kWh/j&nbsp;; la suite couvre l’eau chaude et la thermopompe, jusqu’à une maison pleinement autonome. La ligne libre s’ajoute dès que le curseur quitte zéro. Ce n’est pas la consommation annuelle de la facture.</li>
         <li>Réserve&nbsp;: réserve = cette consommation par jour × la durée choisie (crans de aucune à 3 jours). À aucune, la boîte réserve, le remplissage, les batteries et le total disparaissent. Le remplissage utilise le surplus de décembre seulement (kWh/j déc − consommation du jour). Le retour sur investissement ne compte que l’installation des panneaux.</li>
-        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,811&nbsp;¢/kWh = 11,142&nbsp;¢ × 1,14975, 1<sup>er</sup> avr. 2026). Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
+        <li>Tarif marginal par défaut&nbsp;: 2<sup>e</sup> tranche Tarif D <strong>TTC</strong> (12,81&nbsp;¢/kWh, soit 11,142&nbsp;¢ × 1,14975 arrondi au centième, 1<sup>er</sup> avr. 2026). Le champ s’écrit avec une virgule et deux décimales. Les 2 paliers HT+TTC sont détaillés via ⓘ à côté du champ ¢/kWh.</li>
         <li>Le mesurage net (crédits Hydro-Québec) peut différer de cette hypothèse de tarif marginal · ombrage = plus tard.</li>
       </ul>
     </aside>
@@ -782,11 +782,11 @@
         <h2>Notes d’édition</h2>
         <p>Ces notes sont le chantier. Les règles durables sont seulement dans <a href="docs/DESIGN.md">docs/DESIGN.md</a>.</p>
         <ul>
-          <li>Prix batterie : module Volthium 16,1&nbsp;kWh, curseur 2&nbsp;400–7&nbsp;200&nbsp;$, défaut 4&nbsp;800. Le nombre de modules est l’arrondi de la réserve ÷ 16,1 (au moins un). Brouillon à confirmer. Pas une soumission.</li>
+          <li>Prix batterie : curseur en $/kWh, 100–500&nbsp;$, pas de 10, défaut 300. Un module Volthium de 16,1&nbsp;kWh coûte 16,1 × ce prix. Le nombre de modules est l’arrondi de la réserve ÷ 16,1 (au moins un). Brouillon à confirmer. Pas une soumission.</li>
           <li>Consommation par jour = curseur de 0 à 40&nbsp;kWh/j (pas de 0,1), plus la ligne libre. Ce n’est pas la facture annuelle. Le jour de décembre, les appareils et les batteries restent à l’écran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
-          <li>Le lien du scénario conserve aussi la durée de réserve, le prix et les taxes des batteries, la consommation du jour et la ligne libre.</li>
+          <li>Le lien du scénario conserve aussi la durée de réserve, le prix ($/kWh, <code>battKwh</code>) et les taxes des batteries, la consommation du jour et la ligne libre.</li>
           <li>Plusieurs versants : case en haut. Une densité. Quatre rangées maximum. Déneigement par crans de 25 %. L’URL ajoute <code>multi=1</code> et <code>pans=m²:azimut:inclinaison:neige</code>.</li>
           <li>Ombrage : plus tard.</li>
         </ul>
@@ -841,7 +841,7 @@
         <div class="info-block">
           <h4>Batterie</h4>
           <p>Réserve = consommation par jour (curseur, plus la ligne libre) × durée choisie.</p>
-          <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × prix du module, plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
+          <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × 16,1&nbsp;kWh × prix en $/kWh (curseur 100–500&nbsp;$), plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
           <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
@@ -909,7 +909,7 @@
         </div>
         <div class="info-block">
           <h4>Défaut du calculateur</h4>
-          <p>Le champ tarif est en <strong>¢/kWh</strong> (défaut 12,811&nbsp;¢ = 2<sup>e</sup> tranche TTC = 11,142 × 1,14975). Même unité que les paliers ⓘ (ex. 9,53 ou 12,811).</p>
+          <p>Le champ tarif est en <strong>¢/kWh</strong>, virgule décimale, au centième de cent (défaut 12,81&nbsp;¢ = 2<sup>e</sup> tranche TTC = 11,142 × 1,14975, arrondi). Même unité que les paliers ⓘ (ex. 9,53 ou 12,81).</p>
           <p>C’est le tarif <em>marginal</em> pédagogique&nbsp;: prix du prochain kWh évité une fois le premier palier dépassé.</p>
         </div>
       </div>
@@ -987,7 +987,7 @@
     </div>
   </template>
   <template id="tpl-info-consojour">
-    <span data-info-title>Quels appareils je veux</span>
+    <span data-info-title>Quels appareils je veux en autonomie&nbsp;?</span>
     <div class="info-block">
       <h4>Un seul curseur</h4>
       <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Le tableau au-dessus liste les appareils, du plus léger au plus lourd. La ligne libre ajoute des kWh/j en plus.</p>
@@ -1017,10 +1017,11 @@
     </div>
   </template>
   <template id="tpl-info-battprice">
-    <span data-info-title>Prix d’un module</span>
+    <span data-info-title>Prix des batteries</span>
     <div class="info-block">
       <h4>Coût de la réserve</h4>
-      <p>Un module Volthium fait 16,1&nbsp;kWh. Sous-total (HT) = nombre de modules × prix du module (défaut 4&nbsp;800&nbsp;$).</p>
+      <p>Le curseur est le prix du marché en <strong>$/kWh</strong> de batterie, de 100 à 500&nbsp;$ (défaut 300&nbsp;$/kWh).</p>
+      <p>Un module Volthium fait 16,1&nbsp;kWh, donc un module coûte 16,1 × ce prix. Sous-total (HT) = nombre de modules × prix d’un module.</p>
       <p>Le nombre de modules est l’arrondi de la réserve ÷ 16,1. Pour 33&nbsp;kWh, cela fait deux modules. Au moins un module dès qu’il y a une réserve.</p>
       <p>Taxes (TPS+TVQ, 15&nbsp;%) si la case est cochée. Les batteries ne sont pas admissibles à LogisVert&nbsp;: subvention 0&nbsp;$.</p>
     </div>
@@ -1053,11 +1054,11 @@
     </div>
   </template>
   <template id="tpl-info-conso-jour">
-    <span data-info-title>Quels appareils je veux</span>
+    <span data-info-title>Quels appareils je veux en autonomie&nbsp;?</span>
     <div class="info-block">
       <h4>En autonomie</h4>
       <p>Le curseur est la consommation du jour, de 0 à 40&nbsp;kWh/j. Le tableau au-dessus liste les appareils, du plus léger au plus lourd.</p>
-      <p>Un repère «&nbsp;appareils de base&nbsp;» marque 6,3&nbsp;kWh/j. Le repère «&nbsp;chauffage&nbsp;» marque 18&nbsp;kWh/j, là où le chauffe-eau entre. À droite, une maison pleinement autonome. Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
+      <p>Les appareils de base totalisent 6,3&nbsp;kWh/j. Le chauffe-eau entre à 18&nbsp;kWh/j, la thermopompe complète la liste à 30. À droite, une maison pleinement autonome. Une maison québécoise au réseau tourne plutôt autour de 45&nbsp;kWh/j.</p>
     </div>
     <div class="info-block">
       <h4>Ce que le curseur fait apparaître</h4>
@@ -1075,13 +1076,12 @@
         <li>Sécheuse — 2,5&nbsp;kWh/j</li>
         <li>Chauffe-eau — 8&nbsp;kWh/j</li>
         <li>Thermopompe — 12&nbsp;kWh/j</li>
-        <li>Chauffage — 10&nbsp;kWh/j</li>
       </ul>
-      <p>Les neuf premiers usages totalisent environ 6,3&nbsp;kWh/j. Tout à droite&nbsp;: 40&nbsp;kWh/j. Repères pédagogiques, arrondis au 0,1&nbsp;kWh.</p>
+      <p>Les neuf premiers usages totalisent environ 6,3&nbsp;kWh/j. La liste s’arrête à 30&nbsp;kWh/j ; tout à droite&nbsp;: 40&nbsp;kWh/j. Repères pédagogiques, arrondis au 0,1&nbsp;kWh.</p>
     </div>
     <div class="info-block">
       <h4>Autre consommation</h4>
-      <p>La ligne libre ajoute des kWh/j absents du curseur&nbsp;: internet satellite, outils, un usage que l’échelle ne nomme pas.</p>
+      <p>La ligne libre ajoute des kWh/j absents du curseur&nbsp;: internet satellite, outils, un usage que l’échelle ne nomme pas. Elle apparaît dès que le curseur quitte zéro et reste ensuite.</p>
       <p>Le total se compare à la production de décembre, la journée la plus difficile de l’année.</p>
     </div>
   </template>
