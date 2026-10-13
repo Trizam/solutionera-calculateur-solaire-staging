@@ -1612,6 +1612,55 @@ html[data-theme="dark"] .years-pin-btn[aria-pressed="true"] {
 }
 .check-locked { opacity: 0.85; }
 .check-locked input { cursor: not-allowed; }
+/* Une aide = sa case + « Vérifiez que vous êtes admissible », dans le même cadre. */
+.subv-check {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.subv-check > .check { border: 0; padding-bottom: 0.3rem; }
+.subv-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0.7rem 0.55rem 2.05rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px dashed var(--green-mid);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--green-dark);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.subv-verify::before { content: "✓"; font-weight: 700; color: var(--accent); }
+.subv-verify:hover,
+.subv-verify:focus-visible { background: var(--green-soft); border-style: solid; }
+.subv-verify-count {
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.subv-verify-count.is-complete { background: var(--green-mid); color: #fff; }
+.racc-cost { margin: 0 0.7rem 0.55rem 2.05rem; }
+.racc-cost label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
+.racc-cost .hint { margin-top: 0.3rem; }
+.racc-cost .rate-box input { max-width: 8rem; }
+.subv-elig-amount { font-weight: 600; }
+.subv-elig-intro { color: var(--muted); font-size: 0.85rem; }
+.subv-elig-list { margin: 0.6rem 0; }
+.subv-elig-list .check { cursor: pointer; }
+.subv-elig-status {
+  margin: 0.2rem 0 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.subv-elig-status.is-complete { color: var(--green-dark); }
+.subv-elig-apply { background: var(--green-soft); margin-bottom: 0.7rem; cursor: pointer; }
 .fill-sun {
   margin: 0.4rem 0 0;
   font-size: 0.82rem;
@@ -2652,6 +2701,7 @@ section.block h2 .field-info-btn {
     box-sizing: border-box;
   }
   .print-card-page + .print-card-page,
+  .print-subsidy-page,
   .print-share-page,
   .print-appendix {
     break-before: page;
@@ -2775,6 +2825,20 @@ section.block h2 .field-info-btn {
   .print-card[data-print-source="sec-reserve"] { --prod-gutter: 6rem; }
   .print-card[data-print-source="sec-total"] .project-cards { margin: 0.3rem 0 0.45rem; }
   .print-card[data-print-source="sec-batt"] .field + .breakdown { margin-top: 0 !important; }
+  .print-card .subv-verify { display: none !important; }
+  .print-card .subv-check > .check { padding: 0.3rem 0.45rem !important; }
+  .print-card .subv-check .sub { display: none !important; }
+  .print-card .racc-cost { margin: 0 0.45rem 0.3rem 1.6rem !important; }
+  .print-card .racc-cost label { display: inline !important; margin-right: 0.35rem; }
+  .print-card .racc-cost .rate-box { display: inline-flex !important; }
+  .print-subsidy-page { padding-top: 12mm; }
+  .print-subsidy-page h1 { font-size: 16pt; }
+  .print-subsidy-status { font-weight: 700; color: #1b4332; }
+  .print-subsidy-count { color: #5c6b5c; }
+  .print-subsidy-criteria { list-style: none; padding-left: 0 !important; }
+  .print-subsidy-criteria li { display: flex; gap: 0.35rem; margin: 0.18rem 0; break-inside: avoid; }
+  .print-subsidy-box { flex: none; font-size: 10pt; line-height: 1; }
+  .print-subsidy-sources { font-size: 7.5pt; color: #5c6b5c; overflow-wrap: anywhere; }
   .print-appendix { padding-top: 12mm; }
   .print-appendix h1 { font-size: 17pt; }
   .print-appendix-intro { margin: 0 0 0.8rem; color: #5c6b5c; }
