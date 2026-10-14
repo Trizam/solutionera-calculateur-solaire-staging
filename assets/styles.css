@@ -1447,6 +1447,8 @@ html[data-theme="dark"] .result-info-btn:focus-visible { background: rgba(255, 2
   padding-top: 0.55rem;
 }
 .breakdown .neg { color: var(--accent); }
+.breakdown .sub { display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); }
+.breakdown .sub[hidden] { display: none; }
 .cards {
   display: grid;
   grid-template-columns: 1fr;
@@ -1645,10 +1647,6 @@ html[data-theme="dark"] .years-pin-btn[aria-pressed="true"] {
   font-variant-numeric: tabular-nums;
 }
 .subv-verify-count.is-complete { background: var(--green-mid); color: #fff; }
-.racc-cost { margin: 0 0.7rem 0.55rem 2.05rem; }
-.racc-cost label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
-.racc-cost .hint { margin-top: 0.3rem; }
-.racc-cost .rate-box input { max-width: 8rem; }
 .subv-elig-amount { font-weight: 600; }
 .subv-elig-intro { color: var(--muted); font-size: 0.85rem; }
 .subv-elig-list { margin: 0.6rem 0; }
@@ -2828,9 +2826,6 @@ section.block h2 .field-info-btn {
   .print-card .subv-verify { display: none !important; }
   .print-card .subv-check > .check { padding: 0.3rem 0.45rem !important; }
   .print-card .subv-check .sub { display: none !important; }
-  .print-card .racc-cost { margin: 0 0.45rem 0.3rem 1.6rem !important; }
-  .print-card .racc-cost label { display: inline !important; margin-right: 0.35rem; }
-  .print-card .racc-cost .rate-box { display: inline-flex !important; }
   .print-subsidy-page { padding-top: 12mm; }
   .print-subsidy-page h1 { font-size: 16pt; }
   .print-subsidy-status { font-weight: 700; color: #1b4332; }

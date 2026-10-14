@@ -2510,26 +2510,34 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(Math.abs(batteryScenario.api.calc().battCost - 16.1 * 350) < 1e-6, "shared battery total calculation (1 module × 16,1 × 350)");
   expect(batteryScenario.api.calc().battSubv === 0 && !batteryScenario.location.search.includes("reno"), "Rénoclimat off by default, out of the link");
 
-  // Rénoclimat 2026 : batterie min(4 000, HT) ; raccordement min(1 000, honoraires HT).
+  // #192 #193 : batterie min(4 000, HT) et 0 $ sous 5 kWh ; le 1 000 $ couvre le reste du HT.
   const renoPage = await bootScenario("?consoJour=8&autoStop=15&battKwh=350&battTaxes=0&renoBatt=1&renoRacc=1&raccCost=1500");
   expect(renoPage.el("renoBatt").checked === true && renoPage.el("renoRacc").checked === true, "shared Rénoclimat boxes");
-  expect(renoPage.el("raccCost").value === "1 500", `shared electrician fees, got ${renoPage.el("raccCost").value}`);
   const reno = renoPage.api.calc();
+  const ht350 = 16.1 * 350;
   expect(Math.abs(reno.renoBattSubv - 4000) < 1e-6, `battery aid capped at 4 000, got ${reno.renoBattSubv}`);
-  expect(Math.abs(reno.renoRaccSubv - 1000) < 1e-6, `connection aid capped at 1 000, got ${reno.renoRaccSubv}`);
-  expect(Math.abs(reno.battCost - (16.1 * 350 + 1500 - 5000)) < 1e-6, `battery total = HT + fees − aids, got ${reno.battCost}`);
-  expect(renoPage.location.search.includes("renoBatt=1") && renoPage.location.search.includes("raccCost=1500"), `URL keeps Rénoclimat ${renoPage.location.search}`);
+  expect(Math.abs(reno.renoRaccSubv - 1000) < 1e-6, `connection aid covers 1 000 of the remainder, got ${reno.renoRaccSubv}`);
+  expect(Math.abs(reno.battCost - (ht350 - 5000)) < 1e-6, `battery total = HT − aids, got ${reno.battCost}`);
+  expect(renoPage.location.search.includes("renoBatt=1") && renoPage.location.search.includes("renoRacc=1") && !renoPage.location.search.includes("raccCost"), `URL keeps the boxes, drops raccCost ${renoPage.location.search}`);
   renoPage.el("battTaxes").checked = true;
   const renoTaxed = renoPage.api.calc();
-  expect(Math.abs(renoTaxed.battCost - ((16.1 * 350 + 1500) * 1.14975 - 5000)) < 1e-6, "taxes on batteries + fees, aids before taxes");
+  expect(Math.abs(renoTaxed.battCost - (ht350 * 1.14975 - 5000)) < 1e-6, "taxes on batteries only, aids before taxes");
+  renoPage.el("battTaxes").checked = false;
   renoPage.el("battKwh").value = "200";
-  renoPage.el("raccCost").value = "600";
   const renoLow = renoPage.api.calc();
   expect(Math.abs(renoLow.renoBattSubv - 3220) < 1e-6, `battery aid = HT under 4 000, got ${renoLow.renoBattSubv}`);
-  expect(Math.abs(renoLow.renoRaccSubv - 600) < 1e-6, `connection aid = fees under 1 000, got ${renoLow.renoRaccSubv}`);
+  expect(renoLow.renoRaccSubv === 0, `1 000 $ covers nothing once the battery HT is covered, got ${renoLow.renoRaccSubv}`);
+  expect(renoLow.battCost === 0, "battery HT fully covered, taxes off → 0 $");
   renoPage.el("renoRacc").checked = false;
   const renoNoRacc = renoPage.api.calc();
-  expect(renoNoRacc.raccHT === 0 && renoNoRacc.renoRaccSubv === 0, "unchecked connection: no fees, no aid");
+  expect(renoNoRacc.renoRaccSubv === 0 && Math.abs(renoNoRacc.renoBattSubv - 3220) < 1e-6, "unchecked connection: battery aid only");
+  const under = renoPage.api.renoAids(3000, 4.9, true, true);
+  expect(under.renoBattCut === true && under.renoBattSubv === 0, "battery aid cut under 5 kWh (#192)");
+  expect(under.renoRaccSubv === 1000, "connection aid still covers 1 000 of an ineligible battery");
+  const eligible = renoPage.api.renoAids(16.1 * 200, 16.1, true, true);
+  expect(eligible.renoBattCut === false && Math.abs(eligible.renoBattSubv - 3220) < 1e-6 && eligible.renoRaccSubv === 0, "16,1 kWh stays eligible and fully covered");
+  expect(!html.includes('id="outBatt"') && html.includes('data-result-info="battht"'), "module equation moved into the Batteries (HT) (i) (#194)");
+  expect(!html.includes("Honoraires du maître électricien") && html.includes("0&nbsp;$ sous 5&nbsp;kWh installés"), "fee field gone, 5 kWh floor on the card");
   expect(app.includes("SUBSIDIES") && app.includes("appendPrintSubsidyPage") && html.includes('data-subv-elig="logisvert"') && html.includes('data-subv-elig="renoBatt"') && html.includes('data-subv-elig="renoRacc"'), "three eligibility sheets + PDF criteria page");
   const legacyBattery = await bootScenario("?battPrice=4800");
   expect(legacyBattery.el("battKwh").value === "300", `legacy battPrice=4800 → 300 $/kWh, got ${legacyBattery.el("battKwh").value}`);
@@ -2588,7 +2596,7 @@ const paneOk = paneMathOk && paneOrderOk;
 console.log(`  mobile column peek + swipe: ${paneOk ? "PASS" : "FAIL"}`);
 
 // #140 — ⓘ « Comment c’est calculé » on every result box: one key per box, one shared sheet.
-const resultInfoKeys = ["pv", "kw", "kwhkwc", "kwh", "kwhday", "reel", "eco", "years", "reserve", "fill", "battcost", "project"];
+const resultInfoKeys = ["pv", "kw", "kwhkwc", "kwh", "kwhday", "reel", "eco", "years", "reserve", "fill", "battht", "battcost", "project"];
 const resultInfoHtml = resultInfoKeys.every((k) => html.includes(`data-result-info="${k}"`));
 const resultInfoJs = resultInfoKeys.every((k) => new RegExp(`\\n\\s+${k}: function \\(r\\)`).test(app));
 const resultBoxesTagged =
