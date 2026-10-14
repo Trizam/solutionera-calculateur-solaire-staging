@@ -2591,7 +2591,9 @@ const paneOrderOk =
   autoAt < html.indexOf('data-slot="need"') &&
   html.includes('src="assets/board-panes.js"') &&
   css.includes("--pane-sliver") &&
-  css.includes("overflow-x: clip");
+  css.includes("overflow-x: clip") &&
+  css.includes('html:not([data-mode="webi"]) .col { display: contents; }') &&
+  css.includes("--board-gap: var(--pane-gap)");
 const paneOk = paneMathOk && paneOrderOk;
 console.log(`  mobile column peek + swipe: ${paneOk ? "PASS" : "FAIL"}`);
 
