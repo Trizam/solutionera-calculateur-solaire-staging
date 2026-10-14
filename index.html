@@ -449,16 +449,28 @@
       </div>
 
       <div class="field" role="group" aria-labelledby="optsLabel">
-        <div class="field-label" id="optsLabel">Options sur le prix</div>
+        <div class="label-row field-info-wrap">
+          <div class="field-label" id="optsLabel">Options sur le prix</div>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="priceopts"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Options sur le prix"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="taxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+            <span>Inclure les taxes (défaut)</span>
           </label>
           <div class="subv-check">
             <label class="check">
               <input type="checkbox" id="subv" checked />
-              <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+              <span>Appliquer la subvention LogisVert <em>si admissible</em></span>
             </label>
             <button type="button" class="subv-verify" data-subv-elig="logisvert" aria-haspopup="dialog" aria-controls="fieldInfoModal">Vérifiez que vous êtes admissible <span class="subv-verify-count" data-subv-count="logisvert">0/9</span></button>
           </div>
@@ -682,27 +694,38 @@
             <div class="slider-meta"><span>100&nbsp;$/kWh</span><span>500&nbsp;$/kWh</span></div>
           </div>
         </div>
-        <p class="hint">→ Fourchette du marché. Un module Volthium de 16,1&nbsp;kWh coûte 16,1 × ce prix.</p>
         <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix au kWh des batteries reste à confirmer.</p>
       </div>
       <div class="field" role="group" aria-labelledby="battOptsLabel">
-        <div class="field-label" id="battOptsLabel">Options sur le prix</div>
+        <div class="label-row field-info-wrap">
+          <div class="field-label" id="battOptsLabel">Options sur le prix</div>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="battopts"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Options sur le prix des batteries"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="battTaxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+            <span>Inclure les taxes (défaut)</span>
           </label>
           <div class="subv-check">
             <label class="check">
               <input type="checkbox" id="renoBatt" />
-              <span>Appliquer l’aide Rénoclimat — batterie fixe <em>si admissible</em><span class="sub">→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup>&nbsp;oct.&nbsp;2026</span></span>
+              <span>Appliquer l’aide Rénoclimat — batterie fixe <em>si admissible</em></span>
             </label>
             <button type="button" class="subv-verify" data-subv-elig="renoBatt" aria-haspopup="dialog" aria-controls="fieldInfoModal">Vérifiez que vous êtes admissible <span class="subv-verify-count" data-subv-count="renoBatt">0/9</span></button>
           </div>
           <div class="subv-check">
             <label class="check">
               <input type="checkbox" id="renoRacc" />
-              <span>Appliquer l’aide Rénoclimat — raccordement d’une source de secours <em>si admissible</em><span class="sub">→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</span></span>
+              <span>Appliquer l’aide Rénoclimat — raccordement d’une source de secours <em>si admissible</em></span>
             </label>
             <div class="racc-cost" id="raccCostWrap" hidden>
               <label for="raccCost">Honoraires du maître électricien (HT)</label>
@@ -1057,12 +1080,39 @@
       <p>Un module Volthium fait 16,1&nbsp;kWh, donc un module coûte 16,1 × ce prix. Sous-total (HT) = nombre de modules × prix d’un module.</p>
       <p>Le nombre de modules est l’arrondi de la réserve ÷ 16,1. Pour 33&nbsp;kWh, cela fait deux modules. Au moins un module dès qu’il y a une réserve.</p>
       <p>Taxes (TPS+TVQ, 15&nbsp;%) si la case est cochée. Les batteries ne sont pas admissibles à LogisVert.</p>
+      <p>→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup> oct. 2026</p>
+      <p>→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</p>
     </div>
     <div class="info-block">
       <h4>Aides Rénoclimat (depuis le 1<sup>er</sup>&nbsp;octobre 2026)</h4>
       <p><strong>Batterie fixe</strong>&nbsp;: aide = min(4&nbsp;000&nbsp;$, coût des batteries avant taxes). Système fixe d’au moins 5&nbsp;kWh, relié en permanence au panneau, onduleur non isolé du réseau et conforme à la norme E.12-07 d’Hydro-Québec. Résidence principale seulement.</p>
       <p><strong>Raccordement d’une source de secours</strong>&nbsp;: aide = min(1&nbsp;000&nbsp;$, honoraires du maître électricien avant taxes). Cocher la case ajoute ces honoraires au coût (défaut 1&nbsp;000&nbsp;$, à remplacer par ta soumission). L’achat du commutateur n’est pas couvert.</p>
       <p>Les taxes restent à payer. Cocher les critères de «&nbsp;Vérifiez que vous êtes admissible&nbsp;» n’est pas obligatoire&nbsp;: la case applique l’aide.</p>
+    </div>
+  </template>
+  <template id="tpl-info-priceopts">
+    <span data-info-title>Options sur le prix</span>
+    <div class="info-block">
+      <h4>Taxes</h4>
+      <p>→ Souvent oubliées · TPS+TVQ (15&nbsp;%).</p>
+    </div>
+    <div class="info-block">
+      <h4>Subvention LogisVert</h4>
+      <p>→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</p>
+    </div>
+  </template>
+  <template id="tpl-info-battopts">
+    <span data-info-title>Options sur le prix des batteries</span>
+    <div class="info-block">
+      <h4>Taxes</h4>
+      <p>→ Souvent oubliées · TPS+TVQ (15&nbsp;%).</p>
+    </div>
+    <div class="info-block">
+      <h4>Aides</h4>
+      <p>→ LogisVert ne couvre pas les batteries.</p>
+      <p>→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup> oct. 2026</p>
+      <p>→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</p>
+      <p>Cocher la case Rénoclimat applique l’aide.</p>
     </div>
   </template>
   <template id="tpl-info-project">

@@ -3315,7 +3315,8 @@
         formula: r.taxesOn ? "coût réel = HT + taxes − subvention" : "coût réel = HT − subvention",
         exact: fmtMoney(r.reel),
         shown: fmtShownMoney(r.reel),
-        notes: ["Le prix au watt couvre panneaux, onduleur, structure et pose. Estimation pédagogique, pas une soumission.", NOTE_ROUNDING]
+        notes: ["Le prix au watt couvre panneaux, onduleur, structure et pose. Estimation pédagogique, pas une soumission.", NOTE_ROUNDING],
+        tpl: "priceopts"
       };
     },
     eco: function (r) {
@@ -3403,7 +3404,8 @@
           "Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.",
           "Rénoclimat (édition 2026, depuis le 1er octobre 2026)\u00A0: l’aide est le moindre de la dépense avant taxes et du maximum de la mesure. Les taxes restent à payer. Vérifie les critères avec « Vérifiez que vous êtes admissible ».",
           NOTE_ROUNDING
-        ]
+        ],
+        tpl: "battopts"
       };
     },
     project: function (r) {
