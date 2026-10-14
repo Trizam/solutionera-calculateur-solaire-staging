@@ -2508,6 +2508,29 @@ const scenarioOk = await (async function runScenarioUrlTests() {
   expect(batteryScenario.api.calc().reserveKwh === 20, "shared reserve calculation");
   expect(batteryScenario.api.calc().battModules === 1, "20 kWh is one 16.1 kWh module");
   expect(Math.abs(batteryScenario.api.calc().battCost - 16.1 * 350) < 1e-6, "shared battery total calculation (1 module × 16,1 × 350)");
+  expect(batteryScenario.api.calc().battSubv === 0 && !batteryScenario.location.search.includes("reno"), "Rénoclimat off by default, out of the link");
+
+  // Rénoclimat 2026 : batterie min(4 000, HT) ; raccordement min(1 000, honoraires HT).
+  const renoPage = await bootScenario("?consoJour=8&autoStop=15&battKwh=350&battTaxes=0&renoBatt=1&renoRacc=1&raccCost=1500");
+  expect(renoPage.el("renoBatt").checked === true && renoPage.el("renoRacc").checked === true, "shared Rénoclimat boxes");
+  expect(renoPage.el("raccCost").value === "1 500", `shared electrician fees, got ${renoPage.el("raccCost").value}`);
+  const reno = renoPage.api.calc();
+  expect(Math.abs(reno.renoBattSubv - 4000) < 1e-6, `battery aid capped at 4 000, got ${reno.renoBattSubv}`);
+  expect(Math.abs(reno.renoRaccSubv - 1000) < 1e-6, `connection aid capped at 1 000, got ${reno.renoRaccSubv}`);
+  expect(Math.abs(reno.battCost - (16.1 * 350 + 1500 - 5000)) < 1e-6, `battery total = HT + fees − aids, got ${reno.battCost}`);
+  expect(renoPage.location.search.includes("renoBatt=1") && renoPage.location.search.includes("raccCost=1500"), `URL keeps Rénoclimat ${renoPage.location.search}`);
+  renoPage.el("battTaxes").checked = true;
+  const renoTaxed = renoPage.api.calc();
+  expect(Math.abs(renoTaxed.battCost - ((16.1 * 350 + 1500) * 1.14975 - 5000)) < 1e-6, "taxes on batteries + fees, aids before taxes");
+  renoPage.el("battKwh").value = "200";
+  renoPage.el("raccCost").value = "600";
+  const renoLow = renoPage.api.calc();
+  expect(Math.abs(renoLow.renoBattSubv - 3220) < 1e-6, `battery aid = HT under 4 000, got ${renoLow.renoBattSubv}`);
+  expect(Math.abs(renoLow.renoRaccSubv - 600) < 1e-6, `connection aid = fees under 1 000, got ${renoLow.renoRaccSubv}`);
+  renoPage.el("renoRacc").checked = false;
+  const renoNoRacc = renoPage.api.calc();
+  expect(renoNoRacc.raccHT === 0 && renoNoRacc.renoRaccSubv === 0, "unchecked connection: no fees, no aid");
+  expect(app.includes("SUBSIDIES") && app.includes("appendPrintSubsidyPage") && html.includes('data-subv-elig="logisvert"') && html.includes('data-subv-elig="renoBatt"') && html.includes('data-subv-elig="renoRacc"'), "three eligibility sheets + PDF criteria page");
   const legacyBattery = await bootScenario("?battPrice=4800");
   expect(legacyBattery.el("battKwh").value === "300", `legacy battPrice=4800 → 300 $/kWh, got ${legacyBattery.el("battKwh").value}`);
 

@@ -79,6 +79,78 @@
   const BATT_KWH_PRICE_STEP = 10;
   const BATT_KWH_PRICE_DEFAULT = 300;
   /**
+   * Rénoclimat, édition 2026 (MELCCFP, en vigueur le 1er octobre 2026) : aide = moindre de
+   * la dépense admissible avant taxes et du maximum de la mesure. Batterie fixe : 4 000 $,
+   * au moins 5 kWh. Raccordement d’une source de secours : 1 000 $, sur les honoraires du
+   * maître électricien, qui ne font pas partie du prix des batteries.
+   */
+  const RENO_BATT_MAX = 4000;
+  const RENO_BATT_MIN_KWH = 5;
+  const RENO_RACC_MAX = 1000;
+  const RACC_COST_DEFAULT = 1000;
+  const RACC_COST_MAX = 50000;
+  const SRC_LOGISVERT = { label: "Guide de participation LogisVert, clientèle résidentielle (v1.10, 15 sept. 2026)", href: "https://www.hydroquebec.com/data/logisvert/logisvert-guide-participation-residentiel-fr.pdf" };
+  const SRC_RENO_GUIDE = { label: "Guide du participant Rénoclimat, édition 2026 (MELCCFP)", href: "https://cdn-contenu.quebec.ca/cdn-contenu/environnement/transition-energetique/residentiel-renoclimat/renoclimat-guide-participant.pdf" };
+  const SRC_RENO_PAGE = { label: "Rénoclimat — montants de l’aide financière (Québec.ca)", href: "https://www.quebec.ca/habitation-territoire/chauffage-consommation-energie/aide-financiere-renovation-ecoenergetique/renoclimat/aide-financiere" };
+  const RENO_COMMON_CRITERIA = [
+    { text: "Je suis le propriétaire légal de l’habitation", sub: "À la date de la demande. Un mandataire peut agir pour des copropriétaires. Le propriétaire ne fait pas les travaux lui-même." },
+    { text: "C’est ma résidence principale", sub: "Pas une résidence secondaire (chalet, maison de villégiature). Maison, duplex, triplex ou immeuble à logements multiples." },
+    { text: "L’habitation respecte les limites du programme", sub: "Au Québec. Construite et habitée depuis au moins 5 ans. Au plus 3 étages hors sol, empreinte au sol d’au plus 600 m², plus de 50 % résidentielle, fondations permanentes, chauffage capable de 21 °C l’hiver, eau potable et égout ou fosse septique." },
+    { text: "L’habitation est reliée au réseau électrique", sub: "Hydro-Québec, réseau municipal ou coopératif. Un bâtiment hors réseau n’est pas admissible." }
+  ];
+  const RENO_CLOSING_CRITERIA = [
+    { text: "Aucune autre aide gouvernementale pour ces mêmes travaux", sub: "Pas de cumul avec une aide du Québec, du Canada (crédits d’impôt compris) ou d’une municipalité. Pas d’aide aux sinistres (PGAF) déjà reçue pour atténuer les risques de la résidence. LogisVert, sur les panneaux, est une autre mesure." },
+    { text: "Je dépose la demande à temps, avec les pièces", sub: "Au plus tard 12 mois après la fin des travaux, et avant le 31 mars 2029, sur le portail Rénoclimat. Rôle d’évaluation foncière, factures détaillées, attestation de conformité, photos. Le Ministère peut limiter les demandes selon son budget." }
+  ];
+  /** Les trois aides du calcul. Cocher les critères n’est jamais obligatoire : la case de la carte applique l’aide. */
+  const SUBSIDIES = {
+    logisvert: {
+      inputId: "subv",
+      title: "Subvention LogisVert — panneaux solaires",
+      program: "Hydro-Québec · programme LogisVert",
+      amount: "1 000 $ par kW installé, au plus 40 % du coût d’achat et d’installation avant taxes. Le stockage (batteries) n’est pas couvert.",
+      criteria: [
+        { text: "Je suis propriétaire de l’habitation", sub: "La subvention est versée au propriétaire. Le nom sur les factures doit figurer sur la preuve de propriété (compte de taxes ou acte de vente)." },
+        { text: "Mon habitation est d’un type admissible", sub: "Maison (unifamiliale, jumelée, en rangée, mobile, chalet), multiplex ou immeuble de 19 logements ou moins. Pas un condo, ni un immeuble de 20 logements et plus. Les bâtiments accessoires (garage, cabanon) comptent pour les panneaux." },
+        { text: "L’habitation est au Québec, terminée et habitable à l’année", sub: "Vocation résidentielle, construction terminée." },
+        { text: "Elle est alimentée par Hydro-Québec, un réseau municipal ou coopératif", sub: "En réseau autonome, pas de subvention si les panneaux remplacent un chauffage au combustible ou s’y ajoutent." },
+        { text: "L’installation est complète et raccordée au réseau", sub: "Panneaux, onduleur, support et câbles. La demande de raccordement est faite par un maître électricien, et Hydro-Québec donne son autorisation finale (ou la municipalité ou la coopérative, par écrit)." },
+        { text: "Les panneaux sont neufs, certifiés et achetés au Québec", sub: "Certifiés CSA C22.2 no 61730 et CSA 61215 (ou UL ou IEC équivalents, organisme accrédité par le CCN). Installés à partir du 30 juin 2025." },
+        { text: "L’entreprise est inscrite au REQ et détient la licence RBQ appropriée", sub: "Membre de la corporation de son secteur, s’il y a lieu. Hydro-Québec recommande un installateur d’expérience (ex. NABCEP)." },
+        { text: "Ce n’est pas un remplacement ni une réparation", sub: "Pas le remplacement complet ou partiel d’un système photovoltaïque, pas un sinistre couvert par une assurance, pas une réparation de toiture ni des plans d’ingénierie." },
+        { text: "Je dépose la demande au plus tard 9 mois après l’installation", sub: "Sur logisvert.ca. Factures payées, autorisation de raccordement, certificats des panneaux, fiches techniques et photos." }
+      ],
+      sources: [SRC_LOGISVERT]
+    },
+    renoBatt: {
+      inputId: "renoBatt",
+      title: "Aide Rénoclimat — ajout d’une batterie fixe",
+      program: "Gouvernement du Québec (MELCCFP) · Rénoclimat, édition 2026",
+      amount: "Jusqu’à 4 000 $ : le moindre du coût de la batterie avant taxes et de 4 000 $. Nouvelle mesure en vigueur depuis le 1er octobre 2026.",
+      criteria: RENO_COMMON_CRITERIA.concat([
+        { text: "Le système est fixe et fait au moins 5 kWh", sub: "Une ou plusieurs batteries et un ou plusieurs onduleurs reliés de façon permanente au panneau électrique. Pas une batterie transportable, ni un véhicule électrique." },
+        { text: "L’onduleur respecte les exigences techniques", sub: "Onde sinusoïdale réelle. Au moins 1,2 kW en continu et 2,5 kW en surtension. Non isolé du réseau : il alimente la maison en même temps que le réseau. Conforme à la norme E.12-07 d’Hydro-Québec." },
+        { text: "Les travaux sont faits dès le 1er octobre 2026 par un entrepreneur qualifié", sub: "Entreprise inscrite au REQ, licences RBQ qui couvrent les travaux, pas inscrite au registre des entreprises non admissibles (RENA). L’entrepreneur signe le formulaire d’attestation de conformité. Les honoraires du maître électricien vont à la mesure Raccordement." }
+      ]).concat(RENO_CLOSING_CRITERIA),
+      sources: [SRC_RENO_GUIDE, SRC_RENO_PAGE]
+    },
+    renoRacc: {
+      inputId: "renoRacc",
+      title: "Aide Rénoclimat — raccordement d’une source de secours",
+      program: "Gouvernement du Québec (MELCCFP) · Rénoclimat, édition 2026",
+      amount: "Jusqu’à 1 000 $ : le moindre des honoraires du maître électricien avant taxes et de 1 000 $. Nouvelle mesure en vigueur depuis le 1er octobre 2026.",
+      criteria: RENO_COMMON_CRITERIA.concat([
+        { text: "Les travaux sont faits par un maître électricien, licence RBQ 16.0", sub: "Licence valide au moment des travaux (vérifiable sur le site de la RBQ). Travaux réalisés à partir du 1er octobre 2026, attestation de conformité signée." },
+        { text: "Les travaux couverts sont le raccordement au commutateur de transfert", sub: "Raccordement entre la source (la batterie) et un commutateur de transfert, installation du commutateur qui assure un transfert de charge sécurisé en cas de panne, raccordements entre le commutateur et le panneau électrique." },
+        { text: "Je ne compte pas l’achat du matériel dans cette aide", sub: "L’achat de la source de secours et l’achat du commutateur de transfert (ou d’un onduleur qui joue ce rôle) ne sont pas admissibles." }
+      ]).concat(RENO_CLOSING_CRITERIA),
+      sources: [SRC_RENO_GUIDE, SRC_RENO_PAGE]
+    }
+  };
+  const SUBSIDY_KEYS = ["logisvert", "renoBatt", "renoRacc"];
+  /** Critères cochés dans chaque feuille « Vérifiez que vous êtes admissible ». */
+  const eligChecked = { logisvert: new Set(), renoBatt: new Set(), renoRacc: new Set() };
+  /**
    * Reserve duration stops. The left label is the stop name.
    * The kWh reserve stays exact (finer than these names).
    * 24 h and « 1 jour » are the same stop. Default is 1 jour.
@@ -654,6 +726,31 @@
     return el ? !!el.checked : true;
   }
 
+  function renoBattOn() {
+    const el = $("renoBatt");
+    return !!(el && el.checked);
+  }
+
+  function renoRaccOn() {
+    const el = $("renoRacc");
+    return !!(el && el.checked);
+  }
+
+  /** Electrician fees for the backup-source connection, $ before taxes. Empty → 0. */
+  function raccCostHT() {
+    const el = $("raccCost");
+    if (!el) return RACC_COST_DEFAULT;
+    if (String(el.value).trim() === "") return 0;
+    const v = parseGroupedInt(el.value);
+    return isFinite(v) && v >= 0 ? Math.min(v, RACC_COST_MAX) : 0;
+  }
+
+  function formatRaccCostInput() {
+    const el = $("raccCost");
+    if (!el || String(el.value).trim() === "") return;
+    el.value = fmtGroupedInt(raccCostHT());
+  }
+
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
   function consoAnnuelleKwh() {
     const el = $("conso");
@@ -1102,8 +1199,16 @@
     const battModules = battModuleCount(reserveKwh);
     const battTaxOn = battTaxesOn();
     const battHT = isFinite(reserveKwh) && isFinite(battPrice) ? battModules * battPrice : NaN;
-    const battTaxes = battTaxOn ? battHT * (TAX_MULT - 1) : 0;
-    const battCost = isFinite(battHT) ? battHT + (battTaxOn ? battHT * (TAX_MULT - 1) : 0) : NaN;
+    const battCapKwh = battModules * BATT_MODULE_KWH;
+    const renoBattWanted = renoBattOn();
+    const renoRaccWanted = renoRaccOn();
+    const raccHT = renoRaccWanted ? raccCostHT() : 0;
+    const battTaxes = battTaxOn ? (battHT + raccHT) * (TAX_MULT - 1) : 0;
+    const renoBattSubv = renoBattWanted && isFinite(battHT) && battCapKwh >= RENO_BATT_MIN_KWH ? Math.min(RENO_BATT_MAX, battHT) : 0;
+    const renoRaccSubv = renoRaccWanted ? Math.min(RENO_RACC_MAX, raccHT) : 0;
+    const battSubv = renoBattSubv + renoRaccSubv;
+    const battGross = isFinite(battHT) ? battHT + raccHT + battTaxes : NaN;
+    const battCost = isFinite(battGross) ? Math.max(0, battGross - battSubv) : NaN;
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
       m2, util, deneige, tilt, az, priceW, taxesOn, subvOn, rateOk,
@@ -1115,6 +1220,7 @@
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
       battKwh, battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
+      battCapKwh, renoBattOn: renoBattWanted, renoRaccOn: renoRaccWanted, raccHT, renoBattSubv, renoRaccSubv, battSubv, battGross,
       gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cellSource
     };
   }
@@ -1474,8 +1580,13 @@
       }
     }
     if ($("lineBattHT")) $("lineBattHT").textContent = fmtShownMoney(r.battHT);
+    if ($("raccCostWrap")) $("raccCostWrap").hidden = !r.renoRaccOn;
+    if ($("lineRaccRow")) $("lineRaccRow").hidden = !r.renoRaccOn;
+    if ($("lineRaccHT")) $("lineRaccHT").textContent = fmtShownMoney(r.raccHT);
     if ($("lineBattTaxes")) $("lineBattTaxes").textContent = r.battTaxOn ? fmtShownMoney(r.battTaxes) : "—";
-    if ($("lineBattSubv")) $("lineBattSubv").textContent = fmtShownMoney(0);
+    if ($("lineBattSubv")) $("lineBattSubv").textContent = r.renoBattOn ? ("− " + fmtShownMoney(r.renoBattSubv)) : "—";
+    if ($("lineRaccSubv")) $("lineRaccSubv").textContent = r.renoRaccOn ? ("− " + fmtShownMoney(r.renoRaccSubv)) : "—";
+    syncSubsidyCounts();
     if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
     if ($("lineProjectSolar")) $("lineProjectSolar").textContent = fmtShownMoney(r.reel);
     if ($("lineProjectBatt")) $("lineProjectBatt").textContent = fmtShownMoney(r.battCost);
@@ -1727,6 +1838,9 @@
     autoStop: RESERVE_DEFAULT_INDEX,
     battKwh: BATT_KWH_PRICE_DEFAULT,
     battTaxes: true,
+    renoBatt: false,
+    renoRacc: false,
+    raccCost: RACC_COST_DEFAULT,
     fullAuto: false,
     multi: false
   };
@@ -1834,6 +1948,13 @@
       if (isFinite(v)) battKwh = v;
     }
     const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
+    const renoBatt = parseFlagParam(q.has("renoBatt") ? q.get("renoBatt") : null, d.renoBatt);
+    const renoRacc = parseFlagParam(q.has("renoRacc") ? q.get("renoRacc") : null, d.renoRacc);
+    let raccCost = d.raccCost;
+    if (q.has("raccCost")) {
+      const v = snapStep(q.get("raccCost"), 0, RACC_COST_MAX, 1);
+      if (isFinite(v)) raccCost = v;
+    }
     const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
     const multi = parseFlagParam(q.has("multi") ? q.get("multi") : null, d.multi);
     const pansParsed = q.has("pans") ? parsePansParam(q.get("pans")) : [];
@@ -1842,10 +1963,10 @@
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battKwh, battTaxes, fullAuto, multi, pans: pansParsed };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battKwh, battTaxes, renoBatt, renoRacc, raccCost, fullAuto, multi, pans: pansParsed };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battPrice", "battTaxes", "fullAuto", "multi", "pans"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battPrice", "battTaxes", "renoBatt", "renoRacc", "raccCost", "fullAuto", "multi", "pans"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1858,6 +1979,15 @@
   function onScenarioEdit() {
     scenarioSnapshot = true;
     render();
+  }
+
+  /** Rénoclimat stays out of the link until someone applies it, so older links keep their shape. */
+  function appendSubsidyParams(p, s) {
+    if (s.renoBatt) p.set("renoBatt", "1");
+    if (s.renoRacc) {
+      p.set("renoRacc", "1");
+      if (s.raccCost !== SCENARIO_DEFAULTS.raccCost) p.set("raccCost", String(s.raccCost));
+    }
   }
 
   function serializeScenario(s, mode, full) {
@@ -1883,6 +2013,7 @@
       p.set("battKwh", String(s.battKwh));
       p.set("battTaxes", s.battTaxes ? "1" : "0");
       p.set("fullAuto", s.fullAuto ? "1" : "0");
+      appendSubsidyParams(p, s);
       if (s.multi) {
         p.set("multi", "1");
         if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
@@ -1908,6 +2039,7 @@
     if (s.battKwh !== d.battKwh) p.set("battKwh", String(s.battKwh));
     if (!s.battTaxes) p.set("battTaxes", "0");
     if (s.fullAuto) p.set("fullAuto", "1");
+    appendSubsidyParams(p, s);
     if (s.multi) {
       p.set("multi", "1");
       if (s.pans && s.pans.length) p.set("pans", formatPansParam(s.pans));
@@ -1933,6 +2065,9 @@
     if ($("autoStop")) $("autoStop").value = String(s.autoStop);
     if ($("battKwh")) $("battKwh").value = String(s.battKwh);
     if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
+    if ($("renoBatt")) $("renoBatt").checked = !!s.renoBatt;
+    if ($("renoRacc")) $("renoRacc").checked = !!s.renoRacc;
+    if ($("raccCost")) $("raccCost").value = fmtGroupedInt(s.raccCost);
     if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
     if (s.pans && s.pans.length) {
       pans = s.pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; });
@@ -1981,6 +2116,9 @@
       autoStop: reserveStopIndex(),
       battKwh: readRange("battKwh", BATT_KWH_PRICE_MIN, BATT_KWH_PRICE_MAX, BATT_KWH_PRICE_STEP, d.battKwh),
       battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
+      renoBatt: renoBattOn(),
+      renoRacc: renoRaccOn(),
+      raccCost: $("raccCost") ? raccCostHT() : d.raccCost,
       fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
       multi: multiOn(),
       pans: multiOn() && pans ? pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; }) : [],
@@ -2152,6 +2290,52 @@
     report.appendChild(page);
   }
 
+  function subsidyPrintStatus(key, r) {
+    if (key === "logisvert") return r.subvOn ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.subv) : "Non appliquée dans le calcul";
+    if (key === "renoBatt") return r.renoBattOn ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.renoBattSubv) : "Non appliquée dans le calcul";
+    return r.renoRaccOn
+      ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.renoRaccSubv) + " (honoraires inscrits\u00A0: " + fmtMoney(r.raccHT) + " HT)"
+      : "Non appliquée dans le calcul";
+  }
+
+  /** Dès qu’une aide est appliquée, les critères des trois aides vont dans le PDF. */
+  function appendPrintSubsidyPage(report, r) {
+    if (!(r.subvOn || r.renoBattOn || r.renoRaccOn)) return;
+    const page = printNode("section", "print-sheet print-subsidy-page");
+    appendPrintBrand(page, "Subventions");
+    page.appendChild(printNode("h1", "", "Critères d’admissibilité des subventions"));
+    page.appendChild(printNode("p", "print-appendix-intro", "Les trois aides du calcul et tous leurs critères. ☑ = critère coché par vous dans « Vérifiez que vous êtes admissible ». Cocher n’est pas obligatoire\u00A0: l’admissibilité finale est décidée par le programme, sur pièces."));
+    SUBSIDY_KEYS.forEach(function (key) {
+      const spec = SUBSIDIES[key];
+      const body = printNode("div", "print-detail-body");
+      body.appendChild(printNode("p", "print-subsidy-status", subsidyPrintStatus(key, r)));
+      body.appendChild(printNode("p", "", spec.program + ". " + spec.amount));
+      body.appendChild(printNode("p", "print-subsidy-count", eligChecked[key].size + " critère(s) coché(s) sur " + spec.criteria.length + "."));
+      const ul = printNode("ul", "print-subsidy-criteria");
+      spec.criteria.forEach(function (c, i) {
+        const li = printNode("li", eligChecked[key].has(i) ? "is-checked" : "");
+        li.appendChild(printNode("span", "print-subsidy-box", eligChecked[key].has(i) ? "☑" : "☐"));
+        const text = printNode("span", "");
+        text.appendChild(printNode("strong", "", c.text));
+        text.appendChild(document.createTextNode(" — " + c.sub));
+        li.appendChild(text);
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+      const src = printNode("p", "print-subsidy-sources", "Sources\u00A0: ");
+      spec.sources.forEach(function (s, i) {
+        if (i) src.appendChild(document.createTextNode(" · "));
+        const a = printNode("a", "", s.label);
+        a.href = s.href;
+        src.appendChild(a);
+        src.appendChild(document.createTextNode(" (" + s.href + ")"));
+      });
+      body.appendChild(src);
+      appendPrintDetailSection(page, spec.title, body);
+    });
+    report.appendChild(page);
+  }
+
   function appendPrintDetailSection(parent, title, content) {
     const section = printNode("section", "print-detail-section");
     section.appendChild(printNode("h2", "", title));
@@ -2202,6 +2386,7 @@
     const url = scenarioPrintUrl();
     appendPrintWebPage(report);
     appendPrintCardPage(report, PRINT_FINANCE_CARDS, "Coûts et valeur", "print-card-page-finance");
+    appendPrintSubsidyPage(report, calc());
     appendPrintSharePage(report, url);
     appendPrintAppendix(report);
     report.dataset.scenarioUrl = url;
@@ -2805,6 +2990,109 @@
     bodyEl.replaceChildren(frag);
     openModal("fieldInfoModal");
   }
+
+  function eligCountText(key) {
+    return eligChecked[key].size + "/" + SUBSIDIES[key].criteria.length;
+  }
+
+  function syncSubsidyCounts() {
+    SUBSIDY_KEYS.forEach(function (key) {
+      const total = SUBSIDIES[key].criteria.length;
+      document.querySelectorAll('[data-subv-count="' + key + '"]').forEach(function (node) {
+        node.textContent = eligCountText(key);
+        node.classList.toggle("is-complete", eligChecked[key].size === total);
+      });
+    });
+  }
+
+  function appendSourceLinks(parent, sources) {
+    const block = el("div", "info-block subv-elig-sources");
+    block.appendChild(el("h4", null, "Sources officielles"));
+    const ul = el("ul");
+    sources.forEach(function (src) {
+      const li = el("li");
+      const a = el("a", null, src.label);
+      a.href = src.href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+    block.appendChild(ul);
+    parent.appendChild(block);
+  }
+
+  /** « Vérifiez que vous êtes admissible » : liste à cocher, jamais bloquante. */
+  function buildEligibilitySheet(key) {
+    const spec = SUBSIDIES[key];
+    const frag = document.createDocumentFragment();
+    const head = el("div", "info-block");
+    head.appendChild(el("h4", null, spec.program));
+    head.appendChild(el("p", "subv-elig-amount", spec.amount));
+    head.appendChild(el("p", "subv-elig-intro", "Cochez chaque critère qui s’applique à vous. Ce n’est pas obligatoire\u00A0: la case de la carte applique l’aide au calcul, cochée ou non ici."));
+    frag.appendChild(head);
+
+    const status = el("p", "subv-elig-status");
+    const paintStatus = function () {
+      const n = eligChecked[key].size;
+      const total = spec.criteria.length;
+      status.textContent = n === total
+        ? "Les " + total + " critères sont cochés."
+        : n + " sur " + total + " critères cochés.";
+      status.classList.toggle("is-complete", n === total);
+      syncSubsidyCounts();
+    };
+
+    const list = el("div", "checks subv-elig-list");
+    spec.criteria.forEach(function (c, i) {
+      const label = el("label", "check");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = eligChecked[key].has(i);
+      box.addEventListener("change", function () {
+        if (box.checked) eligChecked[key].add(i);
+        else eligChecked[key].delete(i);
+        paintStatus();
+      });
+      const text = el("span", null, c.text);
+      text.appendChild(el("span", "sub", c.sub));
+      label.appendChild(box);
+      label.appendChild(text);
+      list.appendChild(label);
+    });
+    frag.appendChild(list);
+    frag.appendChild(status);
+
+    const source = $(spec.inputId);
+    if (source) {
+      const apply = el("label", "check subv-elig-apply");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = !!source.checked;
+      box.addEventListener("change", function () {
+        source.checked = box.checked;
+        source.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      const text = el("span", null, "Appliquer cette aide dans le calcul");
+      text.appendChild(el("span", "sub", "Même case que sur la carte."));
+      apply.appendChild(box);
+      apply.appendChild(text);
+      frag.appendChild(apply);
+    }
+    appendSourceLinks(frag, spec.sources);
+    paintStatus();
+    return frag;
+  }
+
+  function openEligibility(key) {
+    const spec = SUBSIDIES[key];
+    const titleEl = $("fieldInfoTitle");
+    const bodyEl = $("fieldInfoBody");
+    if (!spec || !titleEl || !bodyEl) return;
+    titleEl.textContent = "Admissibilité — " + spec.title;
+    bodyEl.replaceChildren(buildEligibilitySheet(key));
+    openModal("fieldInfoModal");
+  }
   /*
    * « Comment c’est calculé » (issue #140). Every result box carries a ⓘ that opens
    * the same sheet: a table of the numbers behind the box, each one tagged as the
@@ -2890,10 +3178,21 @@
       row("Nombre de modules", fmtNum(r.battModules, 0), "calc", "arrondi de la réserve ÷ 16,1, au moins 1"),
       row("Prix des batteries", fmtNum(r.battKwh, 0) + "\u00A0$/kWh", "input", "curseur de la carte 5"),
       row("Prix d’un module", fmtMoney(r.battPrice), "calc", "16,1\u00A0kWh × $/kWh"),
-      row("Sous-total (HT)", fmtMoney(r.battHT), "calc", "modules × prix d’un module"),
+      row("Batteries (HT)", fmtMoney(r.battHT), "calc", "modules × prix d’un module"),
+      row("Raccordement, maître électricien (HT)", r.renoRaccOn ? fmtMoney(r.raccHT) : "non compté", "input", r.renoRaccOn ? "honoraires inscrits sous l’aide Raccordement" : "case Raccordement décochée"),
       row("Taxes TPS + TVQ", r.battTaxOn ? fmtMoney(r.battTaxes) : "non comprises", r.battTaxOn ? "std" : "input", r.battTaxOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
-      row("Subvention", "0\u00A0$", "std", "LogisVert ne couvre pas les batteries")
+      row("Aide Rénoclimat — batterie fixe", r.renoBattOn ? "− " + fmtMoney(r.renoBattSubv) : "non appliquée", r.renoBattOn ? "std" : "input", r.renoBattOn ? "min(4\u00A0000\u00A0$, batteries HT), système d’au moins 5\u00A0kWh" : "case décochée"),
+      row("Aide Rénoclimat — raccordement", r.renoRaccOn ? "− " + fmtMoney(r.renoRaccSubv) : "non appliquée", r.renoRaccOn ? "std" : "input", r.renoRaccOn ? "min(1\u00A0000\u00A0$, honoraires HT)" : "case décochée"),
+      row("LogisVert", "0\u00A0$", "std", "LogisVert ne couvre pas le stockage")
     ];
+  }
+  function battFormula(r) {
+    const parts = ["modules × 16,1\u00A0kWh × $/kWh"];
+    if (r.renoRaccOn) parts.push("raccordement");
+    let f = "batteries = " + parts.join(" + ");
+    if (r.battTaxOn) f += " + taxes";
+    if (r.renoBattOn || r.renoRaccOn) f += " − aides Rénoclimat";
+    return f;
   }
   function consoRow(r) {
     if (r.fullAuto) return row("Consommation annuelle", kwhVal(r.consoFromAuto, 0) + " / an", "calc", "365\u00A0j × " + fmtKwhDay(r.consoJour) + "\u00A0kWh/j (case « 100\u00A0% autonome »)");
@@ -3098,10 +3397,14 @@
       return {
         title: "Coût des batteries",
         rows: battRows(r),
-        formula: r.battTaxOn ? "batteries = modules × 16,1\u00A0kWh × $/kWh + taxes" : "batteries = modules × 16,1\u00A0kWh × $/kWh",
+        formula: battFormula(r),
         exact: fmtMoney(r.battCost),
         shown: fmtShownMoney(r.battCost),
-        notes: ["Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING],
+        notes: [
+          "Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.",
+          "Rénoclimat (édition 2026, depuis le 1er octobre 2026)\u00A0: l’aide est le moindre de la dépense avant taxes et du maximum de la mesure. Les taxes restent à payer. Vérifie les critères avec « Vérifiez que vous êtes admissible ».",
+          NOTE_ROUNDING
+        ],
         tpl: "battopts"
       };
     },
@@ -3110,7 +3413,7 @@
         title: "Coût total du projet",
         rows: [
           row("Panneaux solaires (coût réel)", fmtMoney(r.reel), "calc", "carte 2\u00A0: HT + taxes − subvention"),
-          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: modules × 16,1\u00A0kWh × $/kWh + taxes")
+          row("Batteries", fmtMoney(r.battCost), "calc", "carte 5\u00A0: " + battFormula(r).replace(/^batteries = /, ""))
         ],
         formula: "total = panneaux + batteries",
         exact: fmtMoney(r.projectTotal),
@@ -3736,7 +4039,7 @@
         render();
       });
     }
-    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battKwh", "battTaxes", "fullAuto"].forEach((id) => {
+    ["tilt", "orient", "util", "deneige", "priceW", "taxes", "subv", "rate", "consoJour", "autoStop", "battKwh", "battTaxes", "renoBatt", "renoRacc", "fullAuto"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("input", onScenarioEdit);
@@ -3871,6 +4174,15 @@
         else openFieldInfo(btn.getAttribute("data-info"));
       });
     });
+    document.querySelectorAll("[data-subv-elig]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openEligibility(btn.getAttribute("data-subv-elig")); });
+    });
+    const raccCost = $("raccCost");
+    if (raccCost) {
+      raccCost.addEventListener("input", onScenarioEdit);
+      raccCost.addEventListener("change", function () { scenarioSnapshot = true; formatRaccCostInput(); render(); });
+      raccCost.addEventListener("blur", function () { scenarioSnapshot = true; formatRaccCostInput(); render(); });
+    }
     // Chaque bouton ferme sa propre feuille : la feuille bug peut rester ouverte au-dessus (#166).
     const MODAL_CLOSERS = {
       btnInfoClose: "infoModal", btnInfoOk: "infoModal",
