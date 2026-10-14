@@ -3016,7 +3016,8 @@
         formula: r.taxesOn ? "coût réel = HT + taxes − subvention" : "coût réel = HT − subvention",
         exact: fmtMoney(r.reel),
         shown: fmtShownMoney(r.reel),
-        notes: ["Le prix au watt couvre panneaux, onduleur, structure et pose. Estimation pédagogique, pas une soumission.", NOTE_ROUNDING]
+        notes: ["Le prix au watt couvre panneaux, onduleur, structure et pose. Estimation pédagogique, pas une soumission.", NOTE_ROUNDING],
+        tpl: "priceopts"
       };
     },
     eco: function (r) {
@@ -3100,7 +3101,8 @@
         formula: r.battTaxOn ? "batteries = modules × 16,1\u00A0kWh × $/kWh + taxes" : "batteries = modules × 16,1\u00A0kWh × $/kWh",
         exact: fmtMoney(r.battCost),
         shown: fmtShownMoney(r.battCost),
-        notes: ["Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING]
+        notes: ["Le prix des batteries est une fourchette du marché (100 à 500\u00A0$/kWh). Estimation, pas une soumission.", NOTE_ROUNDING],
+        tpl: "battopts"
       };
     },
     project: function (r) {

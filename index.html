@@ -449,15 +449,27 @@
       </div>
 
       <div class="field" role="group" aria-labelledby="optsLabel">
-        <div class="field-label" id="optsLabel">Options sur le prix</div>
+        <div class="label-row field-info-wrap">
+          <div class="field-label" id="optsLabel">Options sur le prix</div>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="priceopts"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Options sur le prix"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="taxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+            <span>Inclure les taxes (défaut)</span>
           </label>
           <label class="check">
             <input type="checkbox" id="subv" checked />
-            <span>Appliquer la subvention LogisVert <em>si admissible</em><span class="sub">→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</span></span>
+            <span>Appliquer la subvention LogisVert <em>si admissible</em></span>
           </label>
         </div>
       </div>
@@ -682,15 +694,27 @@
         <p class="hint editor-inline" id="battDraftNote" hidden>Brouillon — le prix au kWh des batteries reste à confirmer.</p>
       </div>
       <div class="field" role="group" aria-labelledby="battOptsLabel">
-        <div class="field-label" id="battOptsLabel">Options sur le prix</div>
+        <div class="label-row field-info-wrap">
+          <div class="field-label" id="battOptsLabel">Options sur le prix</div>
+          <button
+            type="button"
+            class="field-info-btn"
+            data-info="battopts"
+            aria-haspopup="dialog"
+            aria-controls="fieldInfoModal"
+            aria-label="Aide : Options sur le prix des batteries"
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
+        </div>
         <div class="checks">
           <label class="check">
             <input type="checkbox" id="battTaxes" checked />
-            <span>Inclure les taxes (défaut)<span class="sub">→ Souvent oubliées · TPS+TVQ (15&nbsp;%)</span></span>
+            <span>Inclure les taxes (défaut)</span>
           </label>
           <label class="check check-locked">
             <input type="checkbox" id="battNoSubv" checked disabled />
-            <span>Non admissible à la subvention<span class="sub">→ LogisVert ne couvre pas les batteries</span></span>
+            <span>Non admissible à la subvention</span>
           </label>
         </div>
       </div>
@@ -848,6 +872,8 @@
           <h4>Batterie</h4>
           <p>Réserve = consommation par jour (curseur, plus la ligne libre) × durée choisie.</p>
           <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × 16,1&nbsp;kWh × prix en $/kWh (curseur 100–500&nbsp;$), plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
+          <p>→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup> oct. 2026</p>
+          <p>→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</p>
           <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
@@ -1030,6 +1056,32 @@
       <p>Un module Volthium fait 16,1&nbsp;kWh, donc un module coûte 16,1 × ce prix. Sous-total (HT) = nombre de modules × prix d’un module.</p>
       <p>Le nombre de modules est l’arrondi de la réserve ÷ 16,1. Pour 33&nbsp;kWh, cela fait deux modules. Au moins un module dès qu’il y a une réserve.</p>
       <p>Taxes (TPS+TVQ, 15&nbsp;%) si la case est cochée. Les batteries ne sont pas admissibles à LogisVert&nbsp;: subvention 0&nbsp;$.</p>
+      <p>→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup> oct. 2026</p>
+      <p>→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</p>
+    </div>
+  </template>
+  <template id="tpl-info-priceopts">
+    <span data-info-title>Options sur le prix</span>
+    <div class="info-block">
+      <h4>Taxes</h4>
+      <p>→ Souvent oubliées · TPS+TVQ (15&nbsp;%).</p>
+    </div>
+    <div class="info-block">
+      <h4>Subvention LogisVert</h4>
+      <p>→ Appliquée par défaut · décoche si non admissible · min(1&nbsp;000&nbsp;$/kW, 40&nbsp;% du HT) · condo n/a</p>
+    </div>
+  </template>
+  <template id="tpl-info-battopts">
+    <span data-info-title>Options sur le prix des batteries</span>
+    <div class="info-block">
+      <h4>Taxes</h4>
+      <p>→ Souvent oubliées · TPS+TVQ (15&nbsp;%).</p>
+    </div>
+    <div class="info-block">
+      <h4>Subvention</h4>
+      <p>→ LogisVert ne couvre pas les batteries.</p>
+      <p>→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup> oct. 2026</p>
+      <p>→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</p>
     </div>
   </template>
   <template id="tpl-info-project">
