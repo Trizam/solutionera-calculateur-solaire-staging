@@ -695,33 +695,23 @@
           <div class="subv-check">
             <label class="check">
               <input type="checkbox" id="renoBatt" />
-              <span>Appliquer l’aide Rénoclimat — batterie fixe <em>si admissible</em><span class="sub">→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT des batteries) · résidence principale · travaux dès le 1<sup>er</sup>&nbsp;oct.&nbsp;2026</span></span>
+              <span>Appliquer l’aide Rénoclimat — batterie fixe <em>si admissible</em><span class="sub">→ Jusqu’à 4&nbsp;000&nbsp;$ · min(4&nbsp;000&nbsp;$, coût HT) · 0&nbsp;$ sous 5&nbsp;kWh installés</span></span>
             </label>
             <button type="button" class="subv-verify" data-subv-elig="renoBatt" aria-haspopup="dialog" aria-controls="fieldInfoModal">Vérifiez que vous êtes admissible <span class="subv-verify-count" data-subv-count="renoBatt">0/9</span></button>
           </div>
           <div class="subv-check">
             <label class="check">
               <input type="checkbox" id="renoRacc" />
-              <span>Appliquer l’aide Rénoclimat — raccordement d’une source de secours <em>si admissible</em><span class="sub">→ Jusqu’à 1&nbsp;000&nbsp;$ · honoraires du maître électricien (commutateur de transfert) · min(1&nbsp;000&nbsp;$, honoraires HT)</span></span>
+              <span>Appliquer l’aide Rénoclimat — raccordement d’une source de secours <em>si admissible</em><span class="sub">→ Jusqu’à 1&nbsp;000&nbsp;$ · couvre le reste du coût des batteries après l’aide batterie</span></span>
             </label>
-            <div class="racc-cost" id="raccCostWrap" hidden>
-              <label for="raccCost">Honoraires du maître électricien (HT)</label>
-              <div class="rate-box">
-                <input id="raccCost" class="grouped-int" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1 000" />
-                <span>$</span>
-              </div>
-              <p class="hint">→ Raccordement de la batterie au commutateur de transfert, puis au panneau. Pas compris dans le prix des batteries. Inscris le montant de ta soumission.</p>
-            </div>
             <button type="button" class="subv-verify" data-subv-elig="renoRacc" aria-haspopup="dialog" aria-controls="fieldInfoModal">Vérifiez que vous êtes admissible <span class="subv-verify-count" data-subv-count="renoRacc">0/9</span></button>
           </div>
         </div>
       </div>
-      <p class="calc-line" id="outBatt">—</p>
       <div class="breakdown" aria-live="polite">
-        <div class="line"><span>Batteries (HT)</span><span id="lineBattHT">—</span></div>
-        <div class="line" id="lineRaccRow" hidden><span>Raccordement, maître électricien (HT)</span><span id="lineRaccHT">—</span></div>
+        <div class="line"><span>Batteries (HT)</span><span class="line-total-amt"><button type="button" class="field-info-btn result-info-btn result-info-inline" data-result-info="battht" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Batteries (HT)" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button><span id="lineBattHT">—</span></span></div>
         <div class="line"><span>Taxes</span><span id="lineBattTaxes">—</span></div>
-        <div class="line neg"><span>Aide Rénoclimat — batterie</span><span id="lineBattSubv">—</span></div>
+        <div class="line neg"><span>Aide Rénoclimat — batterie<span class="sub" id="battSubvCut" hidden>→ 0&nbsp;$ sous 5&nbsp;kWh installés</span></span><span id="lineBattSubv">—</span></div>
         <div class="line neg"><span>Aide Rénoclimat — raccordement</span><span id="lineRaccSubv">—</span></div>
         <div class="line total"><span class="line-with-info">Total estimé pour l’autonomie <button type="button" class="field-info-btn result-info-btn result-info-inline" data-result-info="battcost" aria-haspopup="dialog" aria-controls="fieldInfoModal" aria-label="Comment c’est calculé : Total estimé pour l’autonomie" title="Comment c’est calculé"><span aria-hidden="true">ⓘ</span></button></span><span id="lineBatt">—</span></div>
       </div>
@@ -817,7 +807,7 @@
           <li>4A à zéro (#179, #180)&nbsp;: <code>html[data-need="off"]</code> masque tout ce qui porte <code>.need-only</code> (note décembre, coche 100&nbsp;%, 4B, remplissage, 5, 6) ; le tableau suit <code>.is-zero</code> (#173) en direct. 4A flotte centrée en hauteur avec Mesurage net / Autonomie ; la petite flèche reste entre les deux. Le basculement attend la fin du glissement (<code>change</code>), pas chaque cran.</li>
           <li>Réserve = cette consommation × un cran de durée (aucune, 5 min, 15 min, 30 min, 45 min, 1 h, 2 h, 4 h, 6 h, 8 h, 12 h, 1 jour, 1 jour et quart, 1 jour et demi, 2 jours, 2 jours et demi, 3 jours). À aucune, le reste de la colonne autonomie est masqué. Le remplissage utilise seulement le surplus de décembre.</li>
           <li>LogisVert reste sur les panneaux. Les taxes des batteries suivent la case de la carte 5 (cochée par défaut).</li>
-          <li>Rénoclimat (carte 5, décochées par défaut)&nbsp;: <code>renoBatt</code> = min(4&nbsp;000, batteries HT), <code>renoRacc</code> = min(1&nbsp;000, honoraires HT, <code>raccCost</code>, défaut 1&nbsp;000). Les honoraires et leurs taxes entrent au coût quand Raccordement est cochée. Les cases de critères ne bloquent rien et ne vont pas dans le lien&nbsp;; le PDF les montre (☑/☐).</li>
+          <li>Rénoclimat (carte 5, décochées par défaut)&nbsp;: <code>renoBatt</code> = min(4&nbsp;000, batteries HT), 0&nbsp;$ sous 5&nbsp;kWh installés. <code>renoRacc</code> = min(1&nbsp;000, reste du HT après l’aide batterie). Pas de champ d’honoraires. L’équation «&nbsp;modules × 16,1&nbsp;kWh × $/kWh&nbsp;» est dans le ⓘ de Batteries (HT). Les cases de critères ne bloquent rien et ne vont pas dans le lien&nbsp;; le PDF les montre (☑/☐).</li>
           <li>Le lien du scénario conserve aussi la durée de réserve, le prix ($/kWh, <code>battKwh</code>) et les taxes des batteries, la consommation du jour et la ligne libre.</li>
           <li>Plusieurs versants : case en haut. Une densité. Quatre rangées maximum. Déneigement par crans de 25 %. L’URL ajoute <code>multi=1</code> et <code>pans=m²:azimut:inclinaison:neige</code>.</li>
           <li>Ombrage : plus tard.</li>
@@ -874,7 +864,7 @@
           <h4>Batterie</h4>
           <p>Réserve = consommation par jour (curseur, plus la ligne libre) × durée choisie.</p>
           <p>Coût des batteries = nombre de modules Volthium (16,1&nbsp;kWh) × 16,1&nbsp;kWh × prix en $/kWh (curseur 100–500&nbsp;$), plus les taxes si la case de la carte 5 est cochée. 33&nbsp;kWh, c’est deux modules. LogisVert ne couvre pas les batteries.</p>
-          <p>Rénoclimat (édition 2026, depuis le 1<sup>er</sup>&nbsp;octobre 2026) offre deux aides, à cocher dans la carte 5&nbsp;: batterie fixe, le moindre de 4&nbsp;000&nbsp;$ et du coût des batteries avant taxes&nbsp;; raccordement d’une source de secours, le moindre de 1&nbsp;000&nbsp;$ et des honoraires du maître électricien avant taxes. Ces honoraires s’ajoutent au coût dès que la case Raccordement est cochée.</p>
+          <p>Rénoclimat (édition 2026, depuis le 1<sup>er</sup>&nbsp;octobre 2026) offre deux aides, à cocher dans la carte 5&nbsp;: batterie fixe, le moindre de 4&nbsp;000&nbsp;$ et du coût des batteries avant taxes, et 0&nbsp;$ sous 5&nbsp;kWh installés&nbsp;; raccordement d’une source de secours, jusqu’à 1&nbsp;000&nbsp;$ sur ce qui reste de ce coût une fois l’aide batterie appliquée. La facture du maître électricien se fait selon ce besoin&nbsp;: elle n’est pas un champ du calcul.</p>
           <p>Le total du projet additionne le coût réel des panneaux et le coût des batteries.</p>
         </div>
         <div class="info-block">
@@ -1060,8 +1050,8 @@
     </div>
     <div class="info-block">
       <h4>Aides Rénoclimat (depuis le 1<sup>er</sup>&nbsp;octobre 2026)</h4>
-      <p><strong>Batterie fixe</strong>&nbsp;: aide = min(4&nbsp;000&nbsp;$, coût des batteries avant taxes). Système fixe d’au moins 5&nbsp;kWh, relié en permanence au panneau, onduleur non isolé du réseau et conforme à la norme E.12-07 d’Hydro-Québec. Résidence principale seulement.</p>
-      <p><strong>Raccordement d’une source de secours</strong>&nbsp;: aide = min(1&nbsp;000&nbsp;$, honoraires du maître électricien avant taxes). Cocher la case ajoute ces honoraires au coût (défaut 1&nbsp;000&nbsp;$, à remplacer par ta soumission). L’achat du commutateur n’est pas couvert.</p>
+      <p><strong>Batterie fixe</strong>&nbsp;: aide = min(4&nbsp;000&nbsp;$, coût des batteries avant taxes), et 0&nbsp;$ si moins de 5&nbsp;kWh sont installés. Système fixe relié en permanence au panneau, onduleur non isolé du réseau et conforme à la norme E.12-07 d’Hydro-Québec. Résidence principale seulement.</p>
+      <p><strong>Raccordement d’une source de secours</strong>&nbsp;: jusqu’à 1&nbsp;000&nbsp;$ sur ce qui reste du coût des batteries avant taxes, une fois l’aide batterie appliquée. La facture du maître électricien se fait selon ce besoin. L’achat du commutateur n’est pas couvert.</p>
       <p>Les taxes restent à payer. Cocher les critères de «&nbsp;Vérifiez que vous êtes admissible&nbsp;» n’est pas obligatoire&nbsp;: la case applique l’aide.</p>
     </div>
   </template>

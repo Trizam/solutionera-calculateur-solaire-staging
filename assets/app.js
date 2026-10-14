@@ -81,14 +81,13 @@
   /**
    * Rénoclimat, édition 2026 (MELCCFP, en vigueur le 1er octobre 2026) : aide = moindre de
    * la dépense admissible avant taxes et du maximum de la mesure. Batterie fixe : 4 000 $,
-   * au moins 5 kWh. Raccordement d’une source de secours : 1 000 $, sur les honoraires du
-   * maître électricien, qui ne font pas partie du prix des batteries.
+   * 0 $ sous 5 kWh installés (#192). Raccordement : jusqu’à 1 000 $ sur ce qui reste
+   * du coût des batteries une fois l’aide batterie appliquée (#193). Pas de champ
+   * d’honoraires : la facture du maître électricien se fait selon ce besoin.
    */
   const RENO_BATT_MAX = 4000;
   const RENO_BATT_MIN_KWH = 5;
   const RENO_RACC_MAX = 1000;
-  const RACC_COST_DEFAULT = 1000;
-  const RACC_COST_MAX = 50000;
   const SRC_LOGISVERT = { label: "Guide de participation LogisVert, clientèle résidentielle (v1.10, 15 sept. 2026)", href: "https://www.hydroquebec.com/data/logisvert/logisvert-guide-participation-residentiel-fr.pdf" };
   const SRC_RENO_GUIDE = { label: "Guide du participant Rénoclimat, édition 2026 (MELCCFP)", href: "https://cdn-contenu.quebec.ca/cdn-contenu/environnement/transition-energetique/residentiel-renoclimat/renoclimat-guide-participant.pdf" };
   const SRC_RENO_PAGE = { label: "Rénoclimat — montants de l’aide financière (Québec.ca)", href: "https://www.quebec.ca/habitation-territoire/chauffage-consommation-energie/aide-financiere-renovation-ecoenergetique/renoclimat/aide-financiere" };
@@ -138,7 +137,7 @@
       inputId: "renoRacc",
       title: "Aide Rénoclimat — raccordement d’une source de secours",
       program: "Gouvernement du Québec (MELCCFP) · Rénoclimat, édition 2026",
-      amount: "Jusqu’à 1 000 $ : le moindre des honoraires du maître électricien avant taxes et de 1 000 $. Nouvelle mesure en vigueur depuis le 1er octobre 2026.",
+      amount: "Jusqu’à 1 000 $ : couvre ce qui reste du coût des batteries avant taxes, une fois l’aide batterie appliquée. La facture du maître électricien se fait selon ce besoin. Nouvelle mesure en vigueur depuis le 1er octobre 2026.",
       criteria: RENO_COMMON_CRITERIA.concat([
         { text: "Les travaux sont faits par un maître électricien, licence RBQ 16.0", sub: "Licence valide au moment des travaux (vérifiable sur le site de la RBQ). Travaux réalisés à partir du 1er octobre 2026, attestation de conformité signée." },
         { text: "Les travaux couverts sont le raccordement au commutateur de transfert", sub: "Raccordement entre la source (la batterie) et un commutateur de transfert, installation du commutateur qui assure un transfert de charge sécurisé en cas de panne, raccordements entre le commutateur et le panneau électrique." },
@@ -736,19 +735,20 @@
     return !!(el && el.checked);
   }
 
-  /** Electrician fees for the backup-source connection, $ before taxes. Empty → 0. */
-  function raccCostHT() {
-    const el = $("raccCost");
-    if (!el) return RACC_COST_DEFAULT;
-    if (String(el.value).trim() === "") return 0;
-    const v = parseGroupedInt(el.value);
-    return isFinite(v) && v >= 0 ? Math.min(v, RACC_COST_MAX) : 0;
-  }
-
-  function formatRaccCostInput() {
-    const el = $("raccCost");
-    if (!el || String(el.value).trim() === "") return;
-    el.value = fmtGroupedInt(raccCostHT());
+  /**
+   * Rénoclimat sur les batteries (#192, #193).
+   * Batterie : min(4 000 $, HT), et 0 $ si moins de 5 kWh sont installés.
+   * Raccordement : min(1 000 $, HT restant après l’aide batterie). Les honoraires
+   * ne s’ajoutent pas au coût : la facture suit le besoin.
+   */
+  function renoAids(battHT, battCapKwh, battOn, raccOn) {
+    const ht = isFinite(battHT) && battHT > 0 ? battHT : 0;
+    const cap = isFinite(battCapKwh) ? battCapKwh : 0;
+    const renoBattCut = !!(battOn && ht > 0 && cap < RENO_BATT_MIN_KWH);
+    const renoBattSubv = battOn && cap >= RENO_BATT_MIN_KWH ? Math.min(RENO_BATT_MAX, ht) : 0;
+    const remainder = Math.max(0, ht - renoBattSubv);
+    const renoRaccSubv = raccOn ? Math.min(RENO_RACC_MAX, remainder) : 0;
+    return { renoBattSubv, renoRaccSubv, renoBattCut };
   }
 
   /** Annual household consumption (kWh). Empty / invalid → no cap. */
@@ -1202,12 +1202,12 @@
     const battCapKwh = battModules * BATT_MODULE_KWH;
     const renoBattWanted = renoBattOn();
     const renoRaccWanted = renoRaccOn();
-    const raccHT = renoRaccWanted ? raccCostHT() : 0;
-    const battTaxes = battTaxOn ? (battHT + raccHT) * (TAX_MULT - 1) : 0;
-    const renoBattSubv = renoBattWanted && isFinite(battHT) && battCapKwh >= RENO_BATT_MIN_KWH ? Math.min(RENO_BATT_MAX, battHT) : 0;
-    const renoRaccSubv = renoRaccWanted ? Math.min(RENO_RACC_MAX, raccHT) : 0;
+    const aids = renoAids(battHT, battCapKwh, renoBattWanted, renoRaccWanted);
+    const renoBattSubv = aids.renoBattSubv;
+    const renoRaccSubv = aids.renoRaccSubv;
+    const battTaxes = battTaxOn && isFinite(battHT) ? battHT * (TAX_MULT - 1) : 0;
     const battSubv = renoBattSubv + renoRaccSubv;
-    const battGross = isFinite(battHT) ? battHT + raccHT + battTaxes : NaN;
+    const battGross = isFinite(battHT) ? battHT + battTaxes : NaN;
     const battCost = isFinite(battGross) ? Math.max(0, battGross - battSubv) : NaN;
     const projectTotal = isFinite(battCost) ? reel + battCost : NaN;
     return {
@@ -1220,7 +1220,7 @@
       consoJour, autonomyDays: auto.days, autonomyLabel: auto.label, reserveKwh,
       surplusDay, fillState, fillDays, shortfall,
       battKwh, battPrice, battModules, battTaxOn, battHT, battTaxes, battCost, projectTotal,
-      battCapKwh, renoBattOn: renoBattWanted, renoRaccOn: renoRaccWanted, raccHT, renoBattSubv, renoRaccSubv, battSubv, battGross,
+      battCapKwh, renoBattOn: renoBattWanted, renoRaccOn: renoRaccWanted, renoBattCut: aids.renoBattCut, renoBattSubv, renoRaccSubv, battSubv, battGross,
       gridReady, gridStatus, cellSource: gridIsScaled ? "scaled" : cellSource
     };
   }
@@ -1570,21 +1570,10 @@
     if ($("battKwhVal") && isFinite(r.battKwh)) {
       $("battKwhVal").textContent = fmtNum(r.battKwh, 0) + " $/kWh";
     }
-    if ($("outBatt")) {
-      if (!(r.battModules > 0) || !isFinite(r.battHT)) {
-        $("outBatt").textContent = "Aucun module";
-      } else {
-        const word = r.battModules > 1 ? "modules" : "module";
-        $("outBatt").textContent =
-          fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(BATT_MODULE_KWH, 1) + " kWh × " + fmtNum(r.battKwh, 0) + " $/kWh = " + fmtShownMoney(r.battHT);
-      }
-    }
     if ($("lineBattHT")) $("lineBattHT").textContent = fmtShownMoney(r.battHT);
-    if ($("raccCostWrap")) $("raccCostWrap").hidden = !r.renoRaccOn;
-    if ($("lineRaccRow")) $("lineRaccRow").hidden = !r.renoRaccOn;
-    if ($("lineRaccHT")) $("lineRaccHT").textContent = fmtShownMoney(r.raccHT);
     if ($("lineBattTaxes")) $("lineBattTaxes").textContent = r.battTaxOn ? fmtShownMoney(r.battTaxes) : "—";
     if ($("lineBattSubv")) $("lineBattSubv").textContent = r.renoBattOn ? ("− " + fmtShownMoney(r.renoBattSubv)) : "—";
+    if ($("battSubvCut")) $("battSubvCut").hidden = !r.renoBattCut;
     if ($("lineRaccSubv")) $("lineRaccSubv").textContent = r.renoRaccOn ? ("− " + fmtShownMoney(r.renoRaccSubv)) : "—";
     syncSubsidyCounts();
     if ($("lineBatt")) $("lineBatt").textContent = fmtShownMoney(r.battCost);
@@ -1840,7 +1829,6 @@
     battTaxes: true,
     renoBatt: false,
     renoRacc: false,
-    raccCost: RACC_COST_DEFAULT,
     fullAuto: false,
     multi: false
   };
@@ -1950,11 +1938,6 @@
     const battTaxes = parseFlagParam(q.has("battTaxes") ? q.get("battTaxes") : null, d.battTaxes);
     const renoBatt = parseFlagParam(q.has("renoBatt") ? q.get("renoBatt") : null, d.renoBatt);
     const renoRacc = parseFlagParam(q.has("renoRacc") ? q.get("renoRacc") : null, d.renoRacc);
-    let raccCost = d.raccCost;
-    if (q.has("raccCost")) {
-      const v = snapStep(q.get("raccCost"), 0, RACC_COST_MAX, 1);
-      if (isFinite(v)) raccCost = v;
-    }
     const fullAuto = parseFlagParam(q.has("fullAuto") ? q.get("fullAuto") : null, d.fullAuto);
     const multi = parseFlagParam(q.has("multi") ? q.get("multi") : null, d.multi);
     const pansParsed = q.has("pans") ? parsePansParam(q.get("pans")) : [];
@@ -1963,10 +1946,10 @@
       const raw = String(q.get("ville") || "").trim().toLowerCase();
       if (/^[a-z0-9-]{1,80}$/.test(raw)) ville = raw;
     }
-    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battKwh, battTaxes, renoBatt, renoRacc, raccCost, fullAuto, multi, pans: pansParsed };
+    return { area, unit, util, orient, tilt, deneige, priceW, taxes, subv, conso, rate, ville, consoJour, consoExtra, autoStop, battKwh, battTaxes, renoBatt, renoRacc, fullAuto, multi, pans: pansParsed };
   }
 
-  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battPrice", "battTaxes", "renoBatt", "renoRacc", "raccCost", "fullAuto", "multi", "pans"];
+  const SCENARIO_KEYS = ["ville", "area", "unit", "util", "orient", "tilt", "deneige", "priceW", "taxes", "subv", "conso", "rate", "consoJour", "consoExtra", "autoStop", "battKwh", "battPrice", "battTaxes", "renoBatt", "renoRacc", "fullAuto", "multi", "pans"];
 
   /** True after a control is used, or when the link already carries scenario values. */
   let scenarioSnapshot = false;
@@ -1984,10 +1967,7 @@
   /** Rénoclimat stays out of the link until someone applies it, so older links keep their shape. */
   function appendSubsidyParams(p, s) {
     if (s.renoBatt) p.set("renoBatt", "1");
-    if (s.renoRacc) {
-      p.set("renoRacc", "1");
-      if (s.raccCost !== SCENARIO_DEFAULTS.raccCost) p.set("raccCost", String(s.raccCost));
-    }
+    if (s.renoRacc) p.set("renoRacc", "1");
   }
 
   function serializeScenario(s, mode, full) {
@@ -2067,7 +2047,6 @@
     if ($("battTaxes")) $("battTaxes").checked = !!s.battTaxes;
     if ($("renoBatt")) $("renoBatt").checked = !!s.renoBatt;
     if ($("renoRacc")) $("renoRacc").checked = !!s.renoRacc;
-    if ($("raccCost")) $("raccCost").value = fmtGroupedInt(s.raccCost);
     if ($("fullAuto")) $("fullAuto").checked = !!s.fullAuto;
     if (s.pans && s.pans.length) {
       pans = s.pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; });
@@ -2118,7 +2097,6 @@
       battTaxes: $("battTaxes") ? !!$("battTaxes").checked : d.battTaxes,
       renoBatt: renoBattOn(),
       renoRacc: renoRaccOn(),
-      raccCost: $("raccCost") ? raccCostHT() : d.raccCost,
       fullAuto: $("fullAuto") ? !!$("fullAuto").checked : d.fullAuto,
       multi: multiOn(),
       pans: multiOn() && pans ? pans.map(function (p) { return { m2: p.m2, az: p.az, tilt: p.tilt, snow: p.snow }; }) : [],
@@ -2294,7 +2272,7 @@
     if (key === "logisvert") return r.subvOn ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.subv) : "Non appliquée dans le calcul";
     if (key === "renoBatt") return r.renoBattOn ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.renoBattSubv) : "Non appliquée dans le calcul";
     return r.renoRaccOn
-      ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.renoRaccSubv) + " (honoraires inscrits\u00A0: " + fmtMoney(r.raccHT) + " HT)"
+      ? "Appliquée dans le calcul\u00A0: − " + fmtMoney(r.renoRaccSubv)
       : "Non appliquée dans le calcul";
   }
 
@@ -3178,18 +3156,21 @@
       row("Nombre de modules", fmtNum(r.battModules, 0), "calc", "arrondi de la réserve ÷ 16,1, au moins 1"),
       row("Prix des batteries", fmtNum(r.battKwh, 0) + "\u00A0$/kWh", "input", "curseur de la carte 5"),
       row("Prix d’un module", fmtMoney(r.battPrice), "calc", "16,1\u00A0kWh × $/kWh"),
-      row("Batteries (HT)", fmtMoney(r.battHT), "calc", "modules × prix d’un module"),
-      row("Raccordement, maître électricien (HT)", r.renoRaccOn ? fmtMoney(r.raccHT) : "non compté", "input", r.renoRaccOn ? "honoraires inscrits sous l’aide Raccordement" : "case Raccordement décochée"),
+      row("Batteries (HT)", fmtMoney(r.battHT), "calc", battHtEquation(r)),
       row("Taxes TPS + TVQ", r.battTaxOn ? fmtMoney(r.battTaxes) : "non comprises", r.battTaxOn ? "std" : "input", r.battTaxOn ? "14,975\u00A0% du HT (case cochée)" : "case décochée"),
-      row("Aide Rénoclimat — batterie fixe", r.renoBattOn ? "− " + fmtMoney(r.renoBattSubv) : "non appliquée", r.renoBattOn ? "std" : "input", r.renoBattOn ? "min(4\u00A0000\u00A0$, batteries HT), système d’au moins 5\u00A0kWh" : "case décochée"),
-      row("Aide Rénoclimat — raccordement", r.renoRaccOn ? "− " + fmtMoney(r.renoRaccSubv) : "non appliquée", r.renoRaccOn ? "std" : "input", r.renoRaccOn ? "min(1\u00A0000\u00A0$, honoraires HT)" : "case décochée"),
+      row("Aide Rénoclimat — batterie fixe", r.renoBattOn ? "− " + fmtMoney(r.renoBattSubv) : "non appliquée", r.renoBattOn ? "std" : "input", r.renoBattCut ? "0\u00A0$ sous 5\u00A0kWh installés" : (r.renoBattOn ? "min(4\u00A0000\u00A0$, batteries HT), système d’au moins 5\u00A0kWh" : "case décochée")),
+      row("Aide Rénoclimat — raccordement", r.renoRaccOn ? "− " + fmtMoney(r.renoRaccSubv) : "non appliquée", r.renoRaccOn ? "std" : "input", r.renoRaccOn ? "min(1\u00A0000\u00A0$, reste du HT après l’aide batterie)" : "case décochée"),
       row("LogisVert", "0\u00A0$", "std", "LogisVert ne couvre pas le stockage")
     ];
   }
+  /** Équation du sous-total HT, celle qui vivait sur la carte (#194). */
+  function battHtEquation(r) {
+    if (!(r.battModules > 0) || !isFinite(r.battHT)) return "Aucun module";
+    const word = r.battModules > 1 ? "modules" : "module";
+    return fmtNum(r.battModules, 0) + " " + word + " × " + fmtNum(BATT_MODULE_KWH, 1) + "\u00A0kWh × " + fmtNum(r.battKwh, 0) + "\u00A0$/kWh = " + fmtShownMoney(r.battHT);
+  }
   function battFormula(r) {
-    const parts = ["modules × 16,1\u00A0kWh × $/kWh"];
-    if (r.renoRaccOn) parts.push("raccordement");
-    let f = "batteries = " + parts.join(" + ");
+    let f = "batteries = modules × 16,1\u00A0kWh × $/kWh";
     if (r.battTaxOn) f += " + taxes";
     if (r.renoBattOn || r.renoRaccOn) f += " − aides Rénoclimat";
     return f;
@@ -3390,6 +3371,21 @@
         shownNote: "toujours en jours, une décimale sous 10 jours",
         notes: [],
         tpl: "remplissage"
+      };
+    },
+    battht: function (r) {
+      return {
+        title: "Batteries (HT)",
+        rows: [
+          row("Réserve", kwhVal(r.reserveKwh, 3), "calc", "boîte Réserve de 4B"),
+          row("Module", "16,1\u00A0kWh", "std", "module Volthium"),
+          row("Nombre de modules", fmtNum(r.battModules, 0), "calc", "arrondi de la réserve ÷ 16,1, au moins 1"),
+          row("Prix des batteries", fmtNum(r.battKwh, 0) + "\u00A0$/kWh", "input", "curseur de la carte 5")
+        ],
+        formula: battHtEquation(r),
+        exact: fmtMoney(r.battHT),
+        shown: fmtShownMoney(r.battHT),
+        notes: ["Sous-total avant taxes et avant les aides Rénoclimat.", NOTE_ROUNDING]
       };
     },
     battcost: function (r) {
@@ -4175,12 +4171,6 @@
     document.querySelectorAll("[data-subv-elig]").forEach(function (btn) {
       btn.addEventListener("click", function () { openEligibility(btn.getAttribute("data-subv-elig")); });
     });
-    const raccCost = $("raccCost");
-    if (raccCost) {
-      raccCost.addEventListener("input", onScenarioEdit);
-      raccCost.addEventListener("change", function () { scenarioSnapshot = true; formatRaccCostInput(); render(); });
-      raccCost.addEventListener("blur", function () { scenarioSnapshot = true; formatRaccCostInput(); render(); });
-    }
     // Chaque bouton ferme sa propre feuille : la feuille bug peut rester ouverte au-dessus (#166).
     const MODAL_CLOSERS = {
       btnInfoClose: "infoModal", btnInfoOk: "infoModal",
@@ -4940,6 +4930,7 @@
 
   window.SolarCalcV02 = {
     calc,
+    renoAids,
     applyDeneigement,
     creditKwh,
     consoAnnuelleKwh,
