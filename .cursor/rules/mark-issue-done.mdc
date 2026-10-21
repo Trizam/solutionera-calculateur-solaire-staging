@@ -1,0 +1,12 @@
+---
+description: If a change fixes a GitHub issue, the pull request must say Fixes #N
+alwaysApply: true
+---
+
+# Mark the issue done
+
+If this work fixes a GitHub issue, put `Fixes #N` in the pull request body before you open it. One line per finished issue.
+
+GitHub closes the issue when that pull request is merged. Opening the pull request without that line leaves the issue open.
+
+Do not write `Fixes` for an issue this change does not finish. Do not close an `idea` or `to-validate` issue until Master has said yes. Do not close issue #95.
