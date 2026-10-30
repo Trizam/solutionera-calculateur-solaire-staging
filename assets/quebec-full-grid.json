@@ -66,7 +66,7 @@
       "ac_monthly": "kWh_ac per month for 1 kWdc"
     },
     "method": [
-      "Fred correction: azimuth every 15° (24 values), tilts 0/15/30/45/60/75/90 → 168 cells.",
+      "Correction: azimuth every 15° (24 values), tilts 0/15/30/45/60/75/90 → 168 cells.",
       "Every cell: PVWatts v8 monthly timeframe → ac_annual + ac_monthly + W_winter.",
       "tilt=0 fetched once and copied to all azimuths.",
       "NLR API key; no PVGIS; local embed for snappy + déneigement per orientation."

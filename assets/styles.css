@@ -538,7 +538,7 @@ html[data-need="off"] .need-only {
  * Thin hairlines between stacked field sections in the same card.
  * Equal half-gap (--section-hairline-pad) each side of the 1px rule.
  * Neutralize .hint / sous-titre margins that would skew the optical gap.
- * Fred lock: do not restyle controls, fonts, colors, grid, or sliders.
+ * Design lock: do not restyle controls, fonts, colors, grid, or sliders.
  * Modal .field stacks stay untouched.
  */
 section.block > .field:has(+ .field) {
