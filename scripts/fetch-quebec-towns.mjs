@@ -359,7 +359,7 @@ async function nominatim(params) {
     const res = await fetch(url, {
       headers: {
         Accept: "application/json",
-        "User-Agent": "solutionera-calculateur-solaire/0.2 (quebec town grid; educational)"
+        "User-Agent": "calculateur-solaire/0.2 (quebec town grid; educational)"
       }
     });
     if (res.status === 429 || res.status >= 500) {
@@ -450,7 +450,7 @@ async function reverseWater(lat, lon) {
   const res = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "solutionera-calculateur-solaire/0.2 (quebec town grid; educational)"
+      "User-Agent": "calculateur-solaire/0.2 (quebec town grid; educational)"
     }
   });
   if (!res.ok) return false;

@@ -142,7 +142,7 @@ export async function createGithubIssue(token, issue, repo, fetchImpl) {
       Authorization: "Bearer " + token,
       "X-GitHub-Api-Version": "2022-11-28",
       "Content-Type": "application/json",
-      "User-Agent": "solutionera-calculateur-bug-report"
+      "User-Agent": "calculateur-solaire-bug-report"
     },
     body: JSON.stringify(issue)
   });
@@ -170,7 +170,7 @@ export async function addIssueLabels(token, number, labels, repo, fetchImpl) {
       Authorization: "Bearer " + token,
       "X-GitHub-Api-Version": "2022-11-28",
       "Content-Type": "application/json",
-      "User-Agent": "solutionera-calculateur-bug-report"
+      "User-Agent": "calculateur-solaire-bug-report"
     },
     body: JSON.stringify({ labels })
   });
