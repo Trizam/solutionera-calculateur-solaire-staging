@@ -1601,7 +1601,7 @@ const bugHpReject = validateBugPayload(Object.assign({}, bugGood, { honeypot: "h
 const bugMinReject = validateBugPayload(Object.assign({}, bugGood, { bug: "court" }), nowBug).reason === "bug-min";
 const bugFastReject = validateBugPayload(Object.assign({}, bugGood, { openedAt: nowBug }), nowBug).reason === "too-fast";
 const builtIssue = buildBugIssue(bugGood, validateBugPayload(bugGood, nowBug));
-const namedPayload = Object.assign({}, bugGood, { name: "Fred" });
+const namedPayload = Object.assign({}, bugGood, { name: "Testeur" });
 const namedIssue = buildBugIssue(namedPayload, validateBugPayload(namedPayload, nowBug));
 const bugIssueShape =
   builtIssue &&
@@ -1616,7 +1616,7 @@ const bugIssueShape =
   builtIssue.body.indexOf("## Correction souhaitée") < 0 &&
   /## Nom\s+—/.test(builtIssue.body) &&
   namedIssue &&
-  namedIssue.body.indexOf("Fred") >= 0;
+  namedIssue.body.indexOf("Testeur") >= 0;
 const clientIssueFn =
   app.includes("function bugReportEndpoint") &&
   app.includes('meta[name="bug-report-endpoint"]') &&
@@ -2696,7 +2696,7 @@ const needLive = await (async function runNeedTests() {
   return fails.length === 0;
 })();
 
-// Fred : à zéro en 4A, la conso annuelle ne doit jamais être figée (coche masquée mais encore cochée).
+// Règle : à zéro en 4A, la conso annuelle ne doit jamais être figée (coche masquée mais encore cochée).
 const consoUnlockAtZero = await (async function runConsoUnlockAtZero() {
   const fails = [];
   function expect(cond, msg) { if (!cond) fails.push(msg); }
