@@ -175,7 +175,7 @@ export async function exchangeCodeForUser(cfg, code, requestUrl, fetchImpl) {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": "solutionera-calculateur-bug-report"
+      "User-Agent": "calculateur-solaire-bug-report"
     },
     body: JSON.stringify({
       client_id: cfg.clientId,
@@ -196,7 +196,7 @@ export async function exchangeCodeForUser(cfg, code, requestUrl, fetchImpl) {
       Accept: "application/vnd.github+json",
       Authorization: "Bearer " + token,
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "solutionera-calculateur-bug-report"
+      "User-Agent": "calculateur-solaire-bug-report"
     }
   });
   const user = await userRes.json().catch(function () { return {}; });

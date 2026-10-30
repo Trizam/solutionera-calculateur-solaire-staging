@@ -1711,7 +1711,7 @@ const bugJsWired =
   app.includes("Signalement temporairement indisponible") &&
   !app.includes("function reportBug") &&
   !app.includes("mailtoBugHref") &&
-  !app.includes("mailto:hello@solutionera.com") &&
+  !app.includes("mailto:") &&
   !app.includes("bug-report-token") &&
   !app.includes("Authorization") &&
   !app.includes("function buildGithubIssue") &&
