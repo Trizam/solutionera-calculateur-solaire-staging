@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-WORKER_URL="${WORKER_URL:-https://solutionera-bug-report.fred-435.workers.dev}"
+WORKER_URL="${WORKER_URL:-https://solutionera-bug-report.oasis-ops.workers.dev}"
 
 if [[ -z "${GITHUB_OAUTH_CLIENT_ID:-}" ]]; then
   read -r -p "Client ID de l'OAuth App GitHub : " GITHUB_OAUTH_CLIENT_ID
