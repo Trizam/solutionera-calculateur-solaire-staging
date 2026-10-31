@@ -57,6 +57,12 @@
       return doc.documentElement.getAttribute("data-mode") !== "webi" && mq.matches;
     }
 
+    function columnEl() {
+      var solar = board.querySelector(".col-solar");
+      if (solar && solar.offsetWidth >= 40) return solar;
+      return board.querySelector(".slot-roof") || board.querySelector(".slot-cost");
+    }
+
     function readGap() {
       var cs = win.getComputedStyle(board);
       var g = parseFloat(cs.columnGap);
@@ -69,7 +75,7 @@
     }
 
     function metrics() {
-      var solar = board.querySelector(".col-solar");
+      var solar = columnEl();
       if (!solar) return null;
       var w = viewport.clientWidth;
       var pane = solar.offsetWidth;

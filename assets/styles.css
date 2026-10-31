@@ -2552,7 +2552,83 @@ section.block h2 .field-info-btn {
 #sec-total .breakdown { margin-bottom: 0.85rem; }
 #sec-total .result-pill { margin-top: 0; }
 
-/* Phone / narrow full mode: both columns side by side, other column peeks. */
+/* Full mode, every width: one grid so the rows stay the same height on both
+   columns (issue #187). The phone corridor only widens the board and clips it. */
+html:not([data-mode="webi"]) .col { display: contents; }
+html:not([data-mode="webi"]) .board {
+  --board-gap: 3.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "roof need"
+    "yield fill"
+    "cost batt"
+    "roi total";
+  column-gap: var(--board-gap);
+  row-gap: 1rem;
+  align-items: stretch;
+}
+html:not([data-mode="webi"]) .slot-roof { grid-area: roof; }
+html:not([data-mode="webi"]) .slot-need { grid-area: need; }
+html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
+html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
+html:not([data-mode="webi"]) .slot-cost { grid-area: cost; align-self: start; }
+html:not([data-mode="webi"]) .slot-batt { grid-area: batt; align-self: start; }
+html:not([data-mode="webi"]) .slot-roi { grid-area: roi; align-self: start; }
+html:not([data-mode="webi"]) .slot-total { grid-area: total; align-self: start; }
+html:not([data-mode="webi"]) #autonomyNone {
+  grid-column: 2;
+  grid-row: fill-start / total-end;
+  align-self: stretch;
+}
+html:not([data-mode="webi"]) .slot-roof,
+html:not([data-mode="webi"]) .slot-need,
+html:not([data-mode="webi"]) .slot-batt,
+html:not([data-mode="webi"]) .slot-total {
+  display: flex;
+  flex-direction: column;
+}
+/* Verrou #151 (docs/DESIGN.md §2 bis) : 4A–4B posées sur « Temps pour remplir ».
+   #170 : 1A–1B posées de même sur Mesurage net / Autonomie. La colonne la plus
+   courte descend s’appuyer sur la rangée centrale ; le vide reste au-dessus. */
+html:not([data-mode="webi"]) .slot-roof,
+html:not([data-mode="webi"]) .slot-need { align-self: end; }
+/* #180 : 4A à zéro flotte centrée en hauteur avec Mesurage net / Autonomie (même rangée fill). */
+html:not([data-mode="webi"])[data-need="off"] .slot-need {
+  grid-row: fill;
+  align-self: center;
+}
+html:not([data-mode="webi"])[data-need="off"] .slot-yield { align-self: center; }
+html:not([data-mode="webi"]) .project-note-side { display: block; }
+html:not([data-mode="webi"]) .project-note-stack { display: none; }
+html:not([data-mode="webi"]) .flow-arrow {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  left: calc(var(--board-gap) / -2);
+  top: 50%;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--green-dark);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+}
+/* Flèche de secours quand #sec-fill (et sa flèche) est masqué : depuis Mesurage net vers 4A. */
+html:not([data-mode="webi"]) .flow-arrow-need { display: none; }
+html:not([data-mode="webi"])[data-need="off"] .flow-arrow-need {
+  display: grid;
+  left: auto;
+  right: calc(var(--board-gap) / -2);
+  transform: translate(50%, -50%);
+}
+
+/* Phone / narrow full mode: same rows, board wider than the screen, other column peeks. */
 @media (max-width: 1099px) {
   html:not([data-mode="webi"]) .board-viewport {
     overflow-x: clip;
@@ -2566,99 +2642,16 @@ section.block h2 .field-info-btn {
   }
   html:not([data-mode="webi"]) .board {
     --pane-sliver: 2.25rem;
-    --pane-gap: 0.65rem;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: var(--pane-gap);
+    /* Wide enough for the 1.85rem arrow to sit in the gutter, not under a card. */
+    --pane-gap: 2rem;
+    --board-gap: var(--pane-gap);
     width: calc(200% - (2 * var(--pane-sliver)) - var(--pane-gap));
   }
-  html:not([data-mode="webi"]) .col {
-    flex: 1 1 0;
-    width: 0;
-    min-width: 0;
-  }
-  html:not([data-mode="webi"]) .project-note-side { display: block; }
-  html:not([data-mode="webi"]) .project-note-stack { display: none; }
 }
 
 @media (min-width: 1100px) {
   html:not([data-mode="webi"]) .wrap { max-width: 1180px; }
-  html:not([data-mode="webi"]) .board-viewport,
-  html:not([data-mode="webi"]) .col {
-    display: contents;
-  }
-  html:not([data-mode="webi"]) .board {
-    --board-gap: 3.25rem;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "roof need"
-      "yield fill"
-      "cost batt"
-      "roi total";
-    column-gap: var(--board-gap);
-    row-gap: 1rem;
-    align-items: stretch;
-  }
-  html:not([data-mode="webi"]) .slot-roof { grid-area: roof; }
-  html:not([data-mode="webi"]) .slot-need { grid-area: need; }
-  html:not([data-mode="webi"]) .slot-yield { grid-area: yield; align-self: start; }
-  html:not([data-mode="webi"]) .slot-fill { grid-area: fill; align-self: start; }
-  html:not([data-mode="webi"]) .slot-cost { grid-area: cost; align-self: start; }
-  html:not([data-mode="webi"]) .slot-batt { grid-area: batt; align-self: start; }
-  html:not([data-mode="webi"]) .slot-roi { grid-area: roi; align-self: start; }
-  html:not([data-mode="webi"]) .slot-total { grid-area: total; align-self: start; }
-  html:not([data-mode="webi"]) #autonomyNone {
-    grid-column: 2;
-    grid-row: fill-start / total-end;
-    align-self: stretch;
-  }
-  html:not([data-mode="webi"]) .slot-roof,
-  html:not([data-mode="webi"]) .slot-need,
-  html:not([data-mode="webi"]) .slot-batt,
-  html:not([data-mode="webi"]) .slot-total {
-    display: flex;
-    flex-direction: column;
-  }
-  /* Verrou #151 (docs/DESIGN.md §2 bis) : 4A–4B posées sur « Temps pour remplir ».
-     #170 : 1A–1B posées de même sur Mesurage net / Autonomie. La colonne la plus
-     courte descend s’appuyer sur la rangée centrale ; le vide reste au-dessus. */
-  html:not([data-mode="webi"]) .slot-roof,
-  html:not([data-mode="webi"]) .slot-need { align-self: end; }
-  /* #180 : 4A à zéro flotte centrée en hauteur avec Mesurage net / Autonomie (même rangée fill). */
-  html:not([data-mode="webi"])[data-need="off"] .slot-need {
-    grid-row: fill;
-    align-self: center;
-  }
-  html:not([data-mode="webi"])[data-need="off"] .slot-yield { align-self: center; }
-  html:not([data-mode="webi"]) .project-note-side { display: block; }
-  html:not([data-mode="webi"]) .project-note-stack { display: none; }
-  html:not([data-mode="webi"]) .flow-arrow {
-    display: grid;
-    place-items: center;
-    position: absolute;
-    left: calc(var(--board-gap) / -2);
-    top: 50%;
-    width: 1.85rem;
-    height: 1.85rem;
-    margin: 0;
-    border-radius: 999px;
-    background: var(--card);
-    color: var(--green-dark);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    transform: translate(-50%, -50%);
-    z-index: 2;
-    pointer-events: none;
-  }
-  /* Flèche de secours quand #sec-fill (et sa flèche) est masqué : depuis Mesurage net vers 4A. */
-  html:not([data-mode="webi"]) .flow-arrow-need { display: none; }
-  html:not([data-mode="webi"])[data-need="off"] .flow-arrow-need {
-    display: grid;
-    left: auto;
-    right: calc(var(--board-gap) / -2);
-    transform: translate(50%, -50%);
-  }
+  html:not([data-mode="webi"]) .board-viewport { display: contents; }
 }
 
 @media print {
